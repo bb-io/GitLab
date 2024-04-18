@@ -14,7 +14,7 @@ public class OAuth2AuthorizeService : BaseInvocable, IOAuth2AuthorizeService
     public string GetAuthorizationUrl(Dictionary<string, string> values)
     {
         string bridgeOauthUrl = $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}/oauth";
-        const string oauthUrl = "https://gitlab.example.com/oauth/authorize";
+        const string oauthUrl = "https://gitlab.com/oauth/authorize";
         var parameters = new Dictionary<string, string>
         {
             { "client_id", ApplicationConstants.ClientId },

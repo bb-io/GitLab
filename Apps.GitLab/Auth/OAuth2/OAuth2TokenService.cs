@@ -8,7 +8,7 @@ namespace Apps.Gitlab.Auth.OAuth2;
 public class OAuth2TokenService : BaseInvocable, IOAuth2TokenService
 {
     private const string ExpiresAtKeyName = "expires_at";
-    private const string TokenUrl = "https://gitlab.example.com/oauth/token";
+    private const string TokenUrl = "https://gitlab.com/oauth/token";
 
     public OAuth2TokenService(InvocationContext invocationContext) : base(invocationContext)
     {
