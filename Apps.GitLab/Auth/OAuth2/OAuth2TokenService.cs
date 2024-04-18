@@ -71,6 +71,6 @@ public class OAuth2TokenService : BaseInvocable, IOAuth2TokenService
         var expiresIn = int.Parse(resultDictionary["expires_in"]);
         var expiresAt = utcNow.AddSeconds(expiresIn);
         resultDictionary.Add(ExpiresAtKeyName, expiresAt.ToString());
-        return new Dictionary<string, string>();
+        return resultDictionary;
     }
 }
