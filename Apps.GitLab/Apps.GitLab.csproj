@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Product>GitLab</Product>
+    <Description>Software development &amp; version control</Description>
+    <Version>1.0.0</Version>
+    <AssemblyName>Apps.GitLab</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.6.0" />
+    <PackageReference Include="Blackbird.Applications.SDK.Extensions.FileManagement" Version="1.0.1" />
+    <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.25" />
+    <PackageReference Include="GitLabApiClient" Version="1.8.0" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.4" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>
