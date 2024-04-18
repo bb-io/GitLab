@@ -47,7 +47,7 @@ public class OAuth2TokenService : BaseInvocable, IOAuth2TokenService
             { "client_id", ApplicationConstants.ClientId.Split(' ')[0] },//ApplicationConstants.ClientId },
             { "client_secret", ApplicationConstants.ClientId.Split(' ')[1] },//ApplicationConstants.ClientSecret },
             { "code", code },
-            { "redirect_uri","https://2ae7-178-211-106-141.ngrok-free.app/api/AuthorizationCode" }// $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}/AuthorizationCode" },
+            { "redirect_uri", $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}/AuthorizationCode" },
         };
         return await RequestToken(bodyParameters, cancellationToken);
     }

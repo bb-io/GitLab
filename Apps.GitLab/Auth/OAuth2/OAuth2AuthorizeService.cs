@@ -13,12 +13,12 @@ public class OAuth2AuthorizeService : BaseInvocable, IOAuth2AuthorizeService
 
     public string GetAuthorizationUrl(Dictionary<string, string> values)
     {
-        string bridgeOauthUrl = "https://2ae7-178-211-106-141.ngrok-free.app/api/oauth";//$"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}/oauth";
+        string bridgeOauthUrl = $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}/oauth";
         const string oauthUrl = "https://gitlab.com/oauth/authorize";
         var parameters = new Dictionary<string, string>
         {
             { "client_id", ApplicationConstants.ClientId.Split(' ')[0] },//ApplicationConstants.ClientId },
-            { "redirect_uri", "https://2ae7-178-211-106-141.ngrok-free.app/api/AuthorizationCode" },//$"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}/AuthorizationCode" },
+            { "redirect_uri", $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}/AuthorizationCode" },
             { "scope", ApplicationConstants.Scope },
             { "state", values["state"] },
             { "response_type", "code" },
