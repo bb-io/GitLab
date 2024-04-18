@@ -25,8 +25,8 @@ public class OAuth2TokenService : BaseInvocable, IOAuth2TokenService
         var bodyParameters = new Dictionary<string, string>
         {
             { "grant_type", grant_type },
-            { "client_id", ApplicationConstants.ClientId },
-            { "client_secret", ApplicationConstants.ClientSecret },
+            { "client_id", ApplicationConstants.ClientId.Split(' ')[0] },
+            { "client_secret", ApplicationConstants.ClientId.Split(' ')[1] },//ApplicationConstants.ClientSecret },
             { "refresh_token", values["refresh_token"] },
             { "redirect_uri", $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}/AuthorizationCode" },
         };
@@ -44,8 +44,8 @@ public class OAuth2TokenService : BaseInvocable, IOAuth2TokenService
         var bodyParameters = new Dictionary<string, string>
         {
             { "grant_type", grant_type },
-            { "client_id", ApplicationConstants.ClientId },
-            { "client_secret", ApplicationConstants.ClientSecret },
+            { "client_id", ApplicationConstants.ClientId.Split(' ')[0] },//ApplicationConstants.ClientId },
+            { "client_secret", ApplicationConstants.ClientId.Split(' ')[1] },//ApplicationConstants.ClientSecret },
             { "code", code },
             { "redirect_uri", $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}/AuthorizationCode" },
         };
