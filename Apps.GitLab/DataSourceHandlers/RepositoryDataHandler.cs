@@ -1,4 +1,5 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.Gitlab.Actions;
+using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
@@ -18,7 +19,7 @@ public class RepositoryDataHandler : BaseInvocable, IAsyncDataSourceHandler
         DataSourceContext context,
         CancellationToken cancellationToken)
     {
-        var content = await new BlackbirdGitlabClient(Creds).Client.Projects.GetAsync();
+        var content = await new BlackbirdGitlabClient(Creds).Client.Projects.GetAsync(RepositoryActions.GetRepositorySearchOptions);
         return content
             .Where(x => context.SearchString == null ||
                         x.Name.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))

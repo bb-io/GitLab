@@ -12,6 +12,8 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Apps.GitHub.Models.Branch.Requests;
 using GitLabApiClient.Models.Projects.Responses;
 using GitLabApiClient.Internal.Paths;
+using GitLabApiClient.Models.Branches.Requests;
+using GitLabApiClient.Models.Projects.Requests;
 
 namespace Apps.Gitlab.Actions;
 
@@ -264,4 +266,8 @@ public class RepositoryActions : GitLabActions
     //        IsFileInFolder = input.FilePath.Split('/').SkipLast(1).Contains(input.FolderName) ? 1 : 0
     //    };
     //}
+    public static void GetRepositorySearchOptions(ProjectQueryOptions options)
+    {
+        options.IsMemberOf = true;
+    }
 }
