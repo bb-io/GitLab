@@ -19,7 +19,7 @@ public class RepositoryDataHandler : BaseInvocable, IAsyncDataSourceHandler
         DataSourceContext context,
         CancellationToken cancellationToken)
     {
-        var content = await new BlackbirdGitlabClient(Creds).Client.Projects.GetAsync(RepositoryActions.GetRepositorySearchOptions);
+        var content = await new BlackbirdGitlabClient(Creds).Client.Projects.GetAsync((options) => { options.IsMemberOf = true; });
         return content
             .Where(x => context.SearchString == null ||
                         x.Name.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))

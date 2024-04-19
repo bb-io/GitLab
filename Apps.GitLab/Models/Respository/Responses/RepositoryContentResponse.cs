@@ -1,6 +1,8 @@
-﻿namespace Apps.Gitlab.Models.Respository.Responses;
+﻿using GitLabApiClient.Models.Trees.Responses;
+
+namespace Apps.Gitlab.Models.Respository.Responses;
 
 public class RepositoryContentResponse
 {
-    //public IEnumerable<RepositoryContent> Content { get; set; }
+    public IEnumerable<Tree> Content { get; set; }
 }

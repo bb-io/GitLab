@@ -1,6 +1,6 @@
 ﻿using Apps.Gitlab.Webhooks.Handlers;
 using Apps.Gitlab.Webhooks.Payloads;
-using Apps.GitHub.Webhooks.Payloads;
+using Apps.Gitlab.Webhooks.Payloads;
 using Blackbird.Applications.Sdk.Common.Webhooks;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Newtonsoft.Json;
