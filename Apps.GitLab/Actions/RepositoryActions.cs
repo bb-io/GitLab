@@ -11,13 +11,10 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Apps.Gitlab.Models.Branch.Requests;
 using GitLabApiClient.Models.Projects.Responses;
 using GitLabApiClient.Internal.Paths;
-using GitLabApiClient.Models.Projects.Requests;
 using Apps.GitLab;
 using Apps.Gitlab.Models.Commit.Responses;
 using Blackbird.Applications.Sdk.Utils.Models;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
-using RestSharp;
-using GitLabApiClient.Models.Commits.Requests;
 
 namespace Apps.Gitlab.Actions;
 

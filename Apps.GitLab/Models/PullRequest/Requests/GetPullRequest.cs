@@ -6,6 +6,6 @@ namespace Apps.Gitlab.Models.PullRequest.Requests;
 
 public class GetPullRequest
 {
-    [Display("Pull request number")]
-    public string PullRequestNumber { get; set; }
+    [Display("Merge request ID")]
+    public string PullRequestId { get; set; }
 }
