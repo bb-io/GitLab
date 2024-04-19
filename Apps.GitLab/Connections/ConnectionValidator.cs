@@ -11,7 +11,7 @@ namespace Apps.Gitlab.Connections
         {
             try
             {
-                await new BlackbirdGitlabClient(authProviders).Client.Projects.GetAsync(RepositoryActions.GetRepositorySearchOptions);
+                await new BlackbirdGitlabClient(authProviders).Client.Projects.GetAsync((options) => { options.IsMemberOf = true; });
 
                 return new()
                 {
