@@ -13,6 +13,7 @@ public class GitLabActions : BaseInvocable
     private BlackbirdGitlabClient GitLabClient { get; set; }
 
     protected GitLabClient Client { get => GitLabClient.Client; }
+    protected BlackbirdGitlabClient RestClient { get => GitLabClient; }
 
     public GitLabActions(InvocationContext invocationContext) : base(invocationContext)
     {

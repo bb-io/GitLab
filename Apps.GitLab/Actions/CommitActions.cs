@@ -58,7 +58,7 @@ public class CommitActions : GitLabActions
     }
 
     [Action("Create or update file", Description = "Create or update file")]
-    public async Task<Upload> PushFile(
+    public async Task<Commit> PushFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] PushFileRequest input)
@@ -82,7 +82,7 @@ public class CommitActions : GitLabActions
 
         var file = _fileManagementClient.DownloadAsync(input.File).Result;
         var fileBytes = file.GetByteData().Result;
-        var pushFileResult = await Client.Uploads.UploadFile(projectId, new CreateUploadRequest(file, input.DestinationFilePath));
+        var pushFileResult = await RestClient.CreateCommit(projectId, branchRequest.Name, input.CommitMessage, input.DestinationFilePath, fileBytes);
         return pushFileResult;
     }
 

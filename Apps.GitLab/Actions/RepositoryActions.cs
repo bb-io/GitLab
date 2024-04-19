@@ -46,7 +46,8 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] GetFileRequest getFileRequest)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var fileData = await Client.Files.GetAsync(projectId, getFileRequest.FilePath, branchRequest.Name ?? "main");
+        var repository = await Client.Projects.GetAsync(projectId);
+        var fileData = await Client.Files.GetAsync(projectId, getFileRequest.FilePath, branchRequest.Name ?? repository.DefaultBranch);
         if (fileData == null)
             throw new ArgumentException($"File does not exist ({getFileRequest.FilePath})");
 
@@ -77,7 +78,7 @@ public class RepositoryActions : GitLabActions
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
         var resultFiles = new List<GitLabFile>();
-        var content = await GetArchive(projectId, branchRequest.Name);
+        var content = await RestClient.GetArchive(projectId, branchRequest.Name);
         if (content == null || content.Length == 0)
         {
             throw new ArgumentException("Repository is empty!");
@@ -223,24 +224,4 @@ public class RepositoryActions : GitLabActions
             IsFileInFolder = input.FilePath.Split('/').SkipLast(1).Contains(input.FolderName) ? 1 : 0
         };
     }
-
-    private async Task<byte[]> GetArchive(ProjectId projectId, string? branchName)
-    {
-        var commits = await Client.Commits.GetAsync(projectId, 
-            (CommitQueryOptions options) => 
-            {
-                options.All = true;
-                if (!string.IsNullOrWhiteSpace(branchName))
-                    options.RefName = branchName;
-            });
-        var branchCommit = string.IsNullOrWhiteSpace(branchName) ? $"?sha={commits.OrderBy(x => x.CreatedAt).First().Id}" : "";
-        var request = new RestRequest($"/v4/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
-        request.AddHeader("Authorization", $"Bearer {InvocationContext.AuthenticationCredentialsProviders.First(p => p.KeyName == "Authorization").Value}");
-        var result = await new RestClient("https://gitlab.com/api").ExecuteAsync(request);
-        return result.RawBytes;
-    }
-    public static void GetRepositorySearchOptions(ProjectQueryOptions options)
-    {
-        options.IsMemberOf = true;
-    }    
 }
