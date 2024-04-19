@@ -1,7 +1,5 @@
 ﻿using Apps.Gitlab.Actions.Base;
-using Apps.Gitlab.Dtos;
 using Apps.Gitlab.Models.Commit.Requests;
-using Apps.Gitlab.Models.Commit.Responses;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
@@ -12,8 +10,6 @@ using Apps.Gitlab.Models.Branch.Requests;
 using GitLabApiClient.Internal.Paths;
 using GitLabApiClient.Models.Commits.Requests;
 using GitLabApiClient.Models.Commits.Responses;
-using GitLabApiClient.Models.Uploads.Requests;
-using GitLabApiClient.Models.Uploads.Responses;
 
 namespace Apps.Gitlab.Actions;
 
@@ -66,62 +62,46 @@ public class CommitActions : GitLabActions
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
         var repContent = await new RepositoryActions(InvocationContext, _fileManagementClient).ListRepositoryContent(
            repositoryRequest, branchRequest, new FolderContentRequest() { IncludeSubfolders = true });
-        //if (repContent.Content.Any(p => p.Path == input.DestinationFilePath)) // update in case of existing file
-        //{
-        //    return UpdateFile(
-        //        repositoryRequest,
-        //        branchRequest,
-        //        new()
-        //        {
-        //            FileId = repContent.Items.First(p => p.Path == input.DestinationFilePath).Sha,
-        //            DestinationFilePath = input.DestinationFilePath,
-        //            File = input.File,
-        //            CommitMessage = input.CommitMessage
-        //        });
-        //}
+        if (repContent.Content.Any(p => p.Path == input.DestinationFilePath)) // update in case of existing file
+        {
+            return await UpdateFile(
+                repositoryRequest,
+                branchRequest,
+                new()
+                {
+                    DestinationFilePath = input.DestinationFilePath,
+                    File = input.File,
+                    CommitMessage = input.CommitMessage
+                });
+        }
 
         var file = _fileManagementClient.DownloadAsync(input.File).Result;
         var fileBytes = file.GetByteData().Result;
-        var pushFileResult = await RestClient.CreateCommit(projectId, branchRequest.Name, input.CommitMessage, input.DestinationFilePath, fileBytes);
+        var pushFileResult = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage, input.DestinationFilePath, fileBytes, "create");
         return pushFileResult;
     }
 
-    //[Action("Update file", Description = "Update file in repository")]
-    //public SmallCommitDto UpdateFile(
-    //    [ActionParameter] GetRepositoryRequest repositoryRequest,
-    //    [ActionParameter] GetOptionalBranchRequest branchRequest,
-    //    [ActionParameter] Models.Commit.Requests.UpdateFileRequest input)
-    //{
-    //    var fileId = input.FileId ?? GetFileId(repositoryRequest.RepositoryId, input.DestinationFilePath, branchRequest);
-    //    var file = _fileManagementClient.DownloadAsync(input.File).Result;
-    //    var fileBytes = file.GetByteData().Result;
-    //    var fileUpload = new Octokit.UpdateFileRequest(input.CommitMessage, Convert.ToBase64String(fileBytes), fileId, branchRequest.Name,
-    //        false);
-    //    var pushFileResult = Client.Repository.Content
-    //        .UpdateFile(long.Parse(repositoryRequest.RepositoryId), input.DestinationFilePath, fileUpload).Result;
+    [Action("Update file", Description = "Update file in repository")]
+    public async Task<Commit> UpdateFile(
+        [ActionParameter] GetRepositoryRequest repositoryRequest,
+        [ActionParameter] GetOptionalBranchRequest branchRequest,
+        [ActionParameter] Models.Commit.Requests.UpdateFileRequest input)
+    {
+        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
+        var file = _fileManagementClient.DownloadAsync(input.File).Result;
+        var fileBytes = file.GetByteData().Result;
+        var fileUpload = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage, input.DestinationFilePath, fileBytes, "update");
+        return fileUpload;
+    }
 
-    //    return new(pushFileResult.Commit);
-    //}
-
-    //[Action("Delete file", Description = "Delete file from repository")]
-    //public Task DeleteFile(
-    //    [ActionParameter] GetRepositoryRequest repositoryRequest,
-    //    [ActionParameter] GetOptionalBranchRequest branchRequest,
-    //    [ActionParameter] Models.Commit.Requests.DeleteFileRequest input)
-    //{
-    //    var fileId = GetFileId(repositoryRequest.RepositoryId, input.FilePath, branchRequest);
-
-    //    var fileDelete = new Octokit.DeleteFileRequest(input.CommitMessage, fileId, branchRequest.Name);
-    //    return Client.Repository.Content.DeleteFile(long.Parse(repositoryRequest.RepositoryId), input.FilePath, fileDelete);
-    //}
-
-    //private string GetFileId(string repoId, string path, GetOptionalBranchRequest branchRequest)
-    //{
-    //    var repoContent = new RepositoryActions(InvocationContext, _fileManagementClient).ListAllRepositoryContent(new()
-    //    {
-    //        RepositoryId = repoId
-    //    }, branchRequest);
-
-    //    return repoContent.Items.First(x => x.Path == path).Sha;
-    //}
+    [Action("Delete file", Description = "Delete file from repository")]
+    public async Task<Commit> DeleteFile(
+        [ActionParameter] GetRepositoryRequest repositoryRequest,
+        [ActionParameter] GetOptionalBranchRequest branchRequest,
+        [ActionParameter] Models.Commit.Requests.DeleteFileRequest input)
+    {
+        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
+        var fileDelete = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage, input.FilePath, null, "delete");
+        return fileDelete;
+    }
 }

@@ -4,6 +4,7 @@ using GitLabApiClient;
 using GitLabApiClient.Internal.Paths;
 using GitLabApiClient.Models.Commits.Requests;
 using GitLabApiClient.Models.Commits.Responses;
+using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Reflection.Metadata;
@@ -37,31 +38,38 @@ public class BlackbirdGitlabClient
                     options.RefName = branchName;
             });
         var branchCommit = string.IsNullOrWhiteSpace(branchName) ? $"?sha={commits.OrderBy(x => x.CreatedAt).First().Id}" : "";
-        var request = new RestRequest($"/v4/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
+        var request = new RestRequest($"/api/v4/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
         request.AddHeader("Authorization", $"Bearer {AuthenticationCredentials.First(p => p.KeyName == "Authorization").Value}");
         var result = await new RestClient(ApiUrl).ExecuteAsync(request);
         return result.RawBytes;
     }
 
-    public async Task<Commit> CreateCommit(ProjectId projectId, string? branchName, string commitMessage, string filePath, byte[] file)
+    public async Task<Commit> PushChanges(ProjectId projectId, string? branchName, string commitMessage, string filePath, byte[] file, string action)
     {
         var repository = await Client.Projects.GetAsync(projectId);
 
-        var request = new RestRequest($"/v4/projects/{projectId}/repository/commit", Method.Post);
+        var request = new RestRequest($"/api/v4/projects/{projectId}/repository/commits", Method.Post);
         request.AddHeader("Authorization", $"Bearer {AuthenticationCredentials.First(p => p.KeyName == "Authorization").Value}");
         request.AddJsonBody(new
         {
-            id = projectId.ToString(),
             branch = branchName ?? repository.DefaultBranch,
             commit_message = commitMessage,
             actions = new[]
             {
+                action != "delete" ?
                 new
                 {
-                    action = "create",
+                    action = action,
                     file_path = filePath,
                     content = Convert.ToBase64String(file),
                     encoding = "base64"
+                } :
+                new
+                {
+                    action = action,
+                    file_path = filePath,
+                    content = string.Empty,
+                    encoding = string.Empty
                 }
             }
         });
