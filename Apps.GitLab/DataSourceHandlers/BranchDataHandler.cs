@@ -13,7 +13,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Apps.GitHub.DataSourceHandlers
+namespace Apps.Gitlab.DataSourceHandlers
 {
     public class BranchDataHandler : BaseInvocable, IAsyncDataSourceHandler
     {
@@ -34,7 +34,7 @@ namespace Apps.GitHub.DataSourceHandlers
             if (RepositoryRequest == null || string.IsNullOrWhiteSpace(RepositoryRequest.RepositoryId))
                 throw new ArgumentException("Please, specify repository first");
             var projectId = (ProjectId)int.Parse(RepositoryRequest.RepositoryId);
-            var branches = await new BlackbirdGitlabClient(Creds).Client.Branches.GetAsync(projectId, BranchActions.GetBranchSearchOptions);
+            var branches = await new BlackbirdGitlabClient(Creds).Client.Branches.GetAsync(projectId, (options) => { });
 
             return branches
                 .Where(x => context.SearchString == null ||

@@ -1,10 +1,11 @@
 ﻿using Apps.Gitlab.Dtos;
 using Blackbird.Applications.Sdk.Common;
+using GitLabApiClient.Models.MergeRequests.Responses;
 
 namespace Apps.Gitlab.Models.PullRequest.Responses;
 
 public class ListPullRequestsResponse
 {
-    [Display("Pull requests")]
-    public IEnumerable<PullRequestDto> PullRequests { get; set; }
+    [Display("Merge requests")]
+    public IEnumerable<MergeRequest> PullRequests { get; set; }
 }

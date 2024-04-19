@@ -1,4 +1,4 @@
-﻿using Apps.GitHub.DataSourceHandlers;
+﻿using Apps.Gitlab.DataSourceHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using System;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Apps.GitHub.Models.Branch.Requests
+namespace Apps.Gitlab.Models.Branch.Requests
 {
     public class GetOptionalBranchRequest
     {

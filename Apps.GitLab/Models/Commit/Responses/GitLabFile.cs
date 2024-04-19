@@ -3,7 +3,7 @@ using Blackbird.Applications.Sdk.Common.Files;
 
 namespace Apps.Gitlab.Models.Commit.Responses;
 
-public class GithubFile
+public class GitLabFile
 {
     [Display("File path")]
     public string FilePath { get; set; }

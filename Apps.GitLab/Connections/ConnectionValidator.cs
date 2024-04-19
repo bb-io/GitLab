@@ -1,4 +1,5 @@
-﻿using Blackbird.Applications.Sdk.Common.Authentication;
+﻿using Apps.Gitlab.Actions;
+using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Connections;
 
 namespace Apps.Gitlab.Connections
@@ -10,7 +11,7 @@ namespace Apps.Gitlab.Connections
         {
             try
             {
-                await new BlackbirdGitlabClient(authProviders).Client.Projects.GetAsync();
+                await new BlackbirdGitlabClient(authProviders).Client.Projects.GetAsync((options) => { options.IsMemberOf = true; });
 
                 return new()
                 {

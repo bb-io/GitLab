@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Apps.GitHub.Webhooks.Payloads
+namespace Apps.Gitlab.Webhooks.Payloads
 {
     public class BranchInput
     {
