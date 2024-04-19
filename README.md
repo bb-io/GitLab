@@ -1,4 +1,4 @@
-# Blackbird.io Github
+# Blackbird.io GitLab
 
 Blackbird is the new automation backbone for the language technology industry. Blackbird provides enterprise-scale automation and orchestration with a simple no-code/low-code platform. Blackbird enables ambitious organizations to identify, vet and automate as many processes as possible. Not just localization workflows, but any business and IT process. This repository represents an application that is deployable on Blackbird and usable inside the workflow editor.
 
@@ -6,31 +6,31 @@ Blackbird is the new automation backbone for the language technology industry. B
 
 <!-- begin docs -->
 
-GitHub, is a developer platform that allows developers to create, store, and manage their code. This Github app focusses on connecting Github events and file actions into the Blackbird ecosystem.
+GitLab, is a developer platform that allows developers to create, store, and manage their code. This GitLab app focusses on connecting GitLab events and file actions into the Blackbird ecosystem.
 
 ## Before setting up
 
 Before you can connect you need to make sure that:
 
-- You have a Github account.
+- You have a GitLab account.
 - You have owner permissions on the repository you want to automate on.
 
 ## Connecting
 
-1. Navigate to apps and search for Github. If you cannot find Github then click _Add App_ in the top right corner, select Github and add the app to your Blackbird environment.
+1. Navigate to apps and search for GitLab. If you cannot find GitLab then click _Add App_ in the top right corner, select GitLab and add the app to your Blackbird environment.
 2. Click _Add Connection_.
-3. Name your connection for future reference e.g. 'My Github connection'.
+3. Name your connection for future reference e.g. 'My GitLab connection'.
 4. Click _Authorize connection_.
-5. Follow the instructions that Github gives you, authorizing Blackbird.io to act on your behalf.
+5. Follow the instructions that GitLab gives you, authorizing Blackbird.io to act on your behalf.
 6. When you return to Blackbird, confirm that the connection has appeared and the status is _Connected_.
 
 ![1705402013379](image/README/1705402013379.png)
 
 ## Setting up events
 
-In order to respond to events happening in Github, you need to also install our app on your repository.
+In order to respond to events happening in GitLab, you need to also install our app on your repository.
 
-1. Got to the [Blackbird app page](https://github.com/apps/blackbird-io) on Github.
+1. Got to the [Blackbird app page](https://GitLab.com/apps/blackbird-io) on GitLab.
 2. Click _Configure_
 3. Select the organization where you want to install Blackbird.
 4. Select either _All repositories_ or _Only select repositories_ if you want to limit the repositories Blackbird has access to.
@@ -93,7 +93,7 @@ In order to respond to events happening in Github, you need to also install our 
 
 ### Pulls
 
-= **On pull request action** occurs when there is activity on a pull request. See [this page](https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request) for more info.
+= **On pull request action** occurs when there is activity on a pull request. See [this page](https://docs.GitLab.com/en/webhooks/webhook-events-and-payloads#pull_request) for more info.
 
 ### Pushes
 
@@ -111,13 +111,13 @@ For example: when you want to create an event that triggers only when .html file
 
 ## Example
 
-The following bird creates a new memoQ project whenever files are updated or added to a specific folder in a Github repository.
+The following bird creates a new memoQ project whenever files are updated or added to a specific folder in a GitLab repository.
 
 ![1705408481146](image/README/1705408481146.png)
 
 ## Missing features
 
-We have the ability to trigger on any event specified in [this list](https://docs.github.com/en/webhooks/webhook-events-and-payloads). Feel free to request these with us.
+We have the ability to trigger on any event specified in [this list](https://docs.GitLab.com/en/webhooks/webhook-events-and-payloads). Feel free to request these with us.
 
 ## Feedback
 
