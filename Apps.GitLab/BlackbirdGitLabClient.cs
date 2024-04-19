@@ -47,7 +47,7 @@ public class BlackbirdGitlabClient
     {
         var repository = await Client.Projects.GetAsync(projectId);
 
-        var request = new RestRequest($"/v4/projects/{projectId}/repository/commit", Method.Get);
+        var request = new RestRequest($"/v4/projects/{projectId}/repository/commit", Method.Post);
         request.AddHeader("Authorization", $"Bearer {AuthenticationCredentials.First(p => p.KeyName == "Authorization").Value}");
         request.AddJsonBody(new
         {
