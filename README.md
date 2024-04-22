@@ -26,17 +26,6 @@ Before you can connect you need to make sure that:
 
 ![1705402013379](image/README/1705402013379.png)
 
-## Setting up events
-
-In order to respond to events happening in GitLab, you need to also install our app on your repository.
-
-1. Got to the [Blackbird app page](https://GitLab.com/apps/blackbird-io) on GitLab.
-2. Click _Configure_
-3. Select the organization where you want to install Blackbird.
-4. Select either _All repositories_ or _Only select repositories_ if you want to limit the repositories Blackbird has access to.
-
-![1705402262423](image/README/1705402262423.png)
-
 ## Actions
 
 ### Repositories
@@ -45,30 +34,25 @@ In order to respond to events happening in GitLab, you need to also install our 
 - **Create new repository**
 - **Get repository**
 - **Get repository issues**
-- **List all repository content**
 - **List repository folder content**
 
 ### Branches
 
 - **List branches**
 - **Get branch**
-- **Merge branch**
 
 ### Commits
 
 - **List commits**
 - **Get commit**
 
-### Pull requests
+### Merge requests
 
-- **Create pull request**
-- **List pull requests**
-- **List pull request commits**
-- **Get pull request**
-- **Get repository pull requests**
-- **Is pull request merged**
-- **List pull request files**
-- **Merge pull request**
+- **Create merge request**
+- **List merge requests**
+- **Get merge request**
+- **Get repository merge requests**
+- **Complete merge request**
 
 ### Files
 
@@ -114,10 +98,6 @@ For example: when you want to create an event that triggers only when .html file
 The following bird creates a new memoQ project whenever files are updated or added to a specific folder in a GitLab repository.
 
 ![1705408481146](image/README/1705408481146.png)
-
-## Missing features
-
-We have the ability to trigger on any event specified in [this list](https://docs.GitLab.com/en/webhooks/webhook-events-and-payloads). Feel free to request these with us.
 
 ## Feedback
 
