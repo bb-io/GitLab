@@ -95,10 +95,10 @@ public class Commit
     public List<string> Added { get; set; }
 
     [JsonProperty("modified")]
-    public List<object> Modified { get; set; }
+    public List<string> Modified { get; set; }
 
     [JsonProperty("removed")]
-    public List<object> Removed { get; set; }
+    public List<string> Removed { get; set; }
 }
 
 public class Project
