@@ -9,6 +9,7 @@ using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using GitLabApiClient.Internal.Paths;
+using GitLabApiClient.Models.MergeRequests.Requests;
 using GitLabApiClient.Models.MergeRequests.Responses;
 using System.Collections.Generic;
 
@@ -57,50 +58,13 @@ public class PullRequestActions : GitLabActions
         return pull;
     }
 
-    //[Action("Merge pull request", Description = "Merge pull request")]
-    //public PullRequestMerge MergePullRequest(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-    //    [ActionParameter] GetRepositoryRequest repositoryRequest,
-    //    [ActionParameter] Models.PullRequest.Requests.MergePullRequest input)
-    //{
-    //    var client = new BlackbirdGitlabClient(authenticationCredentialsProviders);
-    //    return client.PullRequest.Merge(long.Parse(repositoryRequest.RepositoryId), int.Parse(input.PullRequestNumber), new Octokit.MergePullRequest()).Result;
-    //}
-
-    //[Action("List pull request files", Description = "List pull request files")]
-    //public ListPullRequestFilesResponse ListPullRequestFiles(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-    //    [ActionParameter] GetRepositoryRequest repositoryRequest,
-    //    [ActionParameter] ListPullFilesRequest input)
-    //{
-    //    var client = new BlackbirdGitlabClient(authenticationCredentialsProviders);
-    //    var files = client.PullRequest.Files(long.Parse(repositoryRequest.RepositoryId), int.Parse(input.PullRequestNumber)).Result;
-    //    return new ListPullRequestFilesResponse
-    //    {
-    //        Files = files
-    //    };
-    //}
-
-    //[Action("List pull request commits", Description = "List pull request commits")]
-    //public ListPullRequestCommitsResponse ListPullRequestCommits(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-    //    [ActionParameter] GetRepositoryRequest repositoryRequest,
-    //    [ActionParameter] GetPullRequest input)
-    //{
-    //    var client = new BlackbirdGitlabClient(authenticationCredentialsProviders);
-    //    var commits = client.PullRequest.Commits(long.Parse(repositoryRequest.RepositoryId), int.Parse(input.PullRequestNumber)).Result;
-    //    return new ListPullRequestCommitsResponse
-    //    {
-    //        Commits = commits.Select(p => new PullRequestCommitDto(p))
-    //    };
-    //}
-
-    //[Action("Is pull request merged", Description = "Is pull request merged")]
-    //public IsPullMergedResponse IsPullMerged(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-    //    [ActionParameter] GetRepositoryRequest repositoryRequest,
-    //    [ActionParameter] GetPullRequest input)
-    //{
-    //    var client = new BlackbirdGitlabClient(authenticationCredentialsProviders);
-    //    return new IsPullMergedResponse
-    //    {
-    //        IsPullMerged = client.PullRequest.Merged(long.Parse(repositoryRequest.RepositoryId), int.Parse(input.PullRequestNumber)).Result,
-    //    };
-    //}
+    [Action("Complete merge request", Description = "Complete merge request")]
+    public async Task<MergeRequest> MergePullRequest(
+        [ActionParameter] GetRepositoryRequest repositoryRequest,
+        [ActionParameter] GetPullRequest mergeRequest,
+        [ActionParameter] MergePullRequest input)
+    {
+        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
+        return await Client.MergeRequests.AcceptAsync(projectId, int.Parse(mergeRequest.PullRequestId), new AcceptMergeRequest() { MergeCommitMessage = input.MergeCommitMessage });
+    }
 }
