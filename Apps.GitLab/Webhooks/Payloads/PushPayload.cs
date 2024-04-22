@@ -1,123 +1,182 @@
-﻿namespace Apps.Gitlab.Webhooks.Payloads;
+﻿using Newtonsoft.Json;
+
+namespace Apps.Gitlab.Webhooks.Payloads;
 
 public class PushPayload
 {
-    public string Ref { get; set; }
+    [JsonProperty("object_kind")]
+    public string ObjectKind { get; set; }
+
+    [JsonProperty("event_name")]
+    public string EventName { get; set; }
+
+    [JsonProperty("before")]
     public string Before { get; set; }
+
+    [JsonProperty("after")]
     public string After { get; set; }
-    public Repository Repository { get; set; }
-    public Pusher Pusher { get; set; }
-    public Sender Sender { get; set; }
-    public bool Created { get; set; }
-    public bool Deleted { get; set; }
-    public bool Forced { get; set; }
-    public string Compare { get; set; }
+
+    [JsonProperty("ref")]
+    public string Ref { get; set; }
+
+    [JsonProperty("ref_protected")]
+    public bool RefProtected { get; set; }
+
+    [JsonProperty("checkout_sha")]
+    public string CheckoutSha { get; set; }
+
+    [JsonProperty("message")]
+    public object Message { get; set; }
+
+    [JsonProperty("user_id")]
+    public int UserId { get; set; }
+
+    [JsonProperty("user_name")]
+    public string UserName { get; set; }
+
+    [JsonProperty("user_username")]
+    public string UserUsername { get; set; }
+
+    [JsonProperty("user_email")]
+    public object UserEmail { get; set; }
+
+    [JsonProperty("user_avatar")]
+    public string UserAvatar { get; set; }
+
+    [JsonProperty("project_id")]
+    public int ProjectId { get; set; }
+
+    [JsonProperty("project")]
+    public Project Project { get; set; }
+
+    [JsonProperty("commits")]
     public List<Commit> Commits { get; set; }
+
+    [JsonProperty("total_commits_count")]
+    public int TotalCommitsCount { get; set; }
+
+    [JsonProperty("push_options")]
+    public PushOptions PushOptions { get; set; }
+
+    [JsonProperty("repository")]
+    public Repository Repository { get; set; }
 }
 
 public class Author
 {
+    [JsonProperty("name")]
     public string Name { get; set; }
+
+    [JsonProperty("email")]
     public string Email { get; set; }
-    public string Username { get; set; }
 }
 
 public class Commit
 {
+    [JsonProperty("id")]
     public string Id { get; set; }
-    public string TreeId { get; set; }
-    public bool Distinct { get; set; }
+
+    [JsonProperty("message")]
     public string Message { get; set; }
+
+    [JsonProperty("title")]
+    public string Title { get; set; }
+
+    [JsonProperty("timestamp")]
     public DateTime Timestamp { get; set; }
+
+    [JsonProperty("url")]
     public string Url { get; set; }
+
+    [JsonProperty("author")]
     public Author Author { get; set; }
-    public Committer Committer { get; set; }
+
+    [JsonProperty("added")]
     public List<string> Added { get; set; }
-    public List<string> Removed { get; set; }
-    public List<string> Modified { get; set; }
+
+    [JsonProperty("modified")]
+    public List<object> Modified { get; set; }
+
+    [JsonProperty("removed")]
+    public List<object> Removed { get; set; }
 }
 
-public class Committer
+public class Project
 {
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public string Username { get; set; }
-}
-
-public class Owner
-{
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public string Login { get; set; }
+    [JsonProperty("id")]
     public int Id { get; set; }
-    public string NodeId { get; set; }
-    public string AvatarUrl { get; set; }
-    public string GravatarId { get; set; }
+
+    [JsonProperty("name")]
+    public string Name { get; set; }
+
+    [JsonProperty("description")]
+    public object Description { get; set; }
+
+    [JsonProperty("web_url")]
+    public string WebUrl { get; set; }
+
+    [JsonProperty("avatar_url")]
+    public object AvatarUrl { get; set; }
+
+    [JsonProperty("git_ssh_url")]
+    public string GitSshUrl { get; set; }
+
+    [JsonProperty("git_http_url")]
+    public string GitHttpUrl { get; set; }
+
+    [JsonProperty("namespace")]
+    public string Namespace { get; set; }
+
+    [JsonProperty("visibility_level")]
+    public int VisibilityLevel { get; set; }
+
+    [JsonProperty("path_with_namespace")]
+    public string PathWithNamespace { get; set; }
+
+    [JsonProperty("default_branch")]
+    public string DefaultBranch { get; set; }
+
+    [JsonProperty("ci_config_path")]
+    public string CiConfigPath { get; set; }
+
+    [JsonProperty("homepage")]
+    public string Homepage { get; set; }
+
+    [JsonProperty("url")]
     public string Url { get; set; }
-    public string HtmlUrl { get; set; }
-    public string Type { get; set; }
-    public bool SiteAdmin { get; set; }
+
+    [JsonProperty("ssh_url")]
+    public string SshUrl { get; set; }
+
+    [JsonProperty("http_url")]
+    public string HttpUrl { get; set; }
 }
 
-public class Pusher
+public class PushOptions
 {
-    public string Name { get; set; }
-    public string Email { get; set; }
 }
 
 public class Repository
 {
-    public int Id { get; set; }
-    public string NodeId { get; set; }
+    [JsonProperty("name")]
     public string Name { get; set; }
-    public string FullName { get; set; }
-    public bool Private { get; set; }
-    public Owner Owner { get; set; }
-    public string HtmlUrl { get; set; }
-    public string Description { get; set; }
-    public bool Fork { get; set; }
+
+    [JsonProperty("url")]
     public string Url { get; set; }
-    public int CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-    public int PushedAt { get; set; }
-    public string GitUrl { get; set; }
-    public string SshUrl { get; set; }
-    public string CloneUrl { get; set; }
-    public string SvnUrl { get; set; }
-    public int Size { get; set; }
-    public int StargazersCount { get; set; }
-    public int WatchersCount { get; set; }
-    public bool HasIssues { get; set; }
-    public bool HasProjects { get; set; }
-    public bool HasDownloads { get; set; }
-    public bool HasWiki { get; set; }
-    public bool HasPages { get; set; }
-    public bool HasDiscussions { get; set; }
-    public int ForksCount { get; set; }
-    public bool Archived { get; set; }
-    public bool Disabled { get; set; }
-    public int OpenIssuesCount { get; set; }
-    public bool AllowForking { get; set; }
-    public bool IsTemplate { get; set; }
-    public bool WebCommitSignoffRequired { get; set; }
-    public string Visibility { get; set; }
-    public int Forks { get; set; }
-    public int OpenIssues { get; set; }
-    public int Watchers { get; set; }
-    public string DefaultBranch { get; set; }
-    public int Stargazers { get; set; }
-    public string MasterBranch { get; set; }
+
+    [JsonProperty("description")]
+    public object Description { get; set; }
+
+    [JsonProperty("homepage")]
+    public string Homepage { get; set; }
+
+    [JsonProperty("git_http_url")]
+    public string GitHttpUrl { get; set; }
+
+    [JsonProperty("git_ssh_url")]
+    public string GitSshUrl { get; set; }
+
+    [JsonProperty("visibility_level")]
+    public int VisibilityLevel { get; set; }
 }
 
-public class Sender
-{
-    public string Login { get; set; }
-    public int Id { get; set; }
-    public string NodeId { get; set; }
-    public string AvatarUrl { get; set; }
-    public string GravatarId { get; set; }
-    public string Url { get; set; }
-    public string HtmlUrl { get; set; }
-    public string Type { get; set; }
-    public bool SiteAdmin { get; set; }
-}

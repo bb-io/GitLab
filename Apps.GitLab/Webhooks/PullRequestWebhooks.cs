@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace Apps.Gitlab.Webhooks;
 
-[WebhookList]
+//[WebhookList]
 public class PullRequestWebhooks
 {
     [Webhook("On pull request action", typeof(PullRequestOpenHandler), Description = "On pull request action")]
