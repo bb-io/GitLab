@@ -10,6 +10,9 @@ using Apps.Gitlab.Models.Branch.Requests;
 using GitLabApiClient.Internal.Paths;
 using GitLabApiClient.Models.Commits.Requests;
 using GitLabApiClient.Models.Commits.Responses;
+using Apps.GitLab.Models.Commit.Requests;
+using Apps.Gitlab.Webhooks;
+using Apps.GitLab.Models.Commit.Responses;
 
 namespace Apps.Gitlab.Actions;
 
@@ -51,6 +54,33 @@ public class CommitActions : GitLabActions
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
         var commit = Client.Commits.GetAsync(projectId, input.CommitId).Result;
         return commit;
+    }
+
+    [Action("List added or modified files in X hours", Description = "List added or modified files in X hours")]
+    public async Task<ListAddedOrModifiedInHoursResponse> ListAddedOrModifiedInHours(
+       [ActionParameter] GetRepositoryRequest repositoryRequest,
+       [ActionParameter] GetOptionalBranchRequest branchRequest,
+       [ActionParameter] AddedOrModifiedHoursRequest hoursRequest,
+       [ActionParameter] FolderRequest folderInput)
+    {
+        if (hoursRequest.Hours <= 0)
+            throw new ArgumentException("Specify more than 0 hours!");
+        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
+        var commits = await Client.Commits.GetAsync(projectId,
+             (CommitQueryOptions options) =>
+             {
+                 options.Since = DateTime.Now.AddHours(-hoursRequest.Hours);
+                 if (!string.IsNullOrWhiteSpace(branchRequest.Name))
+                     options.RefName = branchRequest.Name;
+             });
+        var files = new List<AddedOrModifiedFile>();
+        commits.ToList().ForEach(c =>
+        {
+            var commit = Client.Commits.GetDiffsAsync(projectId, c.Id).Result;
+            files.AddRange(commit.Where(x => !x.IsDeletedFile).Where(f => folderInput.FolderPath is null || PushWebhooks.IsFilePathMatchingPattern(folderInput.FolderPath, f.NewPath))
+                .Select(x => new AddedOrModifiedFile(x)));
+        });
+        return new ListAddedOrModifiedInHoursResponse() { Files = files.DistinctBy(x => x.Filename).ToList() };
     }
 
     [Action("Create or update file", Description = "Create or update file")]
