@@ -8,6 +8,10 @@ using GitLabApiClient.Internal.Paths;
 using Apps.Gitlab.Actions.Base;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using System.Reflection;
+using GitLabApiClient;
+using Newtonsoft.Json;
+using Apps.GitLab.Dtos;
 
 namespace Apps.Gitlab.Actions;
 
@@ -49,7 +53,14 @@ public class BranchActions : GitLabActions
         [ActionParameter] Models.Branch.Requests.CreateBranchRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var branch = await Client.Branches.CreateAsync(projectId, new GitLabApiClient.Models.Branches.Requests.CreateBranchRequest(input.NewBranchName, input.BaseBranchName));
-        return new BranchDto(branch);
+        try
+        {
+            var branch = await Client.Branches.CreateAsync(projectId, new GitLabApiClient.Models.Branches.Requests.CreateBranchRequest(input.NewBranchName, input.BaseBranchName));
+            return new BranchDto(branch);
+        }
+        catch (GitLabException ex)
+        {
+            throw new GitLabFriendlyException(ex.Message);
+        }
     }
 }
