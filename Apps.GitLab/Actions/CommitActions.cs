@@ -127,7 +127,7 @@ public class CommitActions : GitLabActions
                     });
             }
             if (repContent.Content.Where(x => x.Type == "tree").Select(x => x.Path).Contains(input.DestinationFilePath.Trim('/')))
-                throw new GitLabFriendlyException("Destination file path is invalid!");
+                throw new ArgumentException("Destination file path is invalid!");
 
             var file = _fileManagementClient.DownloadAsync(input.File).Result;
             var fileBytes = file.GetByteData().Result;
