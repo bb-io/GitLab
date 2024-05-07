@@ -12,7 +12,7 @@ namespace Apps.Gitlab
 
         public const string ClientSecret = "#{APP-GITLAB-SECRET}#";
 
-        public const string Scope = "#{APP_GITLAB_SCOPE}#";
+        public const string Scope = "#{APP-GITLAB-SCOPE}#";
 
     }
 }
