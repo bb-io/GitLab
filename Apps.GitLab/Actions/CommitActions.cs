@@ -127,7 +127,7 @@ public class CommitActions : GitLabActions
                     });
             }
             if (repContent.Content.Where(x => x.Type == "tree").Select(x => x.Path).Contains(input.DestinationFilePath.Trim('/')))
-                throw new ArgumentException("Destination file path is invalid!");
+                throw new GitLabFriendlyException("Destination file path is invalid!");
 
             var file = _fileManagementClient.DownloadAsync(input.File).Result;
             var fileBytes = file.GetByteData().Result;
@@ -148,6 +148,11 @@ public class CommitActions : GitLabActions
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
         try {
+            var repContent = await new RepositoryActions(InvocationContext, _fileManagementClient).ListRepositoryContent(
+               repositoryRequest, branchRequest, new FolderContentWithTypeRequest() { IncludeSubfolders = true, ContentType = "blob" });
+            if (!repContent.Content.Select(x => x.Path).Contains(input.DestinationFilePath.Trim('/')))
+                throw new GitLabFriendlyException("File does not exist by specified file path!");
+
             var file = _fileManagementClient.DownloadAsync(input.File).Result;
             var fileBytes = file.GetByteData().Result;
             var fileUpload = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage, input.DestinationFilePath, fileBytes, "update");
