@@ -31,13 +31,7 @@ public class BlackbirdGitlabClient
 
     public async Task<byte[]> GetArchive(ProjectId projectId, string? branchName)
     {
-        var commits = await Client.Commits.GetAsync(projectId,
-            (CommitQueryOptions options) =>
-            {
-                if (!string.IsNullOrWhiteSpace(branchName))
-                    options.RefName = branchName;
-            });
-        var branchCommit = string.IsNullOrWhiteSpace(branchName) ? $"?sha={commits.OrderBy(x => x.CreatedAt).First().Id}" : "";
+        var branchCommit = !string.IsNullOrWhiteSpace(branchName) ? $"?sha={branchName}" : "";
         var request = new RestRequest($"/api/v4/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
         request.AddHeader("Authorization", $"Bearer {AuthenticationCredentials.First(p => p.KeyName == "Authorization").Value}");
         var result = await new RestClient(ApiUrl).ExecuteAsync(request);

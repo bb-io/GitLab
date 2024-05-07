@@ -102,10 +102,10 @@ public class RepositoryActions : GitLabActions
             {
                 filesFromZip = (await stream.GetFilesFromZip()).ToList();
             }
+            var includeSubFolders = folderContentRequest.IncludeSubfolders.HasValue && folderContentRequest.IncludeSubfolders.Value;
             foreach (var file in filesFromZip)
             {
-                file.Path = file.Path.Substring(file.Path.IndexOf('/') + 1);
-                var includeSubFolders = folderContentRequest.IncludeSubfolders.HasValue && folderContentRequest.IncludeSubfolders.Value;
+                file.Path = file.Path.Substring(file.Path.IndexOf('/') + 1);            
                 if (file.FileStream.Length == 0)
                 {
                     continue;
