@@ -278,13 +278,4 @@ public class RepositoryActions : GitLabActions
             throw new GitLabFriendlyException(ex.Message);
         }
     }
-
-    [Action("Is file in folder", Description = "Is file in folder")]
-    public IsFileInFolderResponse IsFileInFolder([ActionParameter] IsFileInFolderRequest input)
-    {
-        return new()
-        {
-            IsFileInFolder = input.FilePath.Split('/').SkipLast(1).Contains(input.FolderName) ? 1 : 0
-        };
-    }
 }
