@@ -92,7 +92,7 @@ public class CommitActions : GitLabActions
             commits.ToList().ForEach(c =>
             {
                 var commit = Client.Commits.GetDiffsAsync(projectId, c.Id).Result;
-                files.AddRange(commit.Where(x => !x.IsDeletedFile).Where(f => folderInput.FolderPath is null || PushWebhooks.IsFilePathMatchingPattern(folderInput.FolderPath, f.NewPath))
+                files.AddRange(commit.Where(x => !x.IsDeletedFile).Where(f => string.IsNullOrEmpty(folderInput.FolderPath) || PushWebhooks.IsFilePathMatchingPattern(folderInput.FolderPath, f.NewPath))
                     .Select(x => new AddedOrModifiedFile(x)));
             });
             return new ListAddedOrModifiedInHoursResponse() { Files = files.DistinctBy(x => x.Filename).ToList() };
