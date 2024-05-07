@@ -167,7 +167,7 @@ public class CommitActions : GitLabActions
     public async Task<Commit> DeleteFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
-        [ActionParameter] Models.Commit.Requests.DeleteFileRequest input)
+        [ActionParameter] DeleteFileRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
         try {
