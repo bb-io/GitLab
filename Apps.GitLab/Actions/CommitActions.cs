@@ -40,7 +40,6 @@ public class CommitActions : GitLabActions
             var commits = await Client.Commits.GetAsync(projectId,
                  (CommitQueryOptions options) =>
                  {
-                     options.All = true;
                      if(!string.IsNullOrWhiteSpace(branchRequest.Name))
                         options.RefName = branchRequest.Name;
                  });
@@ -144,7 +143,7 @@ public class CommitActions : GitLabActions
     public async Task<Commit> UpdateFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
-        [ActionParameter] Models.Commit.Requests.UpdateFileRequest input)
+        [ActionParameter] PushFileRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
         try {

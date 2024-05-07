@@ -33,7 +33,6 @@ public class BlackbirdGitlabClient
         var commits = await Client.Commits.GetAsync(projectId,
             (CommitQueryOptions options) =>
             {
-                options.All = true;
                 if (!string.IsNullOrWhiteSpace(branchName))
                     options.RefName = branchName;
             });
