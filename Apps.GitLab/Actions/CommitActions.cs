@@ -15,6 +15,7 @@ using Apps.Gitlab.Webhooks;
 using Apps.GitLab.Models.Commit.Responses;
 using Apps.GitLab.Dtos;
 using GitLabApiClient;
+using Apps.GitLab.Models.Respository.Requests;
 
 namespace Apps.Gitlab.Actions;
 
@@ -112,8 +113,8 @@ public class CommitActions : GitLabActions
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
         try { 
             var repContent = await new RepositoryActions(InvocationContext, _fileManagementClient).ListRepositoryContent(
-               repositoryRequest, branchRequest, new FolderContentRequest() { IncludeSubfolders = true });
-            if (repContent.Content.Any(p => p.Path == input.DestinationFilePath)) // update in case of existing file
+               repositoryRequest, branchRequest, new FolderContentWithTypeRequest() { IncludeSubfolders = true });
+            if (repContent.Content.Where(x => x.Type == "blob").Any(p => p.Path == input.DestinationFilePath)) // update in case of existing file
             {
                 return await UpdateFile(
                     repositoryRequest,
@@ -125,6 +126,8 @@ public class CommitActions : GitLabActions
                         CommitMessage = input.CommitMessage
                     });
             }
+            if (repContent.Content.Where(x => x.Type == "tree").Select(x => x.Path).Contains(input.DestinationFilePath.Trim('/')))
+                throw new GitLabFriendlyException("Destination file path is invalid!");
 
             var file = _fileManagementClient.DownloadAsync(input.File).Result;
             var fileBytes = file.GetByteData().Result;

@@ -17,6 +17,7 @@ using Blackbird.Applications.Sdk.Utils.Models;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Apps.GitLab.Dtos;
 using GitLabApiClient;
+using Apps.GitLab.Models.Respository.Requests;
 
 namespace Apps.Gitlab.Actions;
 
@@ -191,7 +192,7 @@ public class RepositoryActions : GitLabActions
     public async Task<RepositoryContentResponse> ListRepositoryContent(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
-        [ActionParameter] FolderContentRequest input)
+        [ActionParameter] FolderContentWithTypeRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
         try {
@@ -202,6 +203,8 @@ public class RepositoryActions : GitLabActions
                 if (!string.IsNullOrWhiteSpace(branchRequest.Name))
                     options.Reference = branchRequest.Name;
             });
+            if (!string.IsNullOrEmpty(input.ContentType))
+                tree = tree.Where(x => input.ContentType.Split(' ').Contains(x.Type)).ToList();
             return new()
             {
                 Content = tree
