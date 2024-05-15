@@ -164,7 +164,7 @@ public class CommitActions : GitLabActions
     }
 
     [Action("Delete file", Description = "Delete file from repository")]
-    public async Task<Commit> DeleteFile(
+    public async Task<DeleteFileResponse> DeleteFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] DeleteFileRequest input)
@@ -172,7 +172,12 @@ public class CommitActions : GitLabActions
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
         try {
             var fileDelete = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage, input.FilePath, null, "delete");
-            return fileDelete;
+            return new()
+            {
+                CommitId = fileDelete.Id,
+                Title = fileDelete.Title,
+                Message = fileDelete.Message
+            };
         }
         catch (GitLabException ex)
         {
