@@ -30,9 +30,6 @@ public class PushPayload
     [Display("Checkout sha")]
     public string CheckoutSha { get; set; }
 
-    [JsonProperty("message")]
-    public string Message { get; set; }
-
     [JsonProperty("user_id")]
     [Display("User ID")]
     public int UserId { get; set; }
