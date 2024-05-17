@@ -1,4 +1,5 @@
-﻿using Blackbird.Applications.Sdk.Common.Authentication;
+﻿using Apps.GitLab.Dtos;
+using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using GitLabApiClient;
 using GitLabApiClient.Internal.Paths;
@@ -30,14 +31,7 @@ public class BlackbirdGitlabClient
 
     public async Task<byte[]> GetArchive(ProjectId projectId, string? branchName)
     {
-        var commits = await Client.Commits.GetAsync(projectId,
-            (CommitQueryOptions options) =>
-            {
-                options.All = true;
-                if (!string.IsNullOrWhiteSpace(branchName))
-                    options.RefName = branchName;
-            });
-        var branchCommit = string.IsNullOrWhiteSpace(branchName) ? $"?sha={commits.OrderBy(x => x.CreatedAt).First().Id}" : "";
+        var branchCommit = !string.IsNullOrWhiteSpace(branchName) ? $"?sha={branchName}" : "";
         var request = new RestRequest($"/api/v4/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
         request.AddHeader("Authorization", $"Bearer {AuthenticationCredentials.First(p => p.KeyName == "Authorization").Value}");
         var result = await new RestClient(ApiUrl).ExecuteAsync(request);
@@ -56,24 +50,12 @@ public class BlackbirdGitlabClient
             commit_message = commitMessage,
             actions = new[]
             {
-                action != "delete" ?
-                new
-                {
-                    action = action,
-                    file_path = filePath,
-                    content = Convert.ToBase64String(file),
-                    encoding = "base64"
-                } :
-                new
-                {
-                    action = action,
-                    file_path = filePath,
-                    content = string.Empty,
-                    encoding = string.Empty
-                }
+                new FileActionDto(action, filePath, file)
             }
         });
         var result = await new RestClient(ApiUrl).ExecuteAsync<Commit>(request);
+        if (!result.IsSuccessStatusCode)
+            throw new GitLabFriendlyException(result.Content);
         return result.Data;
     }
 }

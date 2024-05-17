@@ -10,8 +10,10 @@ public class CreatePullRequest
     public string? Description { get; set; }
 
     [Display("Head branch")]
+    [DataSource(typeof(BranchDataHandler))]
     public string HeadBranch { get; set; }
 
     [Display("Base branch")]
+    [DataSource(typeof(BranchDataHandler))]
     public string BaseBranch { get; set; }
 }

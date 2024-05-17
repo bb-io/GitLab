@@ -1,7 +1,4 @@
-﻿using Apps.Gitlab.DataSourceHandlers;
-using Blackbird.Applications.Sdk.Common;
-using Blackbird.Applications.Sdk.Common.Dynamic;
-
+﻿using Blackbird.Applications.Sdk.Common;
 namespace Apps.Gitlab.Models.Respository.Requests;
 
 public class FolderContentRequest
