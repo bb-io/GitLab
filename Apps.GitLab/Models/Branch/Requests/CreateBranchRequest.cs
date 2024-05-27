@@ -1,21 +1,15 @@
 ﻿using Apps.Gitlab.DataSourceHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Apps.Gitlab.Models.Branch.Requests
+namespace Apps.Gitlab.Models.Branch.Requests;
+
+public class CreateBranchRequest
 {
-    public class CreateBranchRequest
-    {
-        [Display("Base branch name")]
-        [DataSource(typeof(BranchDataHandler))]
-        public string BaseBranchName { get; set; }
+    [Display("Base branch name")]
+    [DataSource(typeof(BranchDataHandler))]
+    public string BaseBranchName { get; set; }
 
-        [Display("New branch name")]
-        public string NewBranchName { get; set; }
-    }
+    [Display("New branch name")]
+    public string NewBranchName { get; set; }
 }

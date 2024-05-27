@@ -1,5 +1,4 @@
-﻿using Apps.Gitlab.DataSourceHandlers;
-using Apps.GitLab.DataSourceHandlers;
+﻿using Apps.GitLab.DataSourceHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 

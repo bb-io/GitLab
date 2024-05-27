@@ -12,12 +12,15 @@ using Apps.Gitlab.Models.Branch.Requests;
 using GitLabApiClient.Models.Projects.Responses;
 using GitLabApiClient.Internal.Paths;
 using Apps.GitLab;
+using Apps.Gitlab.Constants;
 using Apps.Gitlab.Models.Commit.Responses;
 using Blackbird.Applications.Sdk.Utils.Models;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Apps.GitLab.Dtos;
 using GitLabApiClient;
 using Apps.GitLab.Models.Respository.Requests;
+using Blackbird.Applications.Sdk.Utils.Extensions.Http;
+using RestSharp;
 
 namespace Apps.Gitlab.Actions;
 
@@ -33,16 +36,17 @@ public class RepositoryActions : GitLabActions
     }
 
     [Action("Create new repository", Description = "Create new repository")]
-    public async Task<Project> CreateRepository([ActionParameter] CreateRepositoryRequest input)
+    public Task<Project> CreateRepository([ActionParameter] CreateRepositoryInput input)
     {
-        try {
-            var repository = await Client.Projects.CreateAsync(input.GetNewRepositoryRequest());
-            return repository;
-        }
-        catch (GitLabException ex)
-        {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+        var endpoint = "/api/v4/projects";
+
+        if (input.UserId != null)
+            endpoint += $"/user/{input.UserId}";
+        
+        var request = new GitLabRequest(endpoint, Method.Post, Creds)
+            .WithJsonBody(input.GetNewRepositoryRequest(), JsonConfig.JsonSettings);
+
+        return RestClient.ExecuteWithErrorHandling<Project>(request);
     }
 
     [Action("Get repository file", Description = "Get repository file by path")]

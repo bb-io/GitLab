@@ -1,5 +1,4 @@
-﻿using Apps.Gitlab.Dtos;
-using Blackbird.Applications.Sdk.Common;
+﻿using Blackbird.Applications.Sdk.Common;
 using GitLabApiClient.Models.MergeRequests.Responses;
 
 namespace Apps.Gitlab.Models.PullRequest.Responses;

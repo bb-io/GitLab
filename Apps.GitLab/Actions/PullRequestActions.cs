@@ -1,19 +1,16 @@
 ﻿using Apps.Gitlab.Actions.Base;
-using Apps.Gitlab.Dtos;
 using Apps.Gitlab.Models.PullRequest.Requests;
 using Apps.Gitlab.Models.PullRequest.Responses;
 using Apps.Gitlab.Models.Respository.Requests;
 using Apps.GitLab.Dtos;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
-using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using GitLabApiClient;
 using GitLabApiClient.Internal.Paths;
 using GitLabApiClient.Models.MergeRequests.Requests;
 using GitLabApiClient.Models.MergeRequests.Responses;
-using System.Collections.Generic;
 
 namespace Apps.Gitlab.Actions;
 

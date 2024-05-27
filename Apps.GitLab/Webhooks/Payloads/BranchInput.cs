@@ -1,15 +1,9 @@
 ﻿using Blackbird.Applications.Sdk.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Apps.Gitlab.Webhooks.Payloads
+namespace Apps.Gitlab.Webhooks.Payloads;
+
+public class BranchInput
 {
-    public class BranchInput
-    {
-        [Display("Branch name")]
-        public string? BranchName { get; set; }
-    }
+    [Display("Branch name")]
+    public string? BranchName { get; set; }
 }
