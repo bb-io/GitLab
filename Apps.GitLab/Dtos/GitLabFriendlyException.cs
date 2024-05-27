@@ -29,7 +29,7 @@ public class GitLabFriendlyException : Exception
                     .OfType<JProperty>()
                     .Select(x => $"{x.Name} - {string.Join(';', x.Value.Select(x => x.ToString()))}");
 
-                return string.Join(Environment.NewLine, messageChildren);
+                return string.Join('.', messageChildren);
             }
         }
         catch
