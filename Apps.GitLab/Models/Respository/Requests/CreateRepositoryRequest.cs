@@ -1,102 +1,79 @@
-﻿using Apps.Gitlab.DataSourceHandlers.EnumHandlers;
-using Blackbird.Applications.Sdk.Common;
-using Blackbird.Applications.Sdk.Common.Dictionaries;
 using GitLabApiClient.Models.Projects.Requests;
+using Newtonsoft.Json;
 
-namespace Apps.Gitlab.Models.Respository.Requests;
+namespace Apps.GitLab.Models.Respository.Requests;
 
 public class CreateRepositoryRequest
 {
+     [JsonProperty("name")]
     public string Name { get; set; }
 
-    [Display("User ID")]
+    [JsonProperty("path")]
+    public string Path { get; set; }
+
+    [JsonProperty("user_id")]
     public int? UserId { get; set; }
 
-    [Display("Default branch")]
-    public string? DefaultBranch { get; set; }
+    [JsonProperty("default_branch")]
+    public string DefaultBranch { get; set; }
 
-    [Display("Namespace ID")]
+    [JsonProperty("namespace_id")]
     public int? NamespaceId { get; set; }
 
-    [Display("Description")]
-    public string? Description { get; set; }
+    [JsonProperty("description")]
+    public string Description { get; set; }
 
-    [Display("Enable issues")]
+    [JsonProperty("issues_enabled")]
     public bool? EnableIssues { get; set; }
 
-    [Display("Enable merge requests")]
+    [JsonProperty("merge_requests_enabled")]
     public bool? EnableMergeRequests { get; set; }
 
-    [Display("Enable jobs")]
+    [JsonProperty("jobs_enabled")]
     public bool? EnableJobs { get; set; }
 
-    [Display("Enable wiki")]
+    [JsonProperty("wiki_enabled")]
     public bool? EnableWiki { get; set; }
 
-    [Display("Enable snippets")]
+    [JsonProperty("snippets_enabled")]
     public bool? EnableSnippets { get; set; }
 
-    [Display("Enable container registry")]
+    [JsonProperty("container_registry_enabled")]
     public bool? EnableContainerRegistry { get; set; }
 
-    [Display("Enable shared runners")]
+    [JsonProperty("shared_runners_enabled")]
     public bool? EnableSharedRunners { get; set; }
-        
-    [Display("Visibility")]
-    [StaticDataSource(typeof(RepoVisibilityDataHandler))]
-    public string? Visibility { get; set; }
 
-    [Display("Import url")]
-    public string? ImportUrl { get; set; }
+    [JsonProperty("visibility")]
+    public ProjectVisibilityLevel? Visibility { get; set; }
 
-    [Display("Public jobs")]
+    [JsonProperty("import_url")]
+    public string ImportUrl { get; set; }
+
+    [JsonProperty("public_jobs")]
     public bool? PublicJobs { get; set; }
 
-    [Display("Only allow merge if pipeline succeeds")]
+    [JsonProperty("only_allow_merge_if_pipeline_succeeds")]
     public bool? OnlyAllowMergeIfPipelineSucceeds { get; set; }
 
-    [Display("Only allow merge if all discussions are resolved")]
+    [JsonProperty("only_allow_merge_if_all_discussions_are_resolved")]
     public bool? OnlyAllowMergeIfAllDiscussionsAreResolved { get; set; }
 
-    [Display("Enable lfs")]
+    [JsonProperty("lfs_enabled")]
     public bool? EnableLfs { get; set; }
 
-    [Display("Enable request access")]
+    [JsonProperty("request_access_enabled")]
     public bool? EnableRequestAccess { get; set; }
 
-    [Display("Tags")]
-    public List<string>? Tags { get; set; }
+    [JsonProperty("tag_list")]
+    public List<string> Tags { get; set; } = new List<string>();
 
-    [Display("Enable printing merge request link")]
+    [JsonProperty("printing_merge_request_link_enabled")]
     public bool? EnablePrintingMergeRequestLink { get; set; }
 
-    [Display("Ci config path")]
-    public string? CiConfigPath { get; set; }
-
-    public CreateProjectRequest GetNewRepositoryRequest()
-    {
-        var newRepoRequest = CreateProjectRequest.FromName(Name);
-        newRepoRequest.UserId = UserId;
-        newRepoRequest.DefaultBranch = DefaultBranch;
-        newRepoRequest.NamespaceId = NamespaceId;
-        newRepoRequest.Description = Description;
-        newRepoRequest.EnableIssues = EnableIssues;
-        newRepoRequest.EnableMergeRequests = EnableMergeRequests;
-        newRepoRequest.EnableJobs = EnableJobs;
-        newRepoRequest.EnableWiki = EnableWiki;
-        newRepoRequest.EnableSnippets = EnableSnippets;
-        newRepoRequest.EnableContainerRegistry = EnableContainerRegistry;
-        newRepoRequest.EnableSharedRunners = EnableSharedRunners;
-        newRepoRequest.Visibility = Visibility != null ? (ProjectVisibilityLevel)int.Parse(Visibility) : null;
-        newRepoRequest.ImportUrl = ImportUrl;
-        newRepoRequest.PublicJobs = PublicJobs;
-        newRepoRequest.OnlyAllowMergeIfPipelineSucceeds = OnlyAllowMergeIfPipelineSucceeds;
-        newRepoRequest.OnlyAllowMergeIfAllDiscussionsAreResolved = OnlyAllowMergeIfAllDiscussionsAreResolved;
-        newRepoRequest.EnableLfs = EnableLfs;
-        newRepoRequest.EnableRequestAccess = EnableRequestAccess;
-        newRepoRequest.Tags = Tags;
-        newRepoRequest.EnablePrintingMergeRequestLink = EnablePrintingMergeRequestLink;
-        newRepoRequest.CiConfigPath = CiConfigPath;
-        return newRepoRequest;
-    }
+    [JsonProperty("ci_config_path")]
+    public string CiConfigPath { get; set; }
+    
+    [JsonProperty("initialize_with_readme")]
+    public bool? InitializeWithReadme { get; set; }
 }
