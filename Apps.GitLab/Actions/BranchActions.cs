@@ -8,9 +8,7 @@ using GitLabApiClient.Internal.Paths;
 using Apps.Gitlab.Actions.Base;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using System.Reflection;
 using GitLabApiClient;
-using Newtonsoft.Json;
 using Apps.GitLab.Dtos;
 
 namespace Apps.Gitlab.Actions;

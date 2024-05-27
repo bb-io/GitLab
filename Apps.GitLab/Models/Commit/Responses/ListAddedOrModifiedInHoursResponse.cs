@@ -1,28 +1,22 @@
 ﻿using Blackbird.Applications.Sdk.Common;
 using GitLabApiClient.Models.Commits.Responses;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Apps.GitLab.Models.Commit.Responses
+namespace Apps.GitLab.Models.Commit.Responses;
+
+public class ListAddedOrModifiedInHoursResponse
 {
-    public class ListAddedOrModifiedInHoursResponse
-    {
-        public List<AddedOrModifiedFile> Files { get; set; }
-    }
+    public List<AddedOrModifiedFile> Files { get; set; }
+}
 
-    public class AddedOrModifiedFile
+public class AddedOrModifiedFile
+{
+    public AddedOrModifiedFile(Diff diff)
     {
-        public AddedOrModifiedFile(Diff diff)
-        {
-            Filename = diff.NewPath;
-            IsNewFile = diff.IsNewFile;
-        }
-        public string Filename { get; set; }
-
-        [Display("Is new file")]
-        public bool IsNewFile { get; set; }
+        Filename = diff.NewPath;
+        IsNewFile = diff.IsNewFile;
     }
+    public string Filename { get; set; }
+
+    [Display("Is new file")]
+    public bool IsNewFile { get; set; }
 }

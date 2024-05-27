@@ -1,17 +1,16 @@
 ﻿using Blackbird.Applications.Sdk.Common.Dictionaries;
 
-namespace Apps.Gitlab.DataSourceHandlers.EnumHandlers
+namespace Apps.Gitlab.DataSourceHandlers.EnumHandlers;
+
+public class RepoVisibilityDataHandler : IStaticDataSourceHandler
 {
-    public class RepoVisibilityDataHandler : IStaticDataSourceHandler
+    public Dictionary<string, string> GetData()
     {
-        public Dictionary<string, string> GetData()
+        return new()
         {
-            return new()
-            {
-                {"0", "Private"},
-                {"1", "Internal"},
-                {"2", "Public"},
-            };
-        }
+            {"0", "Private"},
+            {"1", "Internal"},
+            {"2", "Public"},
+        };
     }
 }

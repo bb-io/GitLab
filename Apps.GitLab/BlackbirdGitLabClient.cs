@@ -1,15 +1,9 @@
 ﻿using Apps.GitLab.Dtos;
 using Blackbird.Applications.Sdk.Common.Authentication;
-using Blackbird.Applications.Sdk.Common.Invocation;
 using GitLabApiClient;
 using GitLabApiClient.Internal.Paths;
-using GitLabApiClient.Models.Commits.Requests;
 using GitLabApiClient.Models.Commits.Responses;
-using Newtonsoft.Json;
 using RestSharp;
-using System;
-using System.Reflection.Metadata;
-using System.Text;
 
 namespace Apps.Gitlab;
 

@@ -1,9 +1,4 @@
-﻿
-using Apps.Gitlab.Webhooks.Payloads;
-using Blackbird.Applications.Sdk.Common.Webhooks;
-using Newtonsoft.Json;
-
-namespace Apps.Gitlab.Webhooks;
+﻿namespace Apps.Gitlab.Webhooks;
 
 //[WebhookList]
 public class PullRequestWebhooks
