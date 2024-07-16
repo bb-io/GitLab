@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <Product>GitLab</Product>
     <Description>Software development &amp; version control</Description>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <AssemblyName>Apps.GitLab</AssemblyName>
   </PropertyGroup>
 
