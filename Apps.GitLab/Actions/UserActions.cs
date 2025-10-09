@@ -2,7 +2,7 @@
 
 namespace Apps.Gitlab.Actions;
 
-[ActionList]
+[ActionList("User")]
 public class UserActions
 {
     //[Action("Get user by username", Description = "Get information about specific user")]

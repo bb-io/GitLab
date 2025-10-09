@@ -24,7 +24,7 @@ using RestSharp;
 
 namespace Apps.Gitlab.Actions;
 
-[ActionList]
+[ActionList("Repository")]
 public class RepositoryActions : GitLabActions
 {
     private readonly IFileManagementClient _fileManagementClient;

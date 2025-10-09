@@ -19,7 +19,7 @@ using Apps.GitLab.Models.Respository.Requests;
 
 namespace Apps.Gitlab.Actions;
 
-[ActionList]
+[ActionList("Commit")]
 public class CommitActions : GitLabActions
 {
     private readonly IFileManagementClient _fileManagementClient;

@@ -14,7 +14,7 @@ using GitLabApiClient.Models.MergeRequests.Responses;
 
 namespace Apps.Gitlab.Actions;
 
-[ActionList]
+[ActionList("Pull request")]
 public class PullRequestActions : GitLabActions
 {
     private readonly IFileManagementClient _fileManagementClient;

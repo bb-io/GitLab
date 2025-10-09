@@ -13,7 +13,7 @@ using Apps.GitLab.Dtos;
 
 namespace Apps.Gitlab.Actions;
 
-[ActionList]
+[ActionList("Branch")]
 public class BranchActions : GitLabActions
 {
     private readonly IFileManagementClient _fileManagementClient;
