@@ -1,15 +1,14 @@
-﻿using Apps.Gitlab.Dtos;
+﻿using Apps.Gitlab.Actions.Base;
+using Apps.Gitlab.Dtos;
 using Apps.Gitlab.Models.Branch.Requests;
 using Apps.Gitlab.Models.Branch.Responses;
 using Apps.Gitlab.Models.Respository.Requests;
+using Apps.GitLab.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
-using GitLabApiClient.Internal.Paths;
-using Apps.Gitlab.Actions.Base;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using GitLabApiClient;
-using Apps.GitLab.Dtos;
+using GitLabApiClient.Internal.Paths;
 
 namespace Apps.Gitlab.Actions;
 
@@ -28,17 +27,12 @@ public class BranchActions : GitLabActions
     public async Task<ListRepositoryBranchesResponse> ListRepositoryBranches([ActionParameter] GetRepositoryRequest input)
     {
         var projectId = (ProjectId)int.Parse(input.RepositoryId);
-        try {
-            var branches = await Client.Branches.GetAsync(projectId, (options) => { });
-            return new ListRepositoryBranchesResponse
-            {
-                Branches = branches.Select(b => new BranchDto(b))
-            };
-        }
-        catch (GitLabException ex)
+        var branches = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+         Client.Branches.GetAsync(projectId, _ => { }));
+        return new ListRepositoryBranchesResponse
         {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+            Branches = branches.Select(b => new BranchDto(b))
+        };
     }
 
     [Action("Get branch", Description = "Get branch by name")]
@@ -47,15 +41,11 @@ public class BranchActions : GitLabActions
         [ActionParameter] GetBranchRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try 
-        {
-            var branch = await Client.Branches.GetAsync(projectId, input.Name);
-            return new BranchDto(branch);
-        }
-        catch (GitLabException ex)
-        {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+
+        var branch = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+       Client.Branches.GetAsync(projectId, input.Name));
+
+        return new BranchDto(branch);
     }
 
     [Action("Create branch", Description = "Create branch")]
@@ -64,14 +54,13 @@ public class BranchActions : GitLabActions
         [ActionParameter] Models.Branch.Requests.CreateBranchRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try
-        {
-            var branch = await Client.Branches.CreateAsync(projectId, new GitLabApiClient.Models.Branches.Requests.CreateBranchRequest(input.NewBranchName, input.BaseBranchName));
-            return new BranchDto(branch);
-        }
-        catch (GitLabException ex)
-        {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+
+        var request = new GitLabApiClient.Models.Branches.Requests.CreateBranchRequest(
+          input.NewBranchName,
+          input.BaseBranchName);
+
+        var branch = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+            Client.Branches.CreateAsync(projectId, request));
+        return new BranchDto(branch);
     }
 }

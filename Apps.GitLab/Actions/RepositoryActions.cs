@@ -1,26 +1,26 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.Gitlab.Actions.Base;
+using Apps.Gitlab.Constants;
 using Apps.Gitlab.Dtos;
-using Blackbird.Applications.Sdk.Common.Actions;
-using Apps.Gitlab.Models.Respository.Responses;
+using Apps.Gitlab.Models.Branch.Requests;
+using Apps.Gitlab.Models.Commit.Responses;
 using Apps.Gitlab.Models.Respository.Requests;
-using System.Net.Mime;
-using Apps.Gitlab.Actions.Base;
+using Apps.Gitlab.Models.Respository.Responses;
+using Apps.GitLab;
+using Apps.GitLab.Models.Respository.Requests;
+using Apps.GitLab.Utils;
+using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Actions;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using Apps.Gitlab.Models.Branch.Requests;
-using GitLabApiClient.Models.Projects.Responses;
-using GitLabApiClient.Internal.Paths;
-using Apps.GitLab;
-using Apps.Gitlab.Constants;
-using Apps.Gitlab.Models.Commit.Responses;
-using Blackbird.Applications.Sdk.Utils.Models;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
-using Apps.GitLab.Dtos;
-using GitLabApiClient;
-using Apps.GitLab.Models.Respository.Requests;
 using Blackbird.Applications.Sdk.Utils.Extensions.Http;
+using Blackbird.Applications.Sdk.Utils.Models;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using GitLabApiClient.Internal.Paths;
+using GitLabApiClient.Models.Projects.Responses;
 using RestSharp;
+using System.Net.Mime;
 
 namespace Apps.Gitlab.Actions;
 
@@ -28,8 +28,8 @@ namespace Apps.Gitlab.Actions;
 public class RepositoryActions : GitLabActions
 {
     private readonly IFileManagementClient _fileManagementClient;
-    
-    public RepositoryActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
+
+    public RepositoryActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
         : base(invocationContext)
     {
         _fileManagementClient = fileManagementClient;
@@ -42,7 +42,7 @@ public class RepositoryActions : GitLabActions
 
         if (input.UserId != null)
             endpoint += $"/user/{input.UserId}";
-        
+
         var request = new GitLabRequest(endpoint, Method.Post, Creds)
             .WithJsonBody(input.GetNewRepositoryRequest(), JsonConfig.JsonSettings);
 
@@ -56,34 +56,32 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] GetFileRequest getFileRequest)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try {
-            var repository = await Client.Projects.GetAsync(projectId);
-            var fileData = await Client.Files.GetAsync(projectId, getFileRequest.FilePath, branchRequest.Name ?? repository.DefaultBranch);
-            if (fileData == null)
-                throw new ArgumentException($"File does not exist ({getFileRequest.FilePath})");
+        var repository = await ErrorHandler.ExecuteWithErrorHandlingAsync(() => Client.Projects.GetAsync(projectId));
 
-            var filename = Path.GetFileName(getFileRequest.FilePath);
-            if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
-                mimeType = MediaTypeNames.Application.Octet;
+        var branch = branchRequest.Name ?? repository.DefaultBranch;
 
-            FileReference file;
-            File.WriteAllBytes("test", Convert.FromBase64String(fileData.Content));
-            using (var stream = new MemoryStream(Convert.FromBase64String(fileData.Content)))
-            {
-                file = _fileManagementClient.UploadAsync(stream, mimeType, filename).Result;
-            }
+        var fileData = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+            Client.Files.GetAsync(projectId, getFileRequest.FilePath, branch));
+        if (fileData == null)
+            throw new ArgumentException($"File does not exist ({getFileRequest.FilePath})");
 
-            return new GetFileResponse
-            {
-                FilePath = getFileRequest.FilePath,
-                File = file,
-                FileExtension = Path.GetExtension(getFileRequest.FilePath)
-            };
-        }
-        catch (GitLabException ex)
+        var filename = Path.GetFileName(getFileRequest.FilePath);
+        if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
+            mimeType = MediaTypeNames.Application.Octet;
+
+        FileReference file;
+        File.WriteAllBytes("test", Convert.FromBase64String(fileData.Content));
+        using (var stream = new MemoryStream(Convert.FromBase64String(fileData.Content)))
         {
-            throw new GitLabFriendlyException(ex.Message);
+            file = _fileManagementClient.UploadAsync(stream, mimeType, filename).Result;
         }
+
+        return new GetFileResponse
+        {
+            FilePath = getFileRequest.FilePath,
+            File = file,
+            FileExtension = Path.GetExtension(getFileRequest.FilePath)
+        };
     }
 
     [Action("Get all files in folder", Description = "Get all files in folder")]
@@ -93,103 +91,83 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] FolderContentRequest folderContentRequest)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try {
-            var resultFiles = new List<GitLabFile>();
-            var content = await RestClient.GetArchive(projectId, branchRequest.Name);
-            if (content == null || content.Length == 0)
-            {
-                throw new ArgumentException("Repository is empty!");
-            }
-
-            var filesFromZip = new List<BlackbirdZipEntry>();
-            using (var stream = new MemoryStream(content))
-            {
-                filesFromZip = (await stream.GetFilesFromZip()).ToList();
-            }
-            var includeSubFolders = folderContentRequest.IncludeSubfolders.HasValue && folderContentRequest.IncludeSubfolders.Value;
-            foreach (var file in filesFromZip)
-            {
-                file.Path = file.Path.Substring(file.Path.IndexOf('/') + 1);            
-                if (file.FileStream.Length == 0)
-                {
-                    continue;
-                }
-                else if (!string.IsNullOrEmpty(folderContentRequest.Path))
-                {
-                    if ((includeSubFolders && !file.Path.StartsWith(folderContentRequest.Path)) ||
-                        (!includeSubFolders && Path.GetDirectoryName(file.Path).TrimStart('\\').Replace('\\', '/') != folderContentRequest.Path.Trim('/')))
-                    {
-                        continue;
-                    }
-                }
-                else if (!includeSubFolders && !string.IsNullOrEmpty(Path.GetDirectoryName(file.Path)))
-                {
-                    continue;
-                }
-                var filename = Path.GetFileName(file.Path);
-                if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
-                    mimeType = MediaTypeNames.Application.Octet;
-                var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, mimeType, filename);
-                resultFiles.Add(new GitLabFile()
-                {
-                    File = uploadedFile,
-                    FilePath = file.Path
-                });
-            }
-            return new GetRepositoryFilesFromFilepathsResponse { Files = resultFiles };
-        }
-        catch (GitLabException ex)
+        var resultFiles = new List<GitLabFile>();
+        var content = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+        RestClient.GetArchive(projectId, branchRequest.Name));
+        if (content == null || content.Length == 0)
         {
-            throw new GitLabFriendlyException(ex.Message);
+            throw new PluginApplicationException("Repository is empty!");
         }
+
+        var filesFromZip = new List<BlackbirdZipEntry>();
+        using (var stream = new MemoryStream(content))
+        {
+            filesFromZip = (await stream.GetFilesFromZip()).ToList();
+        }
+        var includeSubFolders = folderContentRequest.IncludeSubfolders.HasValue && folderContentRequest.IncludeSubfolders.Value;
+        foreach (var file in filesFromZip)
+        {
+            file.Path = file.Path.Substring(file.Path.IndexOf('/') + 1);
+            if (file.FileStream.Length == 0)
+            {
+                continue;
+            }
+            else if (!string.IsNullOrEmpty(folderContentRequest.Path))
+            {
+                if ((includeSubFolders && !file.Path.StartsWith(folderContentRequest.Path)) ||
+                    (!includeSubFolders && Path.GetDirectoryName(file.Path).TrimStart('\\').Replace('\\', '/') != folderContentRequest.Path.Trim('/')))
+                {
+                    continue;
+                }
+            }
+            else if (!includeSubFolders && !string.IsNullOrEmpty(Path.GetDirectoryName(file.Path)))
+            {
+                continue;
+            }
+            var filename = Path.GetFileName(file.Path);
+            if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
+                mimeType = MediaTypeNames.Application.Octet;
+            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, mimeType, filename);
+            resultFiles.Add(new GitLabFile()
+            {
+                File = uploadedFile,
+                FilePath = file.Path
+            });
+        }
+        return new GetRepositoryFilesFromFilepathsResponse { Files = resultFiles };
     }
 
     [Action("Get repository", Description = "Get repository info")]
     public async Task<Project> GetRepositoryById([ActionParameter] GetRepositoryRequest input)
     {
         var projectId = (ProjectId)int.Parse(input.RepositoryId);
-        try {
-            var repository = await Client.Projects.GetAsync(projectId);
-            return repository;
-        }
-        catch (GitLabException ex)
-        {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+        var repository = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+        Client.Projects.GetAsync(projectId));
+        return repository;
     }
 
     [Action("Get repository issues", Description = "Get opened issues against repository")]
     public async Task<GetIssuesResponse> GetIssuesInRepository([ActionParameter] RepositoryRequest input)
     {
         var projectId = (ProjectId)int.Parse(input.RepositoryId);
-        try {
-            var issues = await Client.Issues.GetAllAsync(projectId);
-            return new()
-            {
-                Issues = issues.Select(issue => new IssueDto(issue))
-            };
-        }
-        catch (GitLabException ex)
+        var issues = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+       Client.Issues.GetAllAsync(projectId));
+        return new()
         {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+            Issues = issues.Select(issue => new IssueDto(issue))
+        };
     }
 
     [Action("Get repository merge requests", Description = "Get opened merge requests in a repository")]
     public async Task<GetPullRequestsResponse> GetPullRequestsInRepository([ActionParameter] RepositoryRequest input)
     {
         var projectId = (ProjectId)int.Parse(input.RepositoryId);
-        try {
-            var pullRequests = await Client.MergeRequests.GetAsync(projectId, (options) => {});
-            return new()
-            {
-                PullRequests = pullRequests.Select(p => new PullRequestDto(p))
-            };
-        }
-        catch (GitLabException ex)
+        var pullRequests = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+        Client.MergeRequests.GetAsync(projectId, _ => { }));
+        return new()
         {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+            PullRequests = pullRequests.Select(p => new PullRequestDto(p))
+        };
     }
 
     [Action("List repository folder content", Description = "List repository folder content")]
@@ -199,38 +177,28 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] FolderContentWithTypeRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try {
-            var tree = await Client.Trees.GetAsync(projectId, (options) => 
-            { 
-                options.Recursive = input.IncludeSubfolders ?? false;
-                options.Path = input.Path ?? "/";
-                if (!string.IsNullOrWhiteSpace(branchRequest.Name))
-                    options.Reference = branchRequest.Name;
-            });
-            if (!string.IsNullOrEmpty(input.ContentType))
-                tree = tree.Where(x => input.ContentType.Split(' ').Contains(x.Type)).ToList();
-            return new()
-            {
-                Content = tree
-            };
-        }
-        catch (GitLabException ex)
+        var tree = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+         Client.Trees.GetAsync(projectId, options =>
+         {
+             options.Recursive = input.IncludeSubfolders ?? false;
+             options.Path = input.Path ?? "/";
+             if (!string.IsNullOrWhiteSpace(branchRequest.Name))
+                 options.Reference = branchRequest.Name;
+         }));
+        if (!string.IsNullOrEmpty(input.ContentType))
+            tree = tree.Where(x => input.ContentType.Split(' ').Contains(x.Type)).ToList();
+        return new()
         {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+            Content = tree
+        };
     }
 
     [Action("List repositories", Description = "List all repositories")]
     public async Task<ListRepositoriesResponse> ListRepositories()
     {
-        try {
-            var projects = await Client.Projects.GetAsync((options) => { options.IsMemberOf = true; });
-            return new(projects.ToArray());
-        }
-        catch (GitLabException ex)
-        {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+        var projects = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+        Client.Projects.GetAsync(options => { options.IsMemberOf = true; }));
+        return new(projects.ToArray());
     }
 
     [Action("Get files by filepaths", Description = "Get files by filepaths from webhooks")]
@@ -239,32 +207,26 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] GetRepositoryFilesFromFilepathsRequest input)
     {
-        try
-        {
-            var files = new List<GitLabFile>();
-            foreach (var filePath in input.FilePaths)
-            {
-                var fileData = await GetFile(
-                    repositoryRequest,
-                    branchRequest,
-                    new GetFileRequest { FilePath = filePath });
 
-                files.Add(new GitLabFile
-                {
-                    FilePath = fileData.FilePath,
-                    File = fileData.File
-                });
-            }
-
-            return new()
-            {
-                Files = files
-            };
-        }
-        catch (GitLabException ex)
+        var files = new List<GitLabFile>();
+        foreach (var filePath in input.FilePaths)
         {
-            throw new GitLabFriendlyException(ex.Message);
+            var fileData = await GetFile(
+                repositoryRequest,
+                branchRequest,
+                new GetFileRequest { FilePath = filePath });
+
+            files.Add(new GitLabFile
+            {
+                FilePath = fileData.FilePath,
+                File = fileData.File
+            });
         }
+
+        return new()
+        {
+            Files = files
+        };
     }
 
     [Action("Branch exists", Description = "Branch exists in specified repository")]
@@ -273,13 +235,9 @@ public class RepositoryActions : GitLabActions
         [ActionParameter][Display("Branch name")] string branchNameRequest)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try {
-            var branches = await Client.Branches.GetAsync(projectId, (options) => { options.Search = branchNameRequest; });
-            return branches.Any(x => x.Name == branchNameRequest);
-        }
-        catch (GitLabException ex)
-        {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+        var branches = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+        Client.Branches.GetAsync(projectId, options => { options.Search = branchNameRequest; }));
+
+        return branches.Any(x => x.Name == branchNameRequest);
     }
 }
