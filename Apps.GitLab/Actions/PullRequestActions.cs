@@ -2,12 +2,11 @@
 using Apps.Gitlab.Models.PullRequest.Requests;
 using Apps.Gitlab.Models.PullRequest.Responses;
 using Apps.Gitlab.Models.Respository.Requests;
-using Apps.GitLab.Dtos;
+using Apps.GitLab.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using GitLabApiClient;
 using GitLabApiClient.Internal.Paths;
 using GitLabApiClient.Models.MergeRequests.Requests;
 using GitLabApiClient.Models.MergeRequests.Responses;
@@ -30,17 +29,12 @@ public class PullRequestActions : GitLabActions
         [ActionParameter] GetRepositoryRequest repositoryRequest)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try {
-            var pulls = await Client.MergeRequests.GetAsync(projectId, (options) => { });
-            return new ListPullRequestsResponse
-            {
-                PullRequests = pulls
-            };
-        }
-        catch (GitLabException ex)
+        var pulls = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+        Client.MergeRequests.GetAsync(projectId, _ => { }));
+        return new ListPullRequestsResponse
         {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+            PullRequests = pulls
+        };
     }
 
     [Action("Get merge request", Description = "Get merge request")]
@@ -49,14 +43,9 @@ public class PullRequestActions : GitLabActions
         [ActionParameter] GetPullRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try {
-            var pull = await Client.MergeRequests.GetAsync(projectId, int.Parse(input.PullRequestId));
-            return pull;
-        }
-        catch (GitLabException ex)
-        {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+        var pull = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+        Client.MergeRequests.GetAsync(projectId, int.Parse(input.PullRequestId)));
+        return pull;
     }
 
     [Action("Create merge request", Description = "Create merge request")]
@@ -65,14 +54,15 @@ public class PullRequestActions : GitLabActions
         [ActionParameter] CreatePullRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try {
-            var pull = await Client.MergeRequests.CreateAsync(projectId, new GitLabApiClient.Models.MergeRequests.Requests.CreateMergeRequest(input.BaseBranch, input.HeadBranch, input.Title) { Description = input.Description});
-            return pull;
-        }
-        catch (GitLabException ex)
+        var request = new CreateMergeRequest(input.BaseBranch, input.HeadBranch, input.Title)
         {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+            Description = input.Description
+        };
+
+        var pull = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+            Client.MergeRequests.CreateAsync(projectId, request));
+
+        return pull;
     }
 
     [Action("Complete merge request", Description = "Complete merge request")]
@@ -82,12 +72,12 @@ public class PullRequestActions : GitLabActions
         [ActionParameter] MergePullRequest input)
     {
         var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        try {
-            return await Client.MergeRequests.AcceptAsync(projectId, int.Parse(mergeRequest.PullRequestId), new AcceptMergeRequest() { MergeCommitMessage = input.MergeCommitMessage });
-        }
-        catch (GitLabException ex)
+        var acceptRequest = new AcceptMergeRequest
         {
-            throw new GitLabFriendlyException(ex.Message);
-        }
+            MergeCommitMessage = input.MergeCommitMessage
+        };
+
+        return await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+            Client.MergeRequests.AcceptAsync(projectId, int.Parse(mergeRequest.PullRequestId), acceptRequest));
     }
 }

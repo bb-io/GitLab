@@ -1,5 +1,6 @@
 ﻿using Apps.GitLab.Dtos;
 using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Blackbird.Applications.Sdk.Utils.RestSharp;
 using GitLabApiClient;
@@ -36,6 +37,12 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         request.AddHeader("Authorization",
             $"Bearer {AuthenticationCredentials.First(p => p.KeyName == "Authorization").Value}");
         var result = await new RestClient(ApiUrl).ExecuteAsync(request);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            throw ConfigureErrorException(result);
+        }
+
         return result.RawBytes;
     }
 
@@ -58,12 +65,14 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         });
         var result = await new RestClient(ApiUrl).ExecuteAsync<Commit>(request);
         if (!result.IsSuccessStatusCode)
-            throw new GitLabFriendlyException(result.Content);
+        {
+            throw ConfigureErrorException(result);
+        }
         return result.Data;
     }
 
     protected override Exception ConfigureErrorException(RestResponse response)
     {
-        return new GitLabFriendlyException(response.Content);
+        return new PluginApplicationException(response.Content);
     }
 }
