@@ -10,7 +10,20 @@ namespace Tests.GitLab;
 public class ConnectionValidatorTests : TestBaseWithContext
 {
     [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
-    public async Task ValidateConnection_WithCorrectCredentials_ReturnsValidResult(InvocationContext context)
+    public async Task ValidateConnectionOAuth_WithCorrectCredentials_ReturnsValidResult(InvocationContext context)
+    {
+
+        var validator = new ConnectionValidator();
+
+        var result = await validator.ValidateConnection(
+            context.AuthenticationCredentialsProviders,
+            CancellationToken.None);
+
+        Assert.IsTrue(result.IsValid, result.Message);
+    }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.PersonalAccessToken)]
+    public async Task ValidateConnectionPAT_WithCorrectCredentials_ReturnsValidResult(InvocationContext context)
     {
 
         var validator = new ConnectionValidator();
