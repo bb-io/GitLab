@@ -12,11 +12,14 @@ public class ConnectionValidatorTests : TestBaseWithContext
     [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
     public async Task ValidateConnection_WithCorrectCredentials_ReturnsValidResult(InvocationContext context)
     {
+
         var validator = new ConnectionValidator();
 
-        var tasks = CredentialGroups.Select(x => validator.ValidateConnection(x, CancellationToken.None).AsTask());
-        var results = await Task.WhenAll(tasks);
-        Assert.IsTrue(results.All(x => x.IsValid));
+        var result = await validator.ValidateConnection(
+            context.AuthenticationCredentialsProviders,
+            CancellationToken.None);
+
+        Assert.IsTrue(result.IsValid, result.Message);
     }
 
     [TestMethod, ContextDataSource]

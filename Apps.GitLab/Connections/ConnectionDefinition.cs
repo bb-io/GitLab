@@ -46,13 +46,13 @@ public class ConnectionDefinition : IConnectionDefinition
     public IEnumerable<AuthenticationCredentialsProvider> CreateAuthorizationCredentialsProviders(Dictionary<string, string> values)
     {
         var providers = values
-            .Select(x => new AuthenticationCredentialsProvider(x.Key, x.Value))
-            .ToList();
+       .Select(x => new AuthenticationCredentialsProvider(x.Key, x.Value))
+       .ToList();
 
-        var connectionType = values[CredNames.ConnectionType] switch
+        var connectionType = values[nameof(ConnectionPropertyGroup)] switch
         {
             var ct when ConnectionTypes.SupportedConnectionTypes.Contains(ct) => ct,
-            _ => throw new Exception($"Unknown connection type: {values[CredNames.ConnectionType]}")
+            _ => throw new Exception($"Unknown connection type: {values[nameof(ConnectionPropertyGroup)]}")
         };
 
         providers.Add(new AuthenticationCredentialsProvider(CredNames.ConnectionType, connectionType));
