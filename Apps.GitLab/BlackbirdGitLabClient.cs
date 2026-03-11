@@ -41,7 +41,7 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         {
             ConnectionTypes.OAuth => "https://gitlab.com",
             ConnectionTypes.OAuthSelfManaged => creds.Get(CredNames.BaseUrl).Value.TrimEnd('/'),
-            ConnectionTypes.PersonalAccessToken => creds.Get(CredNames.BaseUrl).Value.TrimEnd('/'),
+            ConnectionTypes.PersonalAccessToken => "https://gitlab.com",
             _ => throw new Exception($"Unsupported connection type: {connectionType}")
         };
     }

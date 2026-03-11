@@ -6,7 +6,6 @@ namespace Apps.Gitlab.Connections;
 
 public class ConnectionDefinition : IConnectionDefinition
 {
-
     public IEnumerable<ConnectionPropertyGroup> ConnectionPropertyGroups => new List<ConnectionPropertyGroup>
     {
         new ConnectionPropertyGroup
@@ -14,13 +13,11 @@ public class ConnectionDefinition : IConnectionDefinition
             DisplayName = "OAuth",
             Name = ConnectionTypes.OAuth,
             AuthenticationType = ConnectionAuthenticationType.OAuth2,
-            ConnectionProperties = new List<ConnectionProperty>
-            {
-            }
+            ConnectionProperties = new List<ConnectionProperty>()
         },
         new ConnectionPropertyGroup
         {
-            DisplayName= "OAuth Self-managed",
+            DisplayName = "OAuth Self-managed",
             Name = ConnectionTypes.OAuthSelfManaged,
             AuthenticationType = ConnectionAuthenticationType.OAuth2,
             ConnectionProperties = new List<ConnectionProperty>
@@ -30,15 +27,14 @@ public class ConnectionDefinition : IConnectionDefinition
                 new(CredNames.ClientSecret) { DisplayName = "Client secret", Sensitive = true },
             }
         },
-         new ConnectionPropertyGroup
+        new ConnectionPropertyGroup
         {
-            DisplayName= "Personal Access Token",
+            DisplayName = "Personal Access Token",
             Name = ConnectionTypes.PersonalAccessToken,
             AuthenticationType = ConnectionAuthenticationType.Undefined,
             ConnectionProperties = new List<ConnectionProperty>
             {
-                new(CredNames.BaseUrl) { DisplayName = "Base URL" },
-                 new(CredNames.ApiKey) { Sensitive = true, DisplayName = "API key" }
+                new(CredNames.ApiKey) { Sensitive = true, DisplayName = "API key" }
             }
         }
     };
@@ -46,8 +42,8 @@ public class ConnectionDefinition : IConnectionDefinition
     public IEnumerable<AuthenticationCredentialsProvider> CreateAuthorizationCredentialsProviders(Dictionary<string, string> values)
     {
         var providers = values
-       .Select(x => new AuthenticationCredentialsProvider(x.Key, x.Value))
-       .ToList();
+            .Select(x => new AuthenticationCredentialsProvider(x.Key, x.Value))
+            .ToList();
 
         var connectionType = values[nameof(ConnectionPropertyGroup)] switch
         {
