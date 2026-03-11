@@ -1,0 +1,19 @@
+{
+  "ConnectionDefinition": [
+    {
+      "Connection type": "",
+      "API key": "",
+      "Model": "",
+      "URL": ""
+    },
+    {
+      "Connection type": "Personal Access Token", 
+      "API key": ""
+    },
+    {
+      "Connection type": "",
+      "API key": "",
+    }
+  ],
+  "TestFolder": "C:\\Users\\..."
+}

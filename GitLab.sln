@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.8.34322.80
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11506.43 insiders
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Apps.GitLab", "Apps.GitLab\Apps.GitLab.csproj", "{08DA241F-5E71-4FDD-8306-9C9E2A411466}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.GitLab", "Tests.GitLab\Tests.GitLab.csproj", "{320EAF68-A92B-8042-6F32-8A593D57993E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{08DA241F-5E71-4FDD-8306-9C9E2A411466}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{08DA241F-5E71-4FDD-8306-9C9E2A411466}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{08DA241F-5E71-4FDD-8306-9C9E2A411466}.Release|Any CPU.Build.0 = Release|Any CPU
+		{320EAF68-A92B-8042-6F32-8A593D57993E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{320EAF68-A92B-8042-6F32-8A593D57993E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{320EAF68-A92B-8042-6F32-8A593D57993E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{320EAF68-A92B-8042-6F32-8A593D57993E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
