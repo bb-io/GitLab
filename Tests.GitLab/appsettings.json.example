@@ -1,0 +1,20 @@
+{
+  "ConnectionDefinition": [
+    {
+      "Connection type": "OAuth Self-managed",
+      "Base URL": "",
+      "Client ID": "",
+      "Client secret": "",
+      "Authorization": ""
+    },
+    {
+      "Connection type": "Personal Access Token",
+      "Authorization": ""
+    },
+    {
+      "Connection type": "OAuth",
+      "Authorization": ""
+    }
+  ],
+  "TestFolder": "C:\\Users\\..."
+}

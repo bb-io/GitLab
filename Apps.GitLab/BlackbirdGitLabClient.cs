@@ -1,6 +1,8 @@
-﻿using Apps.GitLab.Dtos;
+﻿using Apps.GitLab.Constants;
+using Apps.GitLab.Dtos;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Utils.Extensions.Sdk;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Blackbird.Applications.Sdk.Utils.RestSharp;
 using GitLabApiClient;
@@ -12,36 +14,48 @@ namespace Apps.Gitlab;
 
 public class BlackbirdGitlabClient : BlackBirdRestClient
 {
+    private readonly IEnumerable<AuthenticationCredentialsProvider> _authenticationCredentials;
+    private readonly string _baseUrl;
+
     public readonly GitLabClient _client;
     public GitLabClient Client => _client;
 
-    private const string ApiUrl = "https://gitlab.com";
-
-    private IEnumerable<AuthenticationCredentialsProvider> AuthenticationCredentials { get; set; }
-
-    public BlackbirdGitlabClient(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders) :
-        base(new()
+    public BlackbirdGitlabClient(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders)
+        : base(new()
         {
-            BaseUrl = ApiUrl.ToUri()
+            BaseUrl = GetBaseUrl(authenticationCredentialsProviders).ToUri()
         })
     {
-        AuthenticationCredentials = authenticationCredentialsProviders;
-        var apiToken = authenticationCredentialsProviders.First(p => p.KeyName == "Authorization").Value;
-        _client = new GitLabClient(ApiUrl, apiToken);
+        _authenticationCredentials = authenticationCredentialsProviders;
+        _baseUrl = GetBaseUrl(authenticationCredentialsProviders);
+
+        var apiToken = authenticationCredentialsProviders.Get(CredNames.Authorization).Value;
+        _client = new GitLabClient(_baseUrl, apiToken);
+    }
+
+    private static string GetBaseUrl(IEnumerable<AuthenticationCredentialsProvider> creds)
+    {
+        var connectionType = creds.Get(CredNames.ConnectionType).Value;
+
+        return connectionType switch
+        {
+            ConnectionTypes.OAuth => "https://gitlab.com",
+            ConnectionTypes.OAuthSelfManaged => creds.Get(CredNames.BaseUrl).Value.TrimEnd('/'),
+            ConnectionTypes.PersonalAccessToken => "https://gitlab.com",
+            _ => throw new Exception($"Unsupported connection type: {connectionType}")
+        };
     }
 
     public async Task<byte[]> GetArchive(ProjectId projectId, string? branchName)
     {
         var branchCommit = !string.IsNullOrWhiteSpace(branchName) ? $"?sha={branchName}" : "";
         var request = new RestRequest($"/api/v4/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
-        request.AddHeader("Authorization",
-            $"Bearer {AuthenticationCredentials.First(p => p.KeyName == "Authorization").Value}");
-        var result = await new RestClient(ApiUrl).ExecuteAsync(request);
+        request.AddHeader("Authorization", $"Bearer {_authenticationCredentials.Get(CredNames.Authorization).Value}");
+
+        var result = await new RestClient(_baseUrl).ExecuteAsync(request);
 
         if (!result.IsSuccessStatusCode)
-        {
             throw ConfigureErrorException(result);
-        }
 
         return result.RawBytes;
     }
@@ -52,8 +66,7 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         var repository = await Client.Projects.GetAsync(projectId);
 
         var request = new RestRequest($"/api/v4/projects/{projectId}/repository/commits", Method.Post);
-        request.AddHeader("Authorization",
-            $"Bearer {AuthenticationCredentials.First(p => p.KeyName == "Authorization").Value}");
+        request.AddHeader("Authorization", $"Bearer {_authenticationCredentials.Get(CredNames.Authorization).Value}");
         request.AddJsonBody(new
         {
             branch = branchName ?? repository.DefaultBranch,
@@ -63,11 +76,12 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
                 new FileActionDto(action, filePath, file)
             }
         });
-        var result = await new RestClient(ApiUrl).ExecuteAsync<Commit>(request);
+
+        var result = await new RestClient(_baseUrl).ExecuteAsync<Commit>(request);
+
         if (!result.IsSuccessStatusCode)
-        {
             throw ConfigureErrorException(result);
-        }
+
         return result.Data;
     }
 
