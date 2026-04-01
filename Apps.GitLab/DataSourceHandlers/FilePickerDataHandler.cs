@@ -11,7 +11,7 @@ using File = Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDat
 
 namespace Apps.Gitlab.DataSourceHandlers;
 
-public class GitLabFilePickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHandler
+public class FilePickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHandler
 {
     private IEnumerable<AuthenticationCredentialsProvider> Creds =>
         InvocationContext.AuthenticationCredentialsProviders;
@@ -19,7 +19,7 @@ public class GitLabFilePickerDataHandler : BaseInvocable, IAsyncFileDataSourceIt
     private readonly GetRepositoryRequest _repositoryRequest;
     private readonly GetOptionalBranchRequest _branchRequest;
 
-    public GitLabFilePickerDataHandler(
+    public FilePickerDataHandler(
         InvocationContext invocationContext,
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest) : base(invocationContext)

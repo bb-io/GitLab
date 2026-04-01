@@ -17,7 +17,7 @@ public class FolderContentRequest
     }
 
     [Display("Folder path (e.g. \"Folder1/Folder2\")")]
-    [FileDataSource(typeof(GitLabFolderPickerDataHandler))]
+    [FileDataSource(typeof(FolderPickerDataHandler))]
     public string? Path { get; set; }
 
     [Display("Include subfolders")]

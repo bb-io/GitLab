@@ -7,6 +7,6 @@ namespace Apps.Gitlab.Models.Respository.Requests;
 public class GetFileRequest
 {
     [Display("File path")]
-    [FileDataSource(typeof(GitLabFilePickerDataHandler))]
+    [FileDataSource(typeof(FilePickerDataHandler))]
     public string FilePath { get; set; }
 }

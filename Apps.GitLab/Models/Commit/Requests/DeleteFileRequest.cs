@@ -7,7 +7,7 @@ namespace Apps.Gitlab.Models.Commit.Requests;
 public class DeleteFileRequest
 {
     [Display("File path")]
-    [FileDataSource(typeof(GitLabFilePickerDataHandler))]
+    [FileDataSource(typeof(FilePickerDataHandler))]
     public string FilePath { get; set; }
 
     [Display("Commit message")]

@@ -10,7 +10,7 @@ using GitLabApiClient.Internal.Paths;
 
 namespace Apps.Gitlab.DataSourceHandlers;
 
-public class GitLabFolderPickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHandler
+public class FolderPickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHandler
 {
     private IEnumerable<AuthenticationCredentialsProvider> Creds =>
         InvocationContext.AuthenticationCredentialsProviders;
@@ -18,7 +18,7 @@ public class GitLabFolderPickerDataHandler : BaseInvocable, IAsyncFileDataSource
     private readonly GetRepositoryRequest _repositoryRequest;
     private readonly GetOptionalBranchRequest _branchRequest;
 
-    public GitLabFolderPickerDataHandler(
+    public FolderPickerDataHandler(
         InvocationContext invocationContext,
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest) : base(invocationContext)
