@@ -6,7 +6,8 @@ using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSourceItems;
-using GitLabApiClient.Internal.Paths;
+using GitLabApiClient.Models.Trees.Responses;
+using RestSharp;
 
 namespace Apps.Gitlab.DataSourceHandlers;
 
@@ -32,14 +33,15 @@ public class FolderPickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHa
         CancellationToken cancellationToken)
     {
         var projectId = GetProjectId();
-        var client = new BlackbirdGitlabClient(Creds).Client;
+        var client = new BlackbirdGitlabClient(Creds);
         var folderPath = GitLabPathHelper.NormalizeFolderId(context?.FolderId);
+        var request = client.CreateRequest($"/api/v4/projects/{projectId}/repository/tree", Method.Get);
+        request.AddQueryParameter("path", string.IsNullOrEmpty(folderPath) ? "/" : folderPath);
 
-        var tree = await client.Trees.GetAsync(projectId, options =>
-        {
-            options.Path = string.IsNullOrEmpty(folderPath) ? "/" : folderPath;
-            options.Reference = _branchRequest.Name;
-        });
+        if (!string.IsNullOrWhiteSpace(_branchRequest.Name))
+            request.AddQueryParameter("ref", _branchRequest.Name);
+
+        var tree = await client.ExecuteWithErrorHandling<List<Tree>>(request);
 
         return tree
             .Where(x => x.Type == "tree")
@@ -80,12 +82,12 @@ public class FolderPickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHa
         return Task.FromResult<IEnumerable<FolderPathItem>>(path);
     }
 
-    private ProjectId GetProjectId()
+    private int GetProjectId()
     {
         if (string.IsNullOrWhiteSpace(_repositoryRequest.RepositoryId))
             throw new PluginMisconfigurationException("You should select a repository first.");
 
-        return (ProjectId)int.Parse(_repositoryRequest.RepositoryId);
+        return int.Parse(_repositoryRequest.RepositoryId);
     }
 
     private static string GetDisplayName(string path)

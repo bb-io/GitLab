@@ -53,15 +53,22 @@ public class ConnectionDefinition : IConnectionDefinition
 
         providers.Add(new AuthenticationCredentialsProvider(CredNames.ConnectionType, connectionType));
 
-        if (values.TryGetValue("access_token", out var accessToken))
+        var authorizationToken = GetAuthorizationToken(values);
+        if (!string.IsNullOrWhiteSpace(authorizationToken))
         {
-            providers.Add(new AuthenticationCredentialsProvider(CredNames.Authorization, accessToken));
-        }
-        else if (values.TryGetValue(CredNames.ApiKey, out var apiKey))
-        {
-            providers.Add(new AuthenticationCredentialsProvider(CredNames.Authorization, apiKey));
+            providers.Add(new AuthenticationCredentialsProvider(CredNames.Authorization, authorizationToken));
         }
 
         return providers;
+    }
+
+    private static string? GetAuthorizationToken(Dictionary<string, string> values)
+    {
+        if (values.TryGetValue("access_token", out var accessToken))
+            return accessToken;
+
+        return values.TryGetValue(CredNames.ApiKey, out var apiKey)
+            ? apiKey
+            : null;
     }
 }

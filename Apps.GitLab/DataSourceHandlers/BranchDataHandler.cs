@@ -1,9 +1,10 @@
-﻿using Apps.Gitlab.Models.Respository.Requests;
+using Apps.Gitlab.Models.Respository.Requests;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using GitLabApiClient.Internal.Paths;
+using GitLabApiClient.Models.Branches.Responses;
+using RestSharp;
 
 namespace Apps.Gitlab.DataSourceHandlers;
 
@@ -25,8 +26,15 @@ public class BranchDataHandler : BaseInvocable, IAsyncDataSourceHandler
     {
         if (RepositoryRequest == null || string.IsNullOrWhiteSpace(RepositoryRequest.RepositoryId))
             throw new ArgumentException("Please, specify repository first");
-        var projectId = (ProjectId)int.Parse(RepositoryRequest.RepositoryId);
-        var branches = await new BlackbirdGitlabClient(Creds).Client.Branches.GetAsync(projectId, (options) => { });
+
+        var projectId = int.Parse(RepositoryRequest.RepositoryId);
+        var client = new BlackbirdGitlabClient(Creds);
+        var request = client.CreateRequest($"/api/v4/projects/{projectId}/repository/branches", Method.Get);
+
+        if (!string.IsNullOrWhiteSpace(context.SearchString))
+            request.AddQueryParameter("search", context.SearchString);
+
+        var branches = await client.ExecuteWithErrorHandling<List<Branch>>(request);
 
         return branches
             .Where(x => context.SearchString == null ||

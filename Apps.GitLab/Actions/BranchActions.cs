@@ -1,34 +1,32 @@
-﻿using Apps.Gitlab.Actions.Base;
+using Apps.Gitlab.Actions.Base;
 using Apps.Gitlab.Dtos;
 using Apps.Gitlab.Models.Branch.Requests;
 using Apps.Gitlab.Models.Branch.Responses;
 using Apps.Gitlab.Models.Respository.Requests;
-using Apps.GitLab.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using GitLabApiClient.Internal.Paths;
+using GitLabApiClient.Models.Branches.Responses;
+using RestSharp;
 
 namespace Apps.Gitlab.Actions;
 
 [ActionList("Branch")]
 public class BranchActions : GitLabActions
 {
-    private readonly IFileManagementClient _fileManagementClient;
-
     public BranchActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
         : base(invocationContext)
     {
-        _fileManagementClient = fileManagementClient;
     }
 
     [Action("List branches", Description = "List respository branches")]
     public async Task<ListRepositoryBranchesResponse> ListRepositoryBranches([ActionParameter] GetRepositoryRequest input)
     {
-        var projectId = (ProjectId)int.Parse(input.RepositoryId);
-        var branches = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-         Client.Branches.GetAsync(projectId, _ => { }));
+        var projectId = ParseProjectId(input.RepositoryId);
+        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/repository/branches", Method.Get);
+        var branches = await RestClient.ExecuteWithErrorHandling<List<Branch>>(request);
+
         return new ListRepositoryBranchesResponse
         {
             Branches = branches.Select(b => new BranchDto(b))
@@ -40,10 +38,11 @@ public class BranchActions : GitLabActions
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetBranchRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-
-        var branch = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-       Client.Branches.GetAsync(projectId, input.Name));
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var request = RestClient.CreateRequest(
+            $"/api/v4/projects/{projectId}/repository/branches/{Uri.EscapeDataString(input.Name)}",
+            Method.Get);
+        var branch = await RestClient.ExecuteWithErrorHandling<Branch>(request);
 
         return new BranchDto(branch);
     }
@@ -53,14 +52,12 @@ public class BranchActions : GitLabActions
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] Models.Branch.Requests.CreateBranchRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/repository/branches", Method.Post);
+        request.AddParameter("branch", input.NewBranchName);
+        request.AddParameter("ref", input.BaseBranchName);
 
-        var request = new GitLabApiClient.Models.Branches.Requests.CreateBranchRequest(
-          input.NewBranchName,
-          input.BaseBranchName);
-
-        var branch = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-            Client.Branches.CreateAsync(projectId, request));
+        var branch = await RestClient.ExecuteWithErrorHandling<Branch>(request);
         return new BranchDto(branch);
     }
 }

@@ -131,7 +131,7 @@ public class OAuth2TokenService : BaseInvocable, IOAuth2TokenService, ITokenRefr
         return connectionType switch
         {
             ConnectionTypes.OAuth => "https://gitlab.com/oauth/token",
-            ConnectionTypes.OAuthSelfManaged => $"{values[CredNames.BaseUrl].TrimEnd('/')}/oauth/token",
+            ConnectionTypes.OAuthSelfManaged => $"{GetSelfManagedBaseUrl(values)}/oauth/token",
             _ => throw new Exception($"Unsupported connection type for OAuth token exchange: {connectionType}")
         };
     }
@@ -155,4 +155,7 @@ public class OAuth2TokenService : BaseInvocable, IOAuth2TokenService, ITokenRefr
             _ => throw new Exception($"Unsupported connection type for OAuth client secret: {connectionType}")
         };
     }
+
+    private static string GetSelfManagedBaseUrl(Dictionary<string, string> values)
+        => values[CredNames.BaseUrl].TrimEnd('/');
 }

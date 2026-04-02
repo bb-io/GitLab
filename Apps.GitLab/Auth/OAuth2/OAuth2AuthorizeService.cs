@@ -49,7 +49,7 @@ public class OAuth2AuthorizeService : BaseInvocable, IOAuth2AuthorizeService
         return connectionType switch
         {
             ConnectionTypes.OAuth => "https://gitlab.com/oauth/authorize",
-            ConnectionTypes.OAuthSelfManaged => $"{values[CredNames.BaseUrl].TrimEnd('/')}/oauth/authorize",
+            ConnectionTypes.OAuthSelfManaged => $"{GetSelfManagedBaseUrl(values)}/oauth/authorize",
             _ => throw new Exception($"Unsupported connection type for OAuth authorization: {connectionType}")
         };
     }
@@ -63,4 +63,7 @@ public class OAuth2AuthorizeService : BaseInvocable, IOAuth2AuthorizeService
             _ => throw new Exception($"Unsupported connection type for OAuth authorization: {connectionType}")
         };
     }
+
+    private static string GetSelfManagedBaseUrl(Dictionary<string, string> values)
+        => values[CredNames.BaseUrl].TrimEnd('/');
 }
