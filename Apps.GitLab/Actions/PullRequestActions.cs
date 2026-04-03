@@ -5,7 +5,6 @@ using Apps.Gitlab.Models.Respository.Requests;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Apps.GitLab.Utils;
 using GitLabApiClient.Models.MergeRequests.Responses;
 using RestSharp;
@@ -13,12 +12,9 @@ using RestSharp;
 namespace Apps.Gitlab.Actions;
 
 [ActionList("Pull request")]
-public class PullRequestActions : GitLabActions
+public class PullRequestActions(InvocationContext invocationContext)
+    : GitLabActions(invocationContext)
 {
-    public PullRequestActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
-        : base(invocationContext)
-    {
-    }
 
     [Action("List merge requests", Description = "List merge requests")]
     public async Task<ListPullRequestsResponse> ListPullRequests(

@@ -13,12 +13,9 @@ using RestSharp;
 namespace Apps.Gitlab.Actions;
 
 [ActionList("Branch")]
-public class BranchActions : GitLabActions
+public class BranchActions(InvocationContext invocationContext)
+    : GitLabActions(invocationContext)
 {
-    public BranchActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
-        : base(invocationContext)
-    {
-    }
 
     [Action("List branches", Description = "List respository branches")]
     public async Task<ListRepositoryBranchesResponse> ListRepositoryBranches([ActionParameter] GetRepositoryRequest input)

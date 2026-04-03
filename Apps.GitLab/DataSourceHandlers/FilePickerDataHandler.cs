@@ -13,37 +13,26 @@ using File = Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDat
 
 namespace Apps.Gitlab.DataSourceHandlers;
 
-public class FilePickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHandler
+public class FilePickerDataHandler(
+    InvocationContext invocationContext,
+    [ActionParameter] GetRepositoryRequest repositoryRequest,
+    [ActionParameter] GetOptionalBranchRequest branchRequest)
+    : GitLabDataHandler(invocationContext), IAsyncFileDataSourceItemHandler
 {
-    private IEnumerable<AuthenticationCredentialsProvider> Creds =>
-        InvocationContext.AuthenticationCredentialsProviders;
-
-    private readonly GetRepositoryRequest _repositoryRequest;
-    private readonly GetOptionalBranchRequest _branchRequest;
-
-    public FilePickerDataHandler(
-        InvocationContext invocationContext,
-        [ActionParameter] GetRepositoryRequest repositoryRequest,
-        [ActionParameter] GetOptionalBranchRequest branchRequest) : base(invocationContext)
-    {
-        _repositoryRequest = repositoryRequest;
-        _branchRequest = branchRequest;
-    }
 
     public async Task<IEnumerable<FileDataItem>> GetFolderContentAsync(
         FolderContentDataSourceContext context,
         CancellationToken cancellationToken)
     {
-        var projectId = GetProjectId();
-        var client = new BlackbirdGitlabClient(Creds);
+        var projectId = GetProjectId(repositoryRequest.RepositoryId);
         var folderPath = GitLabPathHelper.NormalizeFolderId(context?.FolderId);
-        var request = client.CreateRequest($"/projects/{projectId}/repository/tree", Method.Get);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/tree", Method.Get);
         request.AddQueryParameter("path", string.IsNullOrEmpty(folderPath) ? "/" : folderPath);
 
-        if (!string.IsNullOrWhiteSpace(_branchRequest.Name))
-            request.AddQueryParameter("ref", _branchRequest.Name);
+        if (!string.IsNullOrWhiteSpace(branchRequest.Name))
+            request.AddQueryParameter("ref", branchRequest.Name);
 
-        var tree = await client.ExecuteWithErrorHandling<List<Tree>>(request);
+        var tree = await RestClient.ExecuteWithErrorHandling<List<Tree>>(request);
 
         return tree
             .OrderBy(x => x.Type == "blob")
@@ -95,17 +84,4 @@ public class FilePickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHand
         return Task.FromResult<IEnumerable<FolderPathItem>>(path);
     }
 
-    private int GetProjectId()
-    {
-        if (string.IsNullOrWhiteSpace(_repositoryRequest.RepositoryId))
-            throw new PluginMisconfigurationException("You should select a repository first.");
-
-        return ParsingUtils.ParseIntOrThrow(_repositoryRequest.RepositoryId, "Repository ID");
-    }
-
-    private static string GetDisplayName(string path)
-    {
-        var normalizedPath = GitLabPathHelper.NormalizePath(path);
-        return normalizedPath.Split('/').LastOrDefault() ?? normalizedPath;
-    }
 }

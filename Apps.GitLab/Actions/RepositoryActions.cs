@@ -65,7 +65,7 @@ public class RepositoryActions : GitLabActions
 
         var fileData = await RestClient.ExecuteWithErrorHandling<RepositoryFileResponse>(request);
         if (fileData == null)
-            throw new ArgumentException($"File does not exist ({getFileRequest.FilePath})");
+            throw new PluginMisconfigurationException($"File does not exist ({getFileRequest.FilePath})");
 
         var filename = Path.GetFileName(getFileRequest.FilePath);
         if (!MimeTypes.TryGetMimeType(filename, out var mimeType))

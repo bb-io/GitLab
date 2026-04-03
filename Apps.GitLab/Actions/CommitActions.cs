@@ -131,7 +131,7 @@ public class CommitActions : GitLabActions
         if (repContent.Content.Where(x => x.Type == GitLabItemTypes.Tree).Select(x => x.Path)
             .Contains(input.DestinationFilePath.Trim('/')))
         {
-            throw new PluginApplicationException("Destination file path is invalid!");
+            throw new PluginMisconfigurationException("Destination file path is invalid!");
         }
 
         var file = await _fileManagementClient.DownloadAsync(input.File);
