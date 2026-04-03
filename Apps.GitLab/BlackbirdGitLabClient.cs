@@ -14,6 +14,7 @@ namespace Apps.Gitlab;
 
 public class BlackbirdGitlabClient : BlackBirdRestClient
 {
+    private const string ApiPrefix = "/api/v4";
     private readonly IEnumerable<AuthenticationCredentialsProvider> _authenticationCredentials;
 
     protected override JsonSerializerSettings? JsonSettings => JsonConfig.JsonSettings;
@@ -44,7 +45,7 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
     }
 
     public GitLabRequest CreateRequest(string resource, Method method)
-        => new(resource, method, _authenticationCredentials);
+        => new(NormalizeApiResource(resource), method, _authenticationCredentials);
 
     public async Task<byte[]> ExecuteForBytesWithErrorHandling(RestRequest request)
     {
@@ -56,7 +57,7 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
     public async Task<byte[]> GetArchive(int projectId, string? branchName)
     {
         var branchCommit = !string.IsNullOrWhiteSpace(branchName) ? $"?sha={Uri.EscapeDataString(branchName)}" : "";
-        var request = CreateRequest($"/api/v4/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
+        var request = CreateRequest($"/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
 
         return await ExecuteForBytesWithErrorHandling(request);
     }
@@ -65,9 +66,9 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         string filePath, byte[]? file, string action)
     {
         var repository = await ExecuteWithErrorHandling<RepositoryInfo>(
-            CreateRequest($"/api/v4/projects/{projectId}", Method.Get));
+            CreateRequest($"/projects/{projectId}", Method.Get));
 
-        var request = CreateRequest($"/api/v4/projects/{projectId}/repository/commits", Method.Post);
+        var request = CreateRequest($"/projects/{projectId}/repository/commits", Method.Post);
         request.AddJsonBody(new
         {
             branch = branchName ?? repository.DefaultBranch,
@@ -83,22 +84,24 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
 
     protected override Exception ConfigureErrorException(RestResponse response)
     {
+        var message = $"{(int)response.StatusCode}: {response.ErrorMessage ?? response.Content}";
+
         return response.StatusCode switch
         {
             System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden =>
-                new PluginMisconfigurationException(
-                    "GitLab credentials are invalid or do not have sufficient permissions. Please check your access token and scopes."),
-            System.Net.HttpStatusCode.NotFound =>
-                new PluginApplicationException("Resource was not found in GitLab. Please verify the repository ID / path / branch."),
-            (System.Net.HttpStatusCode)429 =>
-                new PluginApplicationException("GitLab rate limit reached. Please try again later."),
-            _ => new PluginApplicationException(response.Content ?? "GitLab request failed.")
+                new PluginMisconfigurationException(message),
+            _ => new PluginApplicationException(message)
         };
     }
 
-    private class RepositoryInfo
+    private static string NormalizeApiResource(string resource)
     {
-        [JsonProperty("default_branch")]
-        public string? DefaultBranch { get; set; }
+        if (string.IsNullOrWhiteSpace(resource))
+            return ApiPrefix;
+
+        if (resource.StartsWith(ApiPrefix, StringComparison.OrdinalIgnoreCase))
+            return resource;
+
+        return $"{ApiPrefix}{resource}";
     }
 }

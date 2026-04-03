@@ -37,7 +37,7 @@ public class RepositoryActions : GitLabActions
     [Action("Create new repository", Description = "Create new repository")]
     public Task<Project> CreateRepository([ActionParameter] CreateRepositoryInput input)
     {
-        var endpoint = "/api/v4/projects";
+        var endpoint = "/projects";
 
         if (input.UserId != null)
             endpoint += $"/user/{input.UserId}";
@@ -59,7 +59,7 @@ public class RepositoryActions : GitLabActions
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
         var request = RestClient.CreateRequest(
-            $"/api/v4/projects/{projectId}/repository/files/{Uri.EscapeDataString(getFileRequest.FilePath)}",
+            $"/projects/{projectId}/repository/files/{Uri.EscapeDataString(getFileRequest.FilePath)}",
             Method.Get);
         request.AddQueryParameter("ref", branch);
 
@@ -149,7 +149,7 @@ public class RepositoryActions : GitLabActions
     public async Task<GetIssuesResponse> GetIssuesInRepository([ActionParameter] RepositoryRequest input)
     {
         var projectId = ParseProjectId(input.RepositoryId);
-        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/issues", Method.Get);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/issues", Method.Get);
         var issues = await RestClient.ExecuteWithErrorHandling<List<GitLabApiClient.Models.Issues.Responses.Issue>>(request);
 
         return new()
@@ -162,7 +162,7 @@ public class RepositoryActions : GitLabActions
     public async Task<GetPullRequestsResponse> GetPullRequestsInRepository([ActionParameter] RepositoryRequest input)
     {
         var projectId = ParseProjectId(input.RepositoryId);
-        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/merge_requests", Method.Get);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/merge_requests", Method.Get);
         var pullRequests = await RestClient.ExecuteWithErrorHandling<List<GitLabApiClient.Models.MergeRequests.Responses.MergeRequest>>(request);
 
         return new()
@@ -178,7 +178,7 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] FolderContentWithTypeRequest input)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
-        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/repository/tree", Method.Get);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/tree", Method.Get);
         request.AddQueryParameter("recursive", (input.IncludeSubfolders ?? false).ToString().ToLowerInvariant());
         request.AddQueryParameter("path", input.Path ?? "/");
 
@@ -198,7 +198,7 @@ public class RepositoryActions : GitLabActions
     [Action("List repositories", Description = "List all repositories")]
     public async Task<ListRepositoriesResponse> ListRepositories()
     {
-        var request = RestClient.CreateRequest("/api/v4/projects", Method.Get);
+        var request = RestClient.CreateRequest("/projects", Method.Get);
         request.AddQueryParameter("membership", "true");
 
         var projects = await RestClient.ExecuteWithErrorHandling<List<Project>>(request);
@@ -238,7 +238,7 @@ public class RepositoryActions : GitLabActions
         [ActionParameter][Display("Branch name")] string branchNameRequest)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
-        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/repository/branches", Method.Get);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/branches", Method.Get);
         request.AddQueryParameter("search", branchNameRequest);
 
         var branches = await RestClient.ExecuteWithErrorHandling<List<GitLabApiClient.Models.Branches.Responses.Branch>>(request);
@@ -247,7 +247,7 @@ public class RepositoryActions : GitLabActions
 
     private Task<Project> GetProject(int projectId)
     {
-        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}", Method.Get);
+        var request = RestClient.CreateRequest($"/projects/{projectId}", Method.Get);
         return RestClient.ExecuteWithErrorHandling<Project>(request);
     }
 

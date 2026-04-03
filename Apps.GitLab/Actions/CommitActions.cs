@@ -3,6 +3,7 @@ using Apps.Gitlab.Models.Branch.Requests;
 using Apps.Gitlab.Models.Commit.Requests;
 using Apps.Gitlab.Models.Respository.Requests;
 using Apps.Gitlab.Webhooks;
+using Apps.GitLab.Constants;
 using Apps.GitLab.Dtos;
 using Apps.GitLab.Models.Commit.Requests;
 using Apps.GitLab.Models.Commit.Responses;
@@ -35,7 +36,7 @@ public class CommitActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
-        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/repository/commits", Method.Get);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
 
         if (!string.IsNullOrWhiteSpace(branchRequest.Name))
             request.AddQueryParameter("ref_name", branchRequest.Name);
@@ -54,7 +55,7 @@ public class CommitActions : GitLabActions
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
         var request = RestClient.CreateRequest(
-            $"/api/v4/projects/{projectId}/repository/commits/{Uri.EscapeDataString(input.CommitId)}",
+            $"/projects/{projectId}/repository/commits/{Uri.EscapeDataString(input.CommitId)}",
             Method.Get);
 
         return await RestClient.ExecuteWithErrorHandling<Commit>(request);
@@ -71,7 +72,7 @@ public class CommitActions : GitLabActions
             throw new ArgumentException("Specify more than 0 hours!");
 
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
-        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/repository/commits", Method.Get);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
         request.AddQueryParameter("since", DateTime.Now.AddHours(-hoursRequest.Hours).ToString("O"));
 
         if (!string.IsNullOrWhiteSpace(branchRequest.Name))
@@ -83,7 +84,7 @@ public class CommitActions : GitLabActions
         foreach (var commit in commits)
         {
             var diffRequest = RestClient.CreateRequest(
-                $"/api/v4/projects/{projectId}/repository/commits/{Uri.EscapeDataString(commit.Id)}/diff",
+                $"/projects/{projectId}/repository/commits/{Uri.EscapeDataString(commit.Id)}/diff",
                 Method.Get);
             var diffs = await RestClient.ExecuteWithErrorHandling<List<Diff>>(diffRequest);
 
@@ -114,7 +115,7 @@ public class CommitActions : GitLabActions
             await new RepositoryActions(InvocationContext, _fileManagementClient).ListRepositoryContent(
                 repositoryRequest, branchRequest, new FolderContentWithTypeRequest { IncludeSubfolders = true });
 
-        if (repContent.Content.Where(x => x.Type == "blob").Any(p => p.Path == input.DestinationFilePath))
+        if (repContent.Content.Where(x => x.Type == GitLabItemTypes.Blob).Any(p => p.Path == input.DestinationFilePath))
         {
             return await UpdateFile(
                 repositoryRequest,
@@ -127,7 +128,7 @@ public class CommitActions : GitLabActions
                 });
         }
 
-        if (repContent.Content.Where(x => x.Type == "tree").Select(x => x.Path)
+        if (repContent.Content.Where(x => x.Type == GitLabItemTypes.Tree).Select(x => x.Path)
             .Contains(input.DestinationFilePath.Trim('/')))
         {
             throw new PluginApplicationException("Destination file path is invalid!");
@@ -136,7 +137,7 @@ public class CommitActions : GitLabActions
         var file = await _fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await file.GetByteData();
         var pushFileResult = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
-            input.DestinationFilePath, fileBytes, "create");
+            input.DestinationFilePath, fileBytes, GitLabCommitActions.Create);
 
         return new(pushFileResult);
     }
@@ -152,7 +153,7 @@ public class CommitActions : GitLabActions
         var repContent =
             await new RepositoryActions(InvocationContext, _fileManagementClient).ListRepositoryContent(
                 repositoryRequest, branchRequest,
-                new FolderContentWithTypeRequest { IncludeSubfolders = true, ContentType = "blob" });
+                new FolderContentWithTypeRequest { IncludeSubfolders = true, ContentType = GitLabItemTypes.Blob });
 
         if (!repContent.Content.Select(x => x.Path).Contains(input.DestinationFilePath.Trim('/')))
             throw new PluginApplicationException("File does not exist by specified file path!");
@@ -160,7 +161,7 @@ public class CommitActions : GitLabActions
         var file = await _fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await file.GetByteData();
         var fileUpload = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
-            input.DestinationFilePath, fileBytes, "update");
+            input.DestinationFilePath, fileBytes, GitLabCommitActions.Update);
 
         return new(fileUpload);
     }
@@ -173,7 +174,7 @@ public class CommitActions : GitLabActions
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
         var fileDelete = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
-            input.FilePath, null!, "delete");
+            input.FilePath, null, GitLabCommitActions.Delete);
 
         return new()
         {

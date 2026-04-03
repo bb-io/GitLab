@@ -24,7 +24,7 @@ public class BranchActions : GitLabActions
     public async Task<ListRepositoryBranchesResponse> ListRepositoryBranches([ActionParameter] GetRepositoryRequest input)
     {
         var projectId = ParseProjectId(input.RepositoryId);
-        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/repository/branches", Method.Get);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/branches", Method.Get);
         var branches = await RestClient.ExecuteWithErrorHandling<List<Branch>>(request);
 
         return new ListRepositoryBranchesResponse
@@ -40,7 +40,7 @@ public class BranchActions : GitLabActions
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
         var request = RestClient.CreateRequest(
-            $"/api/v4/projects/{projectId}/repository/branches/{Uri.EscapeDataString(input.Name)}",
+            $"/projects/{projectId}/repository/branches/{Uri.EscapeDataString(input.Name)}",
             Method.Get);
         var branch = await RestClient.ExecuteWithErrorHandling<Branch>(request);
 
@@ -53,7 +53,7 @@ public class BranchActions : GitLabActions
         [ActionParameter] Models.Branch.Requests.CreateBranchRequest input)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
-        var request = RestClient.CreateRequest($"/api/v4/projects/{projectId}/repository/branches", Method.Post);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/branches", Method.Post);
         request.AddParameter("branch", input.NewBranchName);
         request.AddParameter("ref", input.BaseBranchName);
 

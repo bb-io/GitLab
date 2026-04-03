@@ -4,6 +4,7 @@ using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Apps.GitLab.Utils;
 using GitLabApiClient.Models.MergeRequests.Responses;
 using RestSharp;
 
@@ -28,9 +29,9 @@ public class MergeRequestDataHandler : BaseInvocable, IAsyncDataSourceHandler
         if (RepositoryRequest == null || string.IsNullOrWhiteSpace(RepositoryRequest.RepositoryId))
             throw new ArgumentException("Please, specify repository first");
 
-        var projectId = int.Parse(RepositoryRequest.RepositoryId);
+        var projectId = ParsingUtils.ParseIntOrThrow(RepositoryRequest.RepositoryId, "Repository ID");
         var client = new BlackbirdGitlabClient(Creds);
-        var request = client.CreateRequest($"/api/v4/projects/{projectId}/merge_requests", Method.Get);
+        var request = client.CreateRequest($"/projects/{projectId}/merge_requests", Method.Get);
         var mergeRequests = await client.ExecuteWithErrorHandling<List<MergeRequest>>(request);
 
         return mergeRequests

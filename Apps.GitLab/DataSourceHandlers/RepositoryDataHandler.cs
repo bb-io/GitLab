@@ -21,7 +21,7 @@ public class RepositoryDataHandler : BaseInvocable, IAsyncDataSourceHandler
         CancellationToken cancellationToken)
     {
         var client = new BlackbirdGitlabClient(Creds);
-        var request = client.CreateRequest("/api/v4/projects", Method.Get);
+        var request = client.CreateRequest("/projects", Method.Get);
         request.AddQueryParameter("membership", "true");
 
         var content = await client.ExecuteWithErrorHandling<List<Project>>(request);

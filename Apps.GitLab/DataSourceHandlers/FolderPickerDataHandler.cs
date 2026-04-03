@@ -6,6 +6,7 @@ using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSourceItems;
+using Apps.GitLab.Utils;
 using GitLabApiClient.Models.Trees.Responses;
 using RestSharp;
 
@@ -35,7 +36,7 @@ public class FolderPickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHa
         var projectId = GetProjectId();
         var client = new BlackbirdGitlabClient(Creds);
         var folderPath = GitLabPathHelper.NormalizeFolderId(context?.FolderId);
-        var request = client.CreateRequest($"/api/v4/projects/{projectId}/repository/tree", Method.Get);
+        var request = client.CreateRequest($"/projects/{projectId}/repository/tree", Method.Get);
         request.AddQueryParameter("path", string.IsNullOrEmpty(folderPath) ? "/" : folderPath);
 
         if (!string.IsNullOrWhiteSpace(_branchRequest.Name))
@@ -87,7 +88,7 @@ public class FolderPickerDataHandler : BaseInvocable, IAsyncFileDataSourceItemHa
         if (string.IsNullOrWhiteSpace(_repositoryRequest.RepositoryId))
             throw new PluginMisconfigurationException("You should select a repository first.");
 
-        return int.Parse(_repositoryRequest.RepositoryId);
+        return ParsingUtils.ParseIntOrThrow(_repositoryRequest.RepositoryId, "Repository ID");
     }
 
     private static string GetDisplayName(string path)
