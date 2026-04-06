@@ -1,36 +1,29 @@
-﻿using Apps.Gitlab.Actions.Base;
+using Apps.Gitlab.Actions.Base;
 using Apps.Gitlab.Models.PullRequest.Requests;
 using Apps.Gitlab.Models.PullRequest.Responses;
 using Apps.Gitlab.Models.Respository.Requests;
-using Apps.GitLab.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using GitLabApiClient.Internal.Paths;
-using GitLabApiClient.Models.MergeRequests.Requests;
+using Apps.GitLab.Utils;
 using GitLabApiClient.Models.MergeRequests.Responses;
+using RestSharp;
 
 namespace Apps.Gitlab.Actions;
 
 [ActionList("Pull request")]
-public class PullRequestActions : GitLabActions
+public class PullRequestActions(InvocationContext invocationContext)
+    : GitLabActions(invocationContext)
 {
-    private readonly IFileManagementClient _fileManagementClient;
-
-    public PullRequestActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
-        : base(invocationContext)
-    {
-        _fileManagementClient = fileManagementClient;
-    }
 
     [Action("List merge requests", Description = "List merge requests")]
     public async Task<ListPullRequestsResponse> ListPullRequests(
         [ActionParameter] GetRepositoryRequest repositoryRequest)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var pulls = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-        Client.MergeRequests.GetAsync(projectId, _ => { }));
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/merge_requests", Method.Get);
+        var pulls = await RestClient.ExecuteWithErrorHandling<List<MergeRequest>>(request);
+
         return new ListPullRequestsResponse
         {
             PullRequests = pulls
@@ -42,10 +35,13 @@ public class PullRequestActions : GitLabActions
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetPullRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var pull = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-        Client.MergeRequests.GetAsync(projectId, int.Parse(input.PullRequestId)));
-        return pull;
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var mergeRequestId = ParsingUtils.ParseIntOrThrow(input.PullRequestId, "Pull request ID");
+        var request = RestClient.CreateRequest(
+            $"/projects/{projectId}/merge_requests/{mergeRequestId}",
+            Method.Get);
+
+        return await RestClient.ExecuteWithErrorHandling<MergeRequest>(request);
     }
 
     [Action("Create merge request", Description = "Create merge request")]
@@ -53,16 +49,17 @@ public class PullRequestActions : GitLabActions
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] CreatePullRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var request = new CreateMergeRequest(input.BaseBranch, input.HeadBranch, input.Title)
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/merge_requests", Method.Post);
+        request.AddJsonBody(new
         {
-            Description = input.Description
-        };
+            source_branch = input.HeadBranch,
+            target_branch = input.BaseBranch,
+            title = input.Title,
+            description = input.Description
+        });
 
-        var pull = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-            Client.MergeRequests.CreateAsync(projectId, request));
-
-        return pull;
+        return await RestClient.ExecuteWithErrorHandling<MergeRequest>(request);
     }
 
     [Action("Complete merge request", Description = "Complete merge request")]
@@ -71,13 +68,16 @@ public class PullRequestActions : GitLabActions
         [ActionParameter] GetPullRequest mergeRequest,
         [ActionParameter] MergePullRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var acceptRequest = new AcceptMergeRequest
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var mergeRequestId = ParsingUtils.ParseIntOrThrow(mergeRequest.PullRequestId, "Pull request ID");
+        var request = RestClient.CreateRequest(
+            $"/projects/{projectId}/merge_requests/{mergeRequestId}/merge",
+            Method.Put);
+        request.AddJsonBody(new
         {
-            MergeCommitMessage = input.MergeCommitMessage
-        };
+            merge_commit_message = input.MergeCommitMessage
+        });
 
-        return await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-            Client.MergeRequests.AcceptAsync(projectId, int.Parse(mergeRequest.PullRequestId), acceptRequest));
+        return await RestClient.ExecuteWithErrorHandling<MergeRequest>(request);
     }
 }

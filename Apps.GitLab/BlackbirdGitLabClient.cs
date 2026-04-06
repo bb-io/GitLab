@@ -1,24 +1,25 @@
-﻿using Apps.GitLab.Constants;
+using Apps.GitLab.Constants;
 using Apps.GitLab.Dtos;
+using Apps.Gitlab.Constants;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Utils.Extensions.Sdk;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Blackbird.Applications.Sdk.Utils.RestSharp;
-using GitLabApiClient;
-using GitLabApiClient.Internal.Paths;
 using GitLabApiClient.Models.Commits.Responses;
+using Newtonsoft.Json;
 using RestSharp;
 
 namespace Apps.Gitlab;
 
 public class BlackbirdGitlabClient : BlackBirdRestClient
 {
+    private const string ApiPrefix = "/api/v4";
     private readonly IEnumerable<AuthenticationCredentialsProvider> _authenticationCredentials;
-    private readonly string _baseUrl;
 
-    public readonly GitLabClient _client;
-    public GitLabClient Client => _client;
+    protected override JsonSerializerSettings? JsonSettings => JsonConfig.JsonSettings;
+
+    public string BaseUrl { get; }
 
     public BlackbirdGitlabClient(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders)
         : base(new()
@@ -27,13 +28,10 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         })
     {
         _authenticationCredentials = authenticationCredentialsProviders;
-        _baseUrl = GetBaseUrl(authenticationCredentialsProviders);
-
-        var apiToken = authenticationCredentialsProviders.Get(CredNames.Authorization).Value;
-        _client = new GitLabClient(_baseUrl, apiToken);
+        BaseUrl = GetBaseUrl(authenticationCredentialsProviders);
     }
 
-    private static string GetBaseUrl(IEnumerable<AuthenticationCredentialsProvider> creds)
+    public static string GetBaseUrl(IEnumerable<AuthenticationCredentialsProvider> creds)
     {
         var connectionType = creds.Get(CredNames.ConnectionType).Value;
 
@@ -46,27 +44,31 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         };
     }
 
-    public async Task<byte[]> GetArchive(ProjectId projectId, string? branchName)
+    public GitLabRequest CreateRequest(string resource, Method method)
+        => new(NormalizeApiResource(resource), method, _authenticationCredentials);
+
+    public async Task<byte[]> ExecuteForBytesWithErrorHandling(RestRequest request)
     {
-        var branchCommit = !string.IsNullOrWhiteSpace(branchName) ? $"?sha={branchName}" : "";
-        var request = new RestRequest($"/api/v4/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
-        request.AddHeader("Authorization", $"Bearer {_authenticationCredentials.Get(CredNames.Authorization).Value}");
+        var response = await ExecuteWithErrorHandling(request);
 
-        var result = await new RestClient(_baseUrl).ExecuteAsync(request);
-
-        if (!result.IsSuccessStatusCode)
-            throw ConfigureErrorException(result);
-
-        return result.RawBytes;
+        return response.RawBytes ?? [];
     }
 
-    public async Task<Commit> PushChanges(ProjectId projectId, string? branchName, string commitMessage,
-        string filePath, byte[] file, string action)
+    public async Task<byte[]> GetArchive(int projectId, string? branchName)
     {
-        var repository = await Client.Projects.GetAsync(projectId);
+        var branchCommit = !string.IsNullOrWhiteSpace(branchName) ? $"?sha={Uri.EscapeDataString(branchName)}" : "";
+        var request = CreateRequest($"/projects/{projectId}/repository/archive.zip{branchCommit}", Method.Get);
 
-        var request = new RestRequest($"/api/v4/projects/{projectId}/repository/commits", Method.Post);
-        request.AddHeader("Authorization", $"Bearer {_authenticationCredentials.Get(CredNames.Authorization).Value}");
+        return await ExecuteForBytesWithErrorHandling(request);
+    }
+
+    public async Task<Commit> PushChanges(int projectId, string? branchName, string commitMessage,
+        string filePath, byte[]? file, string action)
+    {
+        var repository = await ExecuteWithErrorHandling<RepositoryInfo>(
+            CreateRequest($"/projects/{projectId}", Method.Get));
+
+        var request = CreateRequest($"/projects/{projectId}/repository/commits", Method.Post);
         request.AddJsonBody(new
         {
             branch = branchName ?? repository.DefaultBranch,
@@ -77,16 +79,29 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
             }
         });
 
-        var result = await new RestClient(_baseUrl).ExecuteAsync<Commit>(request);
-
-        if (!result.IsSuccessStatusCode)
-            throw ConfigureErrorException(result);
-
-        return result.Data;
+        return await ExecuteWithErrorHandling<Commit>(request);
     }
 
     protected override Exception ConfigureErrorException(RestResponse response)
     {
-        return new PluginApplicationException(response.Content);
+        var message = $"{(int)response.StatusCode}: {response.ErrorMessage ?? response.Content}";
+
+        return response.StatusCode switch
+        {
+            System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden =>
+                new PluginMisconfigurationException(message),
+            _ => new PluginApplicationException(message)
+        };
+    }
+
+    private static string NormalizeApiResource(string resource)
+    {
+        if (string.IsNullOrWhiteSpace(resource))
+            return ApiPrefix;
+
+        if (resource.StartsWith(ApiPrefix, StringComparison.OrdinalIgnoreCase))
+            return resource;
+
+        return $"{ApiPrefix}{resource}";
     }
 }

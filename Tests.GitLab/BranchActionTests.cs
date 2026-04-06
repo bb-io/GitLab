@@ -13,7 +13,7 @@ namespace Tests.GitLab
         [TestMethod, ContextDataSource(ConnectionTypes.PersonalAccessToken)]
         public async Task GetBranch_WithValidData_ReturnsBranch(InvocationContext context)
         {
-            var action = new BranchActions(context, FileManagementClient);
+            var action = new BranchActions(context);
 
             var result = await action.ListRepositoryBranches(new GetRepositoryRequest { RepositoryId = "70992272" });
 

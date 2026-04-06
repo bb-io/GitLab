@@ -1,7 +1,7 @@
-﻿using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using GitLabApiClient;
+using Apps.GitLab.Utils;
 
 namespace Apps.Gitlab.Actions.Base;
 
@@ -9,14 +9,14 @@ public class GitLabActions : BaseInvocable
 {
     protected IEnumerable<AuthenticationCredentialsProvider> Creds =>
         InvocationContext.AuthenticationCredentialsProviders;
-    
-    private BlackbirdGitlabClient GitLabClient { get; set; }
 
-    protected GitLabClient Client => GitLabClient.Client;
-    protected BlackbirdGitlabClient RestClient => GitLabClient;
+    protected BlackbirdGitlabClient RestClient { get; }
 
     public GitLabActions(InvocationContext invocationContext) : base(invocationContext)
     {
-        GitLabClient = new(Creds);
+        RestClient = new(Creds);
     }
+
+    protected static int ParseProjectId(string repositoryId)
+        => ParsingUtils.ParseIntOrThrow(repositoryId, "Repository ID");
 }

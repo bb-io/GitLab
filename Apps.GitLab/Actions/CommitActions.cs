@@ -1,21 +1,21 @@
-﻿using Apps.Gitlab.Actions.Base;
+using Apps.Gitlab.Actions.Base;
 using Apps.Gitlab.Models.Branch.Requests;
 using Apps.Gitlab.Models.Commit.Requests;
 using Apps.Gitlab.Models.Respository.Requests;
 using Apps.Gitlab.Webhooks;
+using Apps.GitLab.Constants;
 using Apps.GitLab.Dtos;
 using Apps.GitLab.Models.Commit.Requests;
 using Apps.GitLab.Models.Commit.Responses;
 using Apps.GitLab.Models.Respository.Requests;
-using Apps.GitLab.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using GitLabApiClient.Internal.Paths;
 using GitLabApiClient.Models.Commits.Responses;
+using RestSharp;
 
 namespace Apps.Gitlab.Actions;
 
@@ -35,13 +35,13 @@ public class CommitActions : GitLabActions
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var commits = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-        Client.Commits.GetAsync(projectId, options =>
-        {
-            if (!string.IsNullOrWhiteSpace(branchRequest.Name))
-                options.RefName = branchRequest.Name;
-        }));
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
+
+        if (!string.IsNullOrWhiteSpace(branchRequest.Name))
+            request.AddQueryParameter("ref_name", branchRequest.Name);
+
+        var commits = await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
         return new()
         {
             Commits = commits
@@ -53,10 +53,12 @@ public class CommitActions : GitLabActions
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetCommitRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var commit = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-            Client.Commits.GetAsync(projectId, input.CommitId));
-        return commit;
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var request = RestClient.CreateRequest(
+            $"/projects/{projectId}/repository/commits/{Uri.EscapeDataString(input.CommitId)}",
+            Method.Get);
+
+        return await RestClient.ExecuteWithErrorHandling<Commit>(request);
     }
 
     [Action("List added or modified files in X hours", Description = "List added or modified files in X hours")]
@@ -68,21 +70,23 @@ public class CommitActions : GitLabActions
     {
         if (hoursRequest.Hours <= 0)
             throw new ArgumentException("Specify more than 0 hours!");
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
 
-        var commits = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-           Client.Commits.GetAsync(projectId, options =>
-           {
-               options.Since = DateTime.Now.AddHours(-hoursRequest.Hours);
-               if (!string.IsNullOrWhiteSpace(branchRequest.Name))
-                   options.RefName = branchRequest.Name;
-           }));
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
+        request.AddQueryParameter("since", DateTime.Now.AddHours(-hoursRequest.Hours).ToString("O"));
+
+        if (!string.IsNullOrWhiteSpace(branchRequest.Name))
+            request.AddQueryParameter("ref_name", branchRequest.Name);
+
+        var commits = await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
         var files = new List<AddedOrModifiedFile>();
 
-        foreach (var c in commits)
+        foreach (var commit in commits)
         {
-            var diffs = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-                Client.Commits.GetDiffsAsync(projectId, c.Id));
+            var diffRequest = RestClient.CreateRequest(
+                $"/projects/{projectId}/repository/commits/{Uri.EscapeDataString(commit.Id)}/diff",
+                Method.Get);
+            var diffs = await RestClient.ExecuteWithErrorHandling<List<Diff>>(diffRequest);
 
             files.AddRange(
                 diffs
@@ -92,7 +96,11 @@ public class CommitActions : GitLabActions
                         PushWebhooks.IsFilePathMatchingPattern(folderInput.FolderPath, f.NewPath))
                     .Select(x => new AddedOrModifiedFile(x)));
         }
-        return new ListAddedOrModifiedInHoursResponse() { Files = files.DistinctBy(x => x.Filename).ToList() };
+
+        return new ListAddedOrModifiedInHoursResponse
+        {
+            Files = files.DistinctBy(x => x.Filename).ToList()
+        };
     }
 
     [Action("Create or update file", Description = "Create or update file")]
@@ -101,18 +109,18 @@ public class CommitActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] PushFileRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
 
         var repContent =
             await new RepositoryActions(InvocationContext, _fileManagementClient).ListRepositoryContent(
-                repositoryRequest, branchRequest, new FolderContentWithTypeRequest() { IncludeSubfolders = true });
-        if (repContent.Content.Where(x => x.Type == "blob")
-            .Any(p => p.Path == input.DestinationFilePath)) // update in case of existing file
+                repositoryRequest, branchRequest, new FolderContentWithTypeRequest { IncludeSubfolders = true });
+
+        if (repContent.Content.Where(x => x.Type == GitLabItemTypes.Blob).Any(p => p.Path == input.DestinationFilePath))
         {
             return await UpdateFile(
                 repositoryRequest,
                 branchRequest,
-                new()
+                new PushFileRequest
                 {
                     DestinationFilePath = input.DestinationFilePath,
                     File = input.File,
@@ -120,15 +128,16 @@ public class CommitActions : GitLabActions
                 });
         }
 
-        if (repContent.Content.Where(x => x.Type == "tree").Select(x => x.Path)
+        if (repContent.Content.Where(x => x.Type == GitLabItemTypes.Tree).Select(x => x.Path)
             .Contains(input.DestinationFilePath.Trim('/')))
-            throw new PluginApplicationException("Destination file path is invalid!");
+        {
+            throw new PluginMisconfigurationException("Destination file path is invalid!");
+        }
 
         var file = await _fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await file.GetByteData();
-        var pushFileResult = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-             RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
-            input.DestinationFilePath, fileBytes, "create"));
+        var pushFileResult = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
+            input.DestinationFilePath, fileBytes, GitLabCommitActions.Create);
 
         return new(pushFileResult);
     }
@@ -139,20 +148,21 @@ public class CommitActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] PushFileRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
 
         var repContent =
             await new RepositoryActions(InvocationContext, _fileManagementClient).ListRepositoryContent(
                 repositoryRequest, branchRequest,
-                new FolderContentWithTypeRequest() { IncludeSubfolders = true, ContentType = "blob" });
+                new FolderContentWithTypeRequest { IncludeSubfolders = true, ContentType = GitLabItemTypes.Blob });
+
         if (!repContent.Content.Select(x => x.Path).Contains(input.DestinationFilePath.Trim('/')))
             throw new PluginApplicationException("File does not exist by specified file path!");
 
         var file = await _fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await file.GetByteData();
-        var fileUpload = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-            RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
-          input.DestinationFilePath, fileBytes, "update"));
+        var fileUpload = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
+            input.DestinationFilePath, fileBytes, GitLabCommitActions.Update);
+
         return new(fileUpload);
     }
 
@@ -162,11 +172,10 @@ public class CommitActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] DeleteFileRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var fileDelete = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
+            input.FilePath, null, GitLabCommitActions.Delete);
 
-        var fileDelete = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-                RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
-            input.FilePath, null, "delete"));
         return new()
         {
             CommitId = fileDelete.Id,

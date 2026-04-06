@@ -1,4 +1,7 @@
-﻿using Blackbird.Applications.Sdk.Common;
+using Apps.Gitlab.DataSourceHandlers;
+using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSourceItems;
+
 namespace Apps.Gitlab.Models.Respository.Requests;
 
 public class FolderContentRequest
@@ -14,6 +17,7 @@ public class FolderContentRequest
     }
 
     [Display("Folder path (e.g. \"Folder1/Folder2\")")]
+    [FileDataSource(typeof(FolderPickerDataHandler))]
     public string? Path { get; set; }
 
     [Display("Include subfolders")]

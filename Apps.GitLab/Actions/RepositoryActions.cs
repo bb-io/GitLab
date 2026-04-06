@@ -1,4 +1,4 @@
-﻿using Apps.Gitlab.Actions.Base;
+using Apps.Gitlab.Actions.Base;
 using Apps.Gitlab.Constants;
 using Apps.Gitlab.Dtos;
 using Apps.Gitlab.Models.Branch.Requests;
@@ -7,7 +7,7 @@ using Apps.Gitlab.Models.Respository.Requests;
 using Apps.Gitlab.Models.Respository.Responses;
 using Apps.GitLab;
 using Apps.GitLab.Models.Respository.Requests;
-using Apps.GitLab.Utils;
+using Apps.GitLab.Models.Respository.Responses;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
@@ -17,8 +17,8 @@ using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.Http;
 using Blackbird.Applications.Sdk.Utils.Models;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using GitLabApiClient.Internal.Paths;
 using GitLabApiClient.Models.Projects.Responses;
+using GitLabApiClient.Models.Trees.Responses;
 using RestSharp;
 using System.Net.Mime;
 
@@ -38,7 +38,7 @@ public class RepositoryActions : GitLabActions
     [Action("Create new repository", Description = "Create new repository")]
     public Task<Project> CreateRepository([ActionParameter] CreateRepositoryInput input)
     {
-        var endpoint = "/api/v4/projects";
+        var endpoint = "/projects";
 
         if (input.UserId != null)
             endpoint += $"/user/{input.UserId}";
@@ -55,25 +55,27 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] GetFileRequest getFileRequest)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var repository = await ErrorHandler.ExecuteWithErrorHandlingAsync(() => Client.Projects.GetAsync(projectId));
-
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var repository = await GetProject(projectId);
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
-        var fileData = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-            Client.Files.GetAsync(projectId, getFileRequest.FilePath, branch));
+        var request = RestClient.CreateRequest(
+            $"/projects/{projectId}/repository/files/{Uri.EscapeDataString(getFileRequest.FilePath)}",
+            Method.Get);
+        request.AddQueryParameter("ref", branch);
+
+        var fileData = await RestClient.ExecuteWithErrorHandling<RepositoryFileResponse>(request);
         if (fileData == null)
-            throw new ArgumentException($"File does not exist ({getFileRequest.FilePath})");
+            throw new PluginMisconfigurationException($"File does not exist ({getFileRequest.FilePath})");
 
         var filename = Path.GetFileName(getFileRequest.FilePath);
         if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
             mimeType = MediaTypeNames.Application.Octet;
 
         FileReference file;
-        File.WriteAllBytes("test", Convert.FromBase64String(fileData.Content));
         using (var stream = new MemoryStream(Convert.FromBase64String(fileData.Content)))
         {
-            file = _fileManagementClient.UploadAsync(stream, mimeType, filename).Result;
+            file = await _fileManagementClient.UploadAsync(stream, mimeType, filename);
         }
 
         return new GetFileResponse
@@ -90,32 +92,32 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] FolderContentRequest folderContentRequest)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
         var resultFiles = new List<GitLabFile>();
-        var content = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-        RestClient.GetArchive(projectId, branchRequest.Name));
-        if (content == null || content.Length == 0)
-        {
-            throw new PluginApplicationException("Repository is empty!");
-        }
+        var content = await RestClient.GetArchive(projectId, branchRequest.Name);
+        if (content.Length == 0)
+            throw new PluginMisconfigurationException("Repository is empty!");
 
-        var filesFromZip = new List<BlackbirdZipEntry>();
+        List<BlackbirdZipEntry> filesFromZip;
         using (var stream = new MemoryStream(content))
         {
             filesFromZip = (await stream.GetFilesFromZip()).ToList();
         }
-        var includeSubFolders = folderContentRequest.IncludeSubfolders.HasValue && folderContentRequest.IncludeSubfolders.Value;
+
+        var includeSubFolders = folderContentRequest.IncludeSubfolders.GetValueOrDefault();
         foreach (var file in filesFromZip)
         {
             file.Path = file.Path.Substring(file.Path.IndexOf('/') + 1);
             if (file.FileStream.Length == 0)
-            {
                 continue;
-            }
-            else if (!string.IsNullOrEmpty(folderContentRequest.Path))
+
+            if (!string.IsNullOrEmpty(folderContentRequest.Path))
             {
+                var normalizedFolderPath = folderContentRequest.Path.Trim('/');
+                var normalizedDirectory = Path.GetDirectoryName(file.Path)?.TrimStart('\\').Replace('\\', '/');
+
                 if ((includeSubFolders && !file.Path.StartsWith(folderContentRequest.Path)) ||
-                    (!includeSubFolders && Path.GetDirectoryName(file.Path).TrimStart('\\').Replace('\\', '/') != folderContentRequest.Path.Trim('/')))
+                    (!includeSubFolders && normalizedDirectory != normalizedFolderPath))
                 {
                     continue;
                 }
@@ -124,34 +126,33 @@ public class RepositoryActions : GitLabActions
             {
                 continue;
             }
+
             var filename = Path.GetFileName(file.Path);
             if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
                 mimeType = MediaTypeNames.Application.Octet;
+
             var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, mimeType, filename);
-            resultFiles.Add(new GitLabFile()
+            resultFiles.Add(new GitLabFile
             {
                 File = uploadedFile,
                 FilePath = file.Path
             });
         }
+
         return new GetRepositoryFilesFromFilepathsResponse { Files = resultFiles };
     }
 
     [Action("Get repository", Description = "Get repository info")]
-    public async Task<Project> GetRepositoryById([ActionParameter] GetRepositoryRequest input)
-    {
-        var projectId = (ProjectId)int.Parse(input.RepositoryId);
-        var repository = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-        Client.Projects.GetAsync(projectId));
-        return repository;
-    }
+    public Task<Project> GetRepositoryById([ActionParameter] GetRepositoryRequest input)
+        => GetProject(ParseProjectId(input.RepositoryId));
 
     [Action("Get repository issues", Description = "Get opened issues against repository")]
     public async Task<GetIssuesResponse> GetIssuesInRepository([ActionParameter] RepositoryRequest input)
     {
-        var projectId = (ProjectId)int.Parse(input.RepositoryId);
-        var issues = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-       Client.Issues.GetAllAsync(projectId));
+        var projectId = ParseProjectId(input.RepositoryId);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/issues", Method.Get);
+        var issues = await RestClient.ExecuteWithErrorHandling<List<GitLabApiClient.Models.Issues.Responses.Issue>>(request);
+
         return new()
         {
             Issues = issues.Select(issue => new IssueDto(issue))
@@ -161,9 +162,10 @@ public class RepositoryActions : GitLabActions
     [Action("Get repository merge requests", Description = "Get opened merge requests in a repository")]
     public async Task<GetPullRequestsResponse> GetPullRequestsInRepository([ActionParameter] RepositoryRequest input)
     {
-        var projectId = (ProjectId)int.Parse(input.RepositoryId);
-        var pullRequests = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-        Client.MergeRequests.GetAsync(projectId, _ => { }));
+        var projectId = ParseProjectId(input.RepositoryId);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/merge_requests", Method.Get);
+        var pullRequests = await RestClient.ExecuteWithErrorHandling<List<GitLabApiClient.Models.MergeRequests.Responses.MergeRequest>>(request);
+
         return new()
         {
             PullRequests = pullRequests.Select(p => new PullRequestDto(p))
@@ -176,17 +178,18 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] FolderContentWithTypeRequest input)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var tree = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-         Client.Trees.GetAsync(projectId, options =>
-         {
-             options.Recursive = input.IncludeSubfolders ?? false;
-             options.Path = input.Path ?? "/";
-             if (!string.IsNullOrWhiteSpace(branchRequest.Name))
-                 options.Reference = branchRequest.Name;
-         }));
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/tree", Method.Get);
+        request.AddQueryParameter("recursive", (input.IncludeSubfolders ?? false).ToString().ToLowerInvariant());
+        request.AddQueryParameter("path", input.Path ?? "/");
+
+        if (!string.IsNullOrWhiteSpace(branchRequest.Name))
+            request.AddQueryParameter("ref", branchRequest.Name);
+
+        var tree = await RestClient.ExecuteWithErrorHandling<List<Tree>>(request);
         if (!string.IsNullOrEmpty(input.ContentType))
             tree = tree.Where(x => input.ContentType.Split(' ').Contains(x.Type)).ToList();
+
         return new()
         {
             Content = tree
@@ -196,8 +199,10 @@ public class RepositoryActions : GitLabActions
     [Action("List repositories", Description = "List all repositories")]
     public async Task<ListRepositoriesResponse> ListRepositories()
     {
-        var projects = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-        Client.Projects.GetAsync(options => { options.IsMemberOf = true; }));
+        var request = RestClient.CreateRequest("/projects", Method.Get);
+        request.AddQueryParameter("membership", "true");
+
+        var projects = await RestClient.ExecuteWithErrorHandling<List<Project>>(request);
         return new(projects.ToArray());
     }
 
@@ -207,7 +212,6 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] GetRepositoryFilesFromFilepathsRequest input)
     {
-
         var files = new List<GitLabFile>();
         foreach (var filePath in input.FilePaths)
         {
@@ -234,10 +238,17 @@ public class RepositoryActions : GitLabActions
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter][Display("Branch name")] string branchNameRequest)
     {
-        var projectId = (ProjectId)int.Parse(repositoryRequest.RepositoryId);
-        var branches = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
-        Client.Branches.GetAsync(projectId, options => { options.Search = branchNameRequest; }));
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/branches", Method.Get);
+        request.AddQueryParameter("search", branchNameRequest);
 
+        var branches = await RestClient.ExecuteWithErrorHandling<List<GitLabApiClient.Models.Branches.Responses.Branch>>(request);
         return branches.Any(x => x.Name == branchNameRequest);
+    }
+
+    private Task<Project> GetProject(int projectId)
+    {
+        var request = RestClient.CreateRequest($"/projects/{projectId}", Method.Get);
+        return RestClient.ExecuteWithErrorHandling<Project>(request);
     }
 }
