@@ -7,6 +7,7 @@ using Apps.Gitlab.Models.Respository.Requests;
 using Apps.Gitlab.Models.Respository.Responses;
 using Apps.GitLab;
 using Apps.GitLab.Models.Respository.Requests;
+using Apps.GitLab.Models.Respository.Responses;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
@@ -95,7 +96,7 @@ public class RepositoryActions : GitLabActions
         var resultFiles = new List<GitLabFile>();
         var content = await RestClient.GetArchive(projectId, branchRequest.Name);
         if (content.Length == 0)
-            throw new PluginApplicationException("Repository is empty!");
+            throw new PluginMisconfigurationException("Repository is empty!");
 
         List<BlackbirdZipEntry> filesFromZip;
         using (var stream = new MemoryStream(content))
@@ -249,10 +250,5 @@ public class RepositoryActions : GitLabActions
     {
         var request = RestClient.CreateRequest($"/projects/{projectId}", Method.Get);
         return RestClient.ExecuteWithErrorHandling<Project>(request);
-    }
-
-    private class RepositoryFileResponse
-    {
-        public string Content { get; set; } = string.Empty;
     }
 }

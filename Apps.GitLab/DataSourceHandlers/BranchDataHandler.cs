@@ -6,6 +6,7 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 using Apps.GitLab.Utils;
 using GitLabApiClient.Models.Branches.Responses;
 using RestSharp;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 
 namespace Apps.Gitlab.DataSourceHandlers;
 
@@ -26,7 +27,7 @@ public class BranchDataHandler : BaseInvocable, IAsyncDataSourceHandler
         CancellationToken cancellationToken)
     {
         if (RepositoryRequest == null || string.IsNullOrWhiteSpace(RepositoryRequest.RepositoryId))
-            throw new ArgumentException("Please, specify repository first");
+            throw new PluginMisconfigurationException("Please, specify repository first");
 
         var projectId = ParsingUtils.ParseIntOrThrow(RepositoryRequest.RepositoryId, "Repository ID");
         var client = new BlackbirdGitlabClient(Creds);

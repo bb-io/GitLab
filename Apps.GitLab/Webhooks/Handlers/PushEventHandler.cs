@@ -8,6 +8,7 @@ using Blackbird.Applications.Sdk.Common.Webhooks;
 using Apps.GitLab.Utils;
 using Newtonsoft.Json;
 using RestSharp;
+using Apps.GitLab.Webhooks.Payloads;
 
 namespace Apps.GitLab.Webhooks.Handlers;
 
@@ -52,26 +53,5 @@ public class PushEventHandler : BaseInvocable, IWebhookEventHandler
             var deleteRequest = client.CreateRequest($"/projects/{RepositoryId}/hooks/{webhook.Id}", Method.Delete);
             await client.ExecuteWithErrorHandling(deleteRequest);
         }
-    }
-
-    private class CreateWebhookRequest
-    {
-        [JsonProperty("url")]
-        public string Url { get; set; } = string.Empty;
-
-        [JsonProperty("push_events")]
-        public bool PushEvents { get; set; }
-
-        [JsonProperty("push_events_branch_filter")]
-        public string? PushEventsBranchFilter { get; set; }
-    }
-
-    private class WebhookResponse
-    {
-        [JsonProperty("id")]
-        public int Id { get; set; }
-
-        [JsonProperty("push_events")]
-        public bool PushEvents { get; set; }
     }
 }
