@@ -36,17 +36,18 @@ public class RepositoryActions : GitLabActions
     }
 
     [Action("Create new repository", Description = "Create new repository")]
-    public Task<Project> CreateRepository([ActionParameter] CreateRepositoryInput input)
+    public async Task<RepositoryResponse> CreateRepository([ActionParameter] CreateRepositoryInput input)
     {
         var endpoint = "/projects";
 
         if (input.UserId != null)
             endpoint += $"/user/{input.UserId}";
 
-        var request = new GitLabRequest(endpoint, Method.Post, Creds)
+        var request = RestClient.CreateRequest(endpoint, Method.Post)
             .WithJsonBody(input.GetNewRepositoryRequest(), JsonConfig.JsonSettings);
 
-        return RestClient.ExecuteWithErrorHandling<Project>(request);
+        var project = await RestClient.ExecuteWithErrorHandling<Project>(request);
+        return RepositoryResponse.FromProject(project);
     }
 
     [Action("Get repository file", Description = "Get repository file by path")]
@@ -143,8 +144,11 @@ public class RepositoryActions : GitLabActions
     }
 
     [Action("Get repository", Description = "Get repository info")]
-    public Task<Project> GetRepositoryById([ActionParameter] GetRepositoryRequest input)
-        => GetProject(ParseProjectId(input.RepositoryId));
+    public async Task<RepositoryResponse> GetRepositoryById([ActionParameter] GetRepositoryRequest input)
+    {
+        var project = await GetProject(ParseProjectId(input.RepositoryId));
+        return RepositoryResponse.FromProject(project);
+    }
 
     [Action("Get repository issues", Description = "Get opened issues against repository")]
     public async Task<GetIssuesResponse> GetIssuesInRepository([ActionParameter] RepositoryRequest input)
