@@ -1,4 +1,3 @@
-using GitLabApiClient.Models.Projects.Requests;
 using Newtonsoft.Json;
 
 namespace Apps.GitLab.Models.Respository.Requests;
@@ -45,7 +44,7 @@ public class CreateRepositoryRequest
     public bool? EnableSharedRunners { get; set; }
 
     [JsonProperty("visibility")]
-    public ProjectVisibilityLevel? Visibility { get; set; }
+    public string? Visibility { get; set; }
 
     [JsonProperty("import_url")]
     public string ImportUrl { get; set; }

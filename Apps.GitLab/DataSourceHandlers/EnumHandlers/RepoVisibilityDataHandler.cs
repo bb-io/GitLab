@@ -8,9 +8,9 @@ public class RepoVisibilityDataHandler : IStaticDataSourceHandler
     {
         return new()
         {
-            {"0", "Private"},
-            {"1", "Internal"},
-            {"2", "Public"},
+            {"private", "Private"},
+            {"internal", "Internal"},
+            {"public", "Public"},
         };
     }
 }

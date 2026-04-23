@@ -5,7 +5,6 @@ using Apps.Gitlab.Models.User.Requests;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dictionaries;
 using Blackbird.Applications.Sdk.Common.Dynamic;
-using GitLabApiClient.Models.Projects.Requests;
 
 namespace Apps.Gitlab.Models.Respository.Requests;
 
@@ -97,7 +96,7 @@ public class CreateRepositoryInput
             EnableSnippets = EnableSnippets,
             EnableContainerRegistry = EnableContainerRegistry,
             EnableSharedRunners = EnableSharedRunners,
-            Visibility = Visibility != null ? (ProjectVisibilityLevel)int.Parse(Visibility) : null,
+            Visibility = Visibility,
             ImportUrl = ImportUrl,
             PublicJobs = PublicJobs,
             OnlyAllowMergeIfPipelineSucceeds = OnlyAllowMergeIfPipelineSucceeds,
