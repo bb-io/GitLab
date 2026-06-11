@@ -17,14 +17,49 @@ Before you can connect you need to make sure that:
 
 ## Connecting
 
+GitLab supports the following connection types in Blackbird:
+
+- **OAuth**: use this option for GitLab-hosted accounts.
+- **OAuth Self-managed**: use this option for self-managed GitLab instances hosted on a custom domain.
+- **Personal Access Token**: use this option when you want to connect with a personal token instead of OAuth.
+
 1. Navigate to apps and search for GitLab. If you cannot find GitLab then click _Add App_ in the top right corner, select GitLab and add the app to your Blackbird environment.
 2. Click _Add Connection_.
 3. Name your connection for future reference e.g. 'My GitLab connection'.
-4. Click _Authorize connection_.
-5. Follow the instructions that GitLab gives you, authorizing Blackbird.io to act on your behalf.
+4. Choose the connection type that matches your GitLab environment.
+5. Complete the authentication flow for the selected connection type.
 6. When you return to Blackbird, confirm that the connection has appeared and the status is _Connected_.
 
 ![1705402013379](image/README/1705402013379.png)
+
+### Connecting with OAuth
+
+1. Create a new GitLab connection in Blackbird.
+2. Select **OAuth** as the connection type.
+3. Click **Authorize connection**.
+4. Follow the GitLab authorization flow and approve the requested access.
+5. Return to Blackbird and confirm that the connection status is _Connected_.
+
+### Connecting to self-managed GitLab
+
+If your GitLab instance is hosted on a custom domain, use the **OAuth Self-managed** connection type in Blackbird.
+
+1. In your self-managed GitLab instance, navigate to **Admin area** -> **Applications** and click **Add new application**.
+2. Enter an application name, for example _Blackbird Self-Managed Test_.
+3. Set **Redirect URI** to `https://bridge.blackbird.io/api/AuthorizationCode`.
+4. Save the application and copy the generated **Application ID** and **Secret**.
+5. In Blackbird, create a new GitLab connection and choose **OAuth Self-managed** as the connection type.
+6. Enter your GitLab instance URL as **Base URL**, for example `https://gitlab.example.com`.
+7. Paste the GitLab **Application ID** into **Client ID** and the GitLab **Secret** into **Client secret**.
+8. Click **Authorize connection** and complete the OAuth consent flow in your self-managed GitLab instance.
+9. Return to Blackbird and confirm that the connection has appeared and the status is _Connected_.
+
+### Connecting with a personal access token
+
+1. Create a personal access token with the scopes required for the actions you want to use.
+2. In Blackbird, create a new GitLab connection and choose **Personal Access Token** as the connection type.
+3. Paste the token into the **API key** field.
+4. Save the connection and confirm that the status is _Connected_.
 
 ## Actions
 
