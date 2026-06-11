@@ -49,7 +49,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 3. Set **Redirect URI** to `https://bridge.blackbird.io/api/AuthorizationCode`.
 4. Save the application and copy the generated **Application ID** and **Secret**.
 5. In Blackbird, create a new GitLab connection and choose **OAuth Self-managed** as the connection type.
-6. Enter your GitLab instance URL as **Base URL**, for example `https://gitlab.example.com`.
+6. Enter your GitLab instance URL as **Base URL**, for example `https://yourdomain.example.com`.
 7. Paste the GitLab **Application ID** into **Client ID** and the GitLab **Secret** into **Client secret**.
 8. Click **Authorize connection** and complete the OAuth consent flow in your self-managed GitLab instance.
 9. Return to Blackbird and confirm that the connection has appeared and the status is _Connected_.
