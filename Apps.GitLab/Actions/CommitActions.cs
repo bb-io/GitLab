@@ -30,7 +30,7 @@ public class CommitActions : GitLabActions
         _fileManagementClient = fileManagementClient;
     }
 
-    [Action("Search commits", Description = "Search repository commits")]
+    [Action("Search commits", Description = "Search commits in a repository")]
     public async Task<ListRepositoryCommitsResponse> ListRepositoryCommits(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -45,7 +45,7 @@ public class CommitActions : GitLabActions
         };
     }
 
-    [Action("Find commit", Description = "Find first matching repository commit")]
+    [Action("Find commit", Description = "Find first commit that matches search filters in a repository")]
     public async Task<Commit> FindCommit(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -82,7 +82,7 @@ public class CommitActions : GitLabActions
         return FilterCommits(commits, searchRequest, includedAuthors).ToList();
     }
 
-    [Action("Get commit", Description = "Get commit by id")]
+    [Action("Get commit", Description = "Get commit details by commit ID")]
     public async Task<Commit> GetCommit(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetCommitRequest input)
@@ -95,7 +95,7 @@ public class CommitActions : GitLabActions
         return await RestClient.ExecuteWithErrorHandling<Commit>(request);
     }
 
-    [Action("List added or modified files in X hours", Description = "List added or modified files in X hours")]
+    [Action("List added or modified files in X hours", Description = "Search files added or modified during specified number of hours")]
     public async Task<ListAddedOrModifiedInHoursResponse> ListAddedOrModifiedInHours(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -137,7 +137,7 @@ public class CommitActions : GitLabActions
         };
     }
 
-    [Action("Create or update file", Description = "Create or update file")]
+    [Action("Create or update file", Description = "Create file or update existing file in a repository")]
     public async Task<CommitDto> PushFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -176,7 +176,7 @@ public class CommitActions : GitLabActions
         return new(pushFileResult);
     }
 
-    [Action("Update file", Description = "Update file in repository")]
+    [Action("Update file", Description = "Update existing file in a repository")]
     public async Task<CommitDto> UpdateFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -200,7 +200,7 @@ public class CommitActions : GitLabActions
         return new(fileUpload);
     }
 
-    [Action("Delete file", Description = "Delete file from repository")]
+    [Action("Delete file", Description = "Delete file from a repository")]
     public async Task<DeleteFileResponse> DeleteFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,

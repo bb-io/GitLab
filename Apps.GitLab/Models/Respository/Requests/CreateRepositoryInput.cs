@@ -50,7 +50,7 @@ public class CreateRepositoryInput
     [StaticDataSource(typeof(RepoVisibilityDataHandler))]
     public string? Visibility { get; set; }
 
-    [Display("Import url")]
+    [Display("Import URL")]
     public string? ImportUrl { get; set; }
 
     [Display("Public jobs")]
@@ -62,7 +62,7 @@ public class CreateRepositoryInput
     [Display("Only allow merge if all discussions are resolved")]
     public bool? OnlyAllowMergeIfAllDiscussionsAreResolved { get; set; }
 
-    [Display("Enable lfs")]
+    [Display("Enable LFS")]
     public bool? EnableLfs { get; set; }
 
     [Display("Enable request access")]
@@ -74,7 +74,7 @@ public class CreateRepositoryInput
     [Display("Enable printing merge request link")]
     public bool? EnablePrintingMergeRequestLink { get; set; }
 
-    [Display("Ci config path")]
+    [Display("CI config path")]
     public string? CiConfigPath { get; set; }
     
     [Display("Initialize with README")]

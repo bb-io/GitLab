@@ -16,7 +16,7 @@ public class PullRequestActions(InvocationContext invocationContext)
     : GitLabActions(invocationContext)
 {
 
-    [Action("List merge requests", Description = "List merge requests")]
+    [Action("List merge requests", Description = "Search merge requests in a repository")]
     public async Task<ListPullRequestsResponse> ListPullRequests(
         [ActionParameter] GetRepositoryRequest repositoryRequest)
     {
@@ -30,7 +30,7 @@ public class PullRequestActions(InvocationContext invocationContext)
         };
     }
 
-    [Action("Get merge request", Description = "Get merge request")]
+    [Action("Get merge request", Description = "Get merge request details")]
     public async Task<MergeRequest> GetPullRequest(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetPullRequest input)
@@ -62,7 +62,7 @@ public class PullRequestActions(InvocationContext invocationContext)
         return await RestClient.ExecuteWithErrorHandling<MergeRequest>(request);
     }
 
-    [Action("Complete merge request", Description = "Complete merge request")]
+    [Action("Complete merge request", Description = "Complete merge request by merging it")]
     public async Task<MergeRequest> MergePullRequest(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetPullRequest mergeRequest,

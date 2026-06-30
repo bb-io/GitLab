@@ -27,7 +27,7 @@ public class PushPayload
     public bool RefProtected { get; set; }
 
     [JsonProperty("checkout_sha")]
-    [Display("Checkout sha")]
+    [Display("Checkout SHA")]
     public string CheckoutSha { get; set; }
 
     [JsonProperty("user_id")]
@@ -119,19 +119,19 @@ public class Project
     public string Description { get; set; }
 
     [JsonProperty("web_url")]
-    [Display("Web url")]
+    [Display("Web URL")]
     public string WebUrl { get; set; }
 
     [JsonProperty("avatar_url")]
-    [Display("Avatar url")]
+    [Display("Avatar URL")]
     public string AvatarUrl { get; set; }
 
     [JsonProperty("git_ssh_url")]
-    [Display("Git ssh url")]
+    [Display("Git SSH URL")]
     public string GitSshUrl { get; set; }
 
     [JsonProperty("git_http_url")]
-    [Display("Git http url")]
+    [Display("Git HTTP URL")]
     public string GitHttpUrl { get; set; }
 
     [JsonProperty("namespace")]
@@ -150,7 +150,7 @@ public class Project
     public string DefaultBranch { get; set; }
 
     [JsonProperty("ci_config_path")]
-    [Display("Ci config path")]
+    [Display("CI config path")]
     public string CiConfigPath { get; set; }
 
     [JsonProperty("homepage")]
@@ -160,11 +160,11 @@ public class Project
     public string Url { get; set; }
 
     [JsonProperty("ssh_url")]
-    [Display("Ssh url")]
+    [Display("SSH URL")]
     public string SshUrl { get; set; }
 
     [JsonProperty("http_url")]
-    [Display("Http url")]
+    [Display("HTTP URL")]
     public string HttpUrl { get; set; }
 }
 
@@ -187,15 +187,14 @@ public class Repository
     public string Homepage { get; set; }
 
     [JsonProperty("git_http_url")]
-    [Display("Git http url")]
+    [Display("Git HTTP URL")]
     public string GitHttpUrl { get; set; }
 
     [JsonProperty("git_ssh_url")]
-    [Display("Git ssh url")]
+    [Display("Git SSH URL")]
     public string GitSshUrl { get; set; }
 
     [JsonProperty("visibility_level")]
     [Display("Visibility level")]
     public int VisibilityLevel { get; set; }
 }
-

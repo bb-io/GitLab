@@ -31,7 +31,7 @@ public class UserDataResponse
     //}
     public string Name { get; set; }
 
-    [Display("Avatar url")]
+    [Display("Avatar URL")]
     public string AvatarUrl { get; set; }
 
     [Display("Account's bio")]
@@ -57,7 +57,7 @@ public class UserDataResponse
 
     public bool? Hireable { get; set; }
 
-    [Display("HTML url")]
+    [Display("HTML URL")]
     public string HtmlUrl { get; set; }
     public int Id { get; set; }
 
