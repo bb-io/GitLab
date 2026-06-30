@@ -41,17 +41,21 @@ public class CommitActions : GitLabActions
         return new()
         {
             Count = commits.Count,
-            Commits = commits
+            Commits = commits.Select(commit => new CommitResponse(commit))
         };
     }
 
     [Action("Find commit", Description = "Find first commit that matches search filters in a repository")]
-    public async Task<Commit> FindCommit(
+    public async Task<CommitResponse> FindCommit(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] SearchCommitsRequest searchRequest)
-        => (await SearchRepositoryCommits(repositoryRequest, branchRequest, searchRequest)).FirstOrDefault()
-           ?? throw new PluginApplicationException("No matching commit was found.");
+    {
+        var commit = (await SearchRepositoryCommits(repositoryRequest, branchRequest, searchRequest)).FirstOrDefault()
+            ?? throw new PluginApplicationException("No matching commit was found.");
+
+        return new(commit);
+    }
 
     private async Task<List<Commit>> SearchRepositoryCommits(
         GetRepositoryRequest repositoryRequest,
@@ -83,7 +87,7 @@ public class CommitActions : GitLabActions
     }
 
     [Action("Get commit", Description = "Get commit details by commit ID")]
-    public async Task<Commit> GetCommit(
+    public async Task<CommitResponse> GetCommit(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetCommitRequest input)
     {
@@ -92,7 +96,7 @@ public class CommitActions : GitLabActions
             $"/projects/{projectId}/repository/commits/{Uri.EscapeDataString(input.CommitId)}",
             Method.Get);
 
-        return await RestClient.ExecuteWithErrorHandling<Commit>(request);
+        return new(await RestClient.ExecuteWithErrorHandling<Commit>(request));
     }
 
     [Action("List added or modified files in X hours", Description = "Search files added or modified during specified number of hours")]
