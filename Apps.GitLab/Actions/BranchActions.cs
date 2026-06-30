@@ -6,7 +6,6 @@ using Apps.Gitlab.Models.Respository.Requests;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using GitLabApiClient.Models.Branches.Responses;
 using RestSharp;
 
@@ -17,7 +16,7 @@ public class BranchActions(InvocationContext invocationContext)
     : GitLabActions(invocationContext)
 {
 
-    [Action("List branches", Description = "Search repository branches")]
+    [Action("Search branches", Description = "Search repository branches")]
     public async Task<ListRepositoryBranchesResponse> ListRepositoryBranches([ActionParameter] GetRepositoryRequest input)
     {
         var projectId = ParseProjectId(input.RepositoryId);

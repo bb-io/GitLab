@@ -97,14 +97,14 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
   - **Folder path (e.g. "Folder1/Folder2")**: Folder path to get files from.
   - **Include subfolders**: Option to include files in nested folders.
 - **Get repository** Get repository details.
-- **Get repository issues** Get open issues in a repository.
-- **Get repository merge requests** Get open merge requests in a repository.
-- **List repository folder content** Search folder content in a repository.
+- **Search repository issues** Get open issues in a repository.
+- **Search repository merge requests** Get open merge requests in a repository.
+- **Search repository folder content** Search folder content in a repository.
   Advanced settings:
   - **Content type**: Content type to include.
-- **List repositories** Search repositories available to connection.
-- **Get files by filepaths** Get files from a repository by file paths.
-- **Branch exists** Check whether branch exists in a repository.
+- **Search repositories** Search repositories available to connection.
+- **Search files by filepaths** Get files from a repository by file paths.
+- **Check if branch exists** Check whether branch exists in a repository.
 
 ### Commit
 
@@ -127,7 +127,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 
 ### Merge request
 
-- **List merge requests** Search merge requests in a repository.
+- **Search merge requests** Search merge requests in a repository.
 - **Get merge request** Get merge request details.
 - **Create merge request** Create merge request.
 - **Complete merge request** Complete merge request by merging it.
@@ -136,7 +136,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 
 ### Branch
 
-- **List branches** Search repository branches.
+- **Search branches** Search repository branches.
 - **Get branch** Get branch details by name.
 - **Create branch** Create branch from a base branch.
 

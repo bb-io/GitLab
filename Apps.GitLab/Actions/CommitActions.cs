@@ -99,7 +99,7 @@ public class CommitActions : GitLabActions
         return new(await RestClient.ExecuteWithErrorHandling<Commit>(request));
     }
 
-    [Action("List added or modified files in X hours", Description = "Search files added or modified during specified number of hours")]
+    [Action("Search added or modified files in X hours", Description = "Search files added or modified during specified number of hours")]
     public async Task<ListAddedOrModifiedInHoursResponse> ListAddedOrModifiedInHours(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,

@@ -11,12 +11,12 @@ using RestSharp;
 
 namespace Apps.Gitlab.Actions;
 
-[ActionList("Pull request")]
+[ActionList("Merge request")]
 public class PullRequestActions(InvocationContext invocationContext)
     : GitLabActions(invocationContext)
 {
 
-    [Action("List merge requests", Description = "Search merge requests in a repository")]
+    [Action("Search merge requests", Description = "Search merge requests in a repository")]
     public async Task<ListPullRequestsResponse> ListPullRequests(
         [ActionParameter] GetRepositoryRequest repositoryRequest)
     {
