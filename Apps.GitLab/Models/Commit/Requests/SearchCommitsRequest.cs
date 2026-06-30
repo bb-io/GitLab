@@ -10,10 +10,10 @@ public class SearchCommitsRequest
     [Display("Authors to exclude", Description = "Author names or emails to exclude")]
     public List<string>? AuthorsToExclude { get; set; }
 
-    [Display("Commit after", Description = "Only commits after or on this date")]
+    [Display("Commit after", Description = "Only commits after this date")]
     public DateTime? CommitAfter { get; set; }
 
-    [Display("Commit before", Description = "Only commits before or on this date")]
+    [Display("Commit before", Description = "Only commits before this date")]
     public DateTime? CommitBefore { get; set; }
 
     [Display("Commit message contains")]

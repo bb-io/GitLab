@@ -162,4 +162,21 @@ public class CommitActionTests : TestBaseWithContext
         Assert.IsTrue(searchResult.Commits.Any());
         Assert.AreEqual(searchResult.Commits.First().Id, findResult.Id);
     }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.PersonalAccessToken, ConnectionTypes.OAuth)]
+    public async Task FindCommit_WithCommitBeforeExactBoundary_ExcludesBoundaryCommit(InvocationContext context)
+    {
+        var action = new CommitActions(context, FileManagementClient);
+        var result = await action.FindCommit(
+            new GetRepositoryRequest { RepositoryId = CollectingReferencesDemoRepositoryId },
+            new GetOptionalBranchRequest { Name = "main" },
+            new SearchCommitsRequest
+            {
+                CommitBefore = new DateTime(2024, 1, 15, 9, 0, 0, DateTimeKind.Utc),
+                CommitMessageContains = "Sync source",
+                FilePath = "locales/en-US/messages.po"
+            });
+
+        Assert.AreEqual("9e41fdbe88e1a2099db6dd31c769267a2bf420f3", result.Id);
+    }
 }

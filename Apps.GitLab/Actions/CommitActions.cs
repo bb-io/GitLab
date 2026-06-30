@@ -227,6 +227,10 @@ public class CommitActions : GitLabActions
         var messageFilter = searchRequest.CommitMessageContains?.Trim();
 
         return commits
+            .Where(commit => !searchRequest.CommitAfter.HasValue ||
+                             commit.CreatedAt.ToUniversalTime() > searchRequest.CommitAfter.Value.ToUniversalTime())
+            .Where(commit => !searchRequest.CommitBefore.HasValue ||
+                             commit.CreatedAt.ToUniversalTime() < searchRequest.CommitBefore.Value.ToUniversalTime())
             .Where(commit => includedAuthors.Count == 0 || AuthorMatches(commit, includedAuthors))
             .Where(commit => excludedAuthors.Count == 0 || !AuthorMatches(commit, excludedAuthors))
             .Where(commit => string.IsNullOrWhiteSpace(messageFilter) || CommitMessageMatches(commit, messageFilter));
