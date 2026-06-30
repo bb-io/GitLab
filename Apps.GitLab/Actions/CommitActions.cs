@@ -22,6 +22,7 @@ namespace Apps.Gitlab.Actions;
 [ActionList("Commit")]
 public class CommitActions : GitLabActions
 {
+    private const int CommitsPageSize = 100;
     private readonly IFileManagementClient _fileManagementClient;
 
     public CommitActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
@@ -34,7 +35,7 @@ public class CommitActions : GitLabActions
     public async Task<ListRepositoryCommitsResponse> ListRepositoryCommits(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
-        [ActionParameter] SearchCommitsRequest searchRequest)
+        [ActionParameter] ListCommitsRequest searchRequest)
     {
         var commits = await SearchRepositoryCommits(repositoryRequest, branchRequest, searchRequest);
 
@@ -51,7 +52,7 @@ public class CommitActions : GitLabActions
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] SearchCommitsRequest searchRequest)
     {
-        var commit = (await SearchRepositoryCommits(repositoryRequest, branchRequest, searchRequest)).FirstOrDefault()
+        var commit = await FindRepositoryCommit(repositoryRequest, branchRequest, searchRequest)
             ?? throw new PluginApplicationException("No matching commit was found.");
 
         return new(commit);
@@ -60,11 +61,73 @@ public class CommitActions : GitLabActions
     private async Task<List<Commit>> SearchRepositoryCommits(
         GetRepositoryRequest repositoryRequest,
         GetOptionalBranchRequest branchRequest,
+        ListCommitsRequest searchRequest)
+    {
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var includedAuthors = NormalizeFilterValues(searchRequest.AuthorsToInclude).ToList();
+        var maximumResults = GetMaximumResults(searchRequest);
+        var commits = new List<Commit>();
+        var page = 1;
+
+        while (true)
+        {
+            var pageCommits = await GetRepositoryCommitsPage(projectId, branchRequest, searchRequest, includedAuthors, page);
+            if (pageCommits.Count == 0)
+                break;
+
+            var matchingCommits = FilterCommits(pageCommits, searchRequest, includedAuthors)
+                .Take(maximumResults - commits.Count)
+                .ToList();
+
+            commits.AddRange(matchingCommits);
+            if (commits.Count >= maximumResults)
+                break;
+
+            if (pageCommits.Count < CommitsPageSize)
+                break;
+
+            page++;
+        }
+
+        return commits;
+    }
+
+    private async Task<Commit?> FindRepositoryCommit(
+        GetRepositoryRequest repositoryRequest,
+        GetOptionalBranchRequest branchRequest,
         SearchCommitsRequest searchRequest)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var includedAuthors = NormalizeFilterValues(searchRequest.AuthorsToInclude).ToList();
+        var page = 1;
+
+        while (true)
+        {
+            var pageCommits = await GetRepositoryCommitsPage(projectId, branchRequest, searchRequest, includedAuthors, page);
+            if (pageCommits.Count == 0)
+                return null;
+
+            var commit = FilterCommits(pageCommits, searchRequest, includedAuthors).FirstOrDefault();
+            if (commit is not null)
+                return commit;
+
+            if (pageCommits.Count < CommitsPageSize)
+                return null;
+
+            page++;
+        }
+    }
+
+    private async Task<List<Commit>> GetRepositoryCommitsPage(
+        int projectId,
+        GetOptionalBranchRequest branchRequest,
+        SearchCommitsRequest searchRequest,
+        IReadOnlyCollection<string> includedAuthors,
+        int page)
+    {
         var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
-        request.AddQueryParameter("per_page", "100");
+        request.AddQueryParameter("per_page", CommitsPageSize.ToString());
+        request.AddQueryParameter("page", page.ToString());
 
         if (!string.IsNullOrWhiteSpace(branchRequest.Name))
             request.AddQueryParameter("ref_name", branchRequest.Name);
@@ -78,12 +141,10 @@ public class CommitActions : GitLabActions
         if (!string.IsNullOrWhiteSpace(searchRequest.FilePath))
             request.AddQueryParameter("path", searchRequest.FilePath);
 
-        var includedAuthors = NormalizeFilterValues(searchRequest.AuthorsToInclude).ToList();
         if (includedAuthors.Count == 1)
-            request.AddQueryParameter("author", includedAuthors[0]);
+            request.AddQueryParameter("author", includedAuthors.First());
 
-        var commits = await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
-        return FilterCommits(commits, searchRequest, includedAuthors).ToList();
+        return await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
     }
 
     [Action("Get commit", Description = "Get commit details by commit ID")]
@@ -245,6 +306,15 @@ public class CommitActions : GitLabActions
                .Where(value => !string.IsNullOrWhiteSpace(value))
                .Select(value => value.Trim())
            ?? Enumerable.Empty<string>();
+
+    private static int GetMaximumResults(ListCommitsRequest searchRequest)
+    {
+        var maximumResults = searchRequest.MaximumResults ?? 100;
+        if (maximumResults <= 0)
+            throw new PluginMisconfigurationException("Maximum results must be greater than 0.");
+
+        return maximumResults;
+    }
 
     private static bool AuthorMatches(Commit commit, IEnumerable<string> authors)
         => authors.Any(author =>

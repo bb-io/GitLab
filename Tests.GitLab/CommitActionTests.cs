@@ -20,7 +20,7 @@ public class CommitActionTests : TestBaseWithContext
         var result = await action.ListRepositoryCommits(
             new GetRepositoryRequest { RepositoryId = CollectingReferencesDemoRepositoryId },
             new GetOptionalBranchRequest { Name = "main" },
-            new SearchCommitsRequest());
+            new ListCommitsRequest());
 
         Assert.IsTrue(result.Commits.Any());
         Assert.AreEqual(result.Commits.Count(), result.Count);
@@ -33,7 +33,7 @@ public class CommitActionTests : TestBaseWithContext
         var result = await action.ListRepositoryCommits(
             new GetRepositoryRequest { RepositoryId = CollectingReferencesDemoRepositoryId },
             new GetOptionalBranchRequest { Name = "main" },
-            new SearchCommitsRequest
+            new ListCommitsRequest
             {
                 AuthorsToInclude = ["Localization Blackbird"]
             });
@@ -47,6 +47,22 @@ public class CommitActionTests : TestBaseWithContext
     }
 
     [TestMethod, ContextDataSource(ConnectionTypes.PersonalAccessToken, ConnectionTypes.OAuth)]
+    public async Task SearchCommits_WithMaximumResults_ReturnsRequestedNumberOfMatches(InvocationContext context)
+    {
+        var action = new CommitActions(context, FileManagementClient);
+        var result = await action.ListRepositoryCommits(
+            new GetRepositoryRequest { RepositoryId = CollectingReferencesDemoRepositoryId },
+            new GetOptionalBranchRequest { Name = "main" },
+            new ListCommitsRequest
+            {
+                MaximumResults = 2
+            });
+
+        Assert.AreEqual(2, result.Count);
+        Assert.AreEqual(2, result.Commits.Count());
+    }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.PersonalAccessToken, ConnectionTypes.OAuth)]
     public async Task SearchCommits_WithDateRange_ReturnsCommitsInRange(InvocationContext context)
     {
         var start = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc);
@@ -55,7 +71,7 @@ public class CommitActionTests : TestBaseWithContext
         var result = await action.ListRepositoryCommits(
             new GetRepositoryRequest { RepositoryId = CollectingReferencesDemoRepositoryId },
             new GetOptionalBranchRequest { Name = "main" },
-            new SearchCommitsRequest
+            new ListCommitsRequest
             {
                 CommitAfter = start,
                 CommitBefore = end
@@ -72,7 +88,7 @@ public class CommitActionTests : TestBaseWithContext
         var result = await action.ListRepositoryCommits(
             new GetRepositoryRequest { RepositoryId = CollectingReferencesDemoRepositoryId },
             new GetOptionalBranchRequest { Name = "main" },
-            new SearchCommitsRequest
+            new ListCommitsRequest
             {
                 CommitMessageContains = "Chore:"
             });
@@ -92,7 +108,7 @@ public class CommitActionTests : TestBaseWithContext
         var result = await action.ListRepositoryCommits(
             new GetRepositoryRequest { RepositoryId = CollectingReferencesDemoRepositoryId },
             new GetOptionalBranchRequest { Name = "main" },
-            new SearchCommitsRequest
+            new ListCommitsRequest
             {
                 AuthorsToExclude = ["Localization Blackbird"]
             });
@@ -112,7 +128,7 @@ public class CommitActionTests : TestBaseWithContext
         var result = await action.ListRepositoryCommits(
             new GetRepositoryRequest { RepositoryId = CollectingReferencesDemoRepositoryId },
             new GetOptionalBranchRequest { Name = "main" },
-            new SearchCommitsRequest
+            new ListCommitsRequest
             {
                 FilePath = "changelog.md"
             });
@@ -144,7 +160,7 @@ public class CommitActionTests : TestBaseWithContext
     public async Task FindCommit_WithSameFilters_ReturnsFirstSearchResult(InvocationContext context)
     {
         var action = new CommitActions(context, FileManagementClient);
-        var searchRequest = new SearchCommitsRequest
+        var searchRequest = new ListCommitsRequest
         {
             AuthorsToInclude = ["Localization Blackbird"],
             CommitMessageContains = "Chore:"
