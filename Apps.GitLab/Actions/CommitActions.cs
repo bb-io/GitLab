@@ -30,22 +30,56 @@ public class CommitActions : GitLabActions
         _fileManagementClient = fileManagementClient;
     }
 
-    [Action("List commits", Description = "List respository commits")]
+    [Action("Search commits", Description = "Search repository commits")]
     public async Task<ListRepositoryCommitsResponse> ListRepositoryCommits(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
-        [ActionParameter] GetOptionalBranchRequest branchRequest)
+        [ActionParameter] GetOptionalBranchRequest branchRequest,
+        [ActionParameter] SearchCommitsRequest searchRequest)
+    {
+        var commits = await SearchRepositoryCommits(repositoryRequest, branchRequest, searchRequest);
+
+        return new()
+        {
+            Count = commits.Count,
+            Commits = commits
+        };
+    }
+
+    [Action("Find commit", Description = "Find first matching repository commit")]
+    public async Task<Commit> FindCommit(
+        [ActionParameter] GetRepositoryRequest repositoryRequest,
+        [ActionParameter] GetOptionalBranchRequest branchRequest,
+        [ActionParameter] SearchCommitsRequest searchRequest)
+        => (await SearchRepositoryCommits(repositoryRequest, branchRequest, searchRequest)).FirstOrDefault()
+           ?? throw new PluginApplicationException("No matching commit was found.");
+
+    private async Task<List<Commit>> SearchRepositoryCommits(
+        GetRepositoryRequest repositoryRequest,
+        GetOptionalBranchRequest branchRequest,
+        SearchCommitsRequest searchRequest)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
         var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
+        request.AddQueryParameter("per_page", "100");
 
         if (!string.IsNullOrWhiteSpace(branchRequest.Name))
             request.AddQueryParameter("ref_name", branchRequest.Name);
 
+        if (searchRequest.CommitAfter.HasValue)
+            request.AddQueryParameter("since", FormatGitLabDate(searchRequest.CommitAfter.Value));
+
+        if (searchRequest.CommitBefore.HasValue)
+            request.AddQueryParameter("until", FormatGitLabDate(searchRequest.CommitBefore.Value));
+
+        if (!string.IsNullOrWhiteSpace(searchRequest.FilePath))
+            request.AddQueryParameter("path", searchRequest.FilePath);
+
+        var includedAuthors = NormalizeFilterValues(searchRequest.AuthorsToInclude).ToList();
+        if (includedAuthors.Count == 1)
+            request.AddQueryParameter("author", includedAuthors[0]);
+
         var commits = await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
-        return new()
-        {
-            Commits = commits
-        };
+        return FilterCommits(commits, searchRequest, includedAuthors).ToList();
     }
 
     [Action("Get commit", Description = "Get commit by id")]
@@ -183,4 +217,40 @@ public class CommitActions : GitLabActions
             Message = fileDelete.Message
         };
     }
+
+    private static IEnumerable<Commit> FilterCommits(
+        IEnumerable<Commit> commits,
+        SearchCommitsRequest searchRequest,
+        IReadOnlyCollection<string> includedAuthors)
+    {
+        var excludedAuthors = NormalizeFilterValues(searchRequest.AuthorsToExclude).ToList();
+        var messageFilter = searchRequest.CommitMessageContains?.Trim();
+
+        return commits
+            .Where(commit => includedAuthors.Count == 0 || AuthorMatches(commit, includedAuthors))
+            .Where(commit => excludedAuthors.Count == 0 || !AuthorMatches(commit, excludedAuthors))
+            .Where(commit => string.IsNullOrWhiteSpace(messageFilter) || CommitMessageMatches(commit, messageFilter));
+    }
+
+    private static IEnumerable<string> NormalizeFilterValues(IEnumerable<string>? values)
+        => values?
+               .Where(value => !string.IsNullOrWhiteSpace(value))
+               .Select(value => value.Trim())
+           ?? Enumerable.Empty<string>();
+
+    private static bool AuthorMatches(Commit commit, IEnumerable<string> authors)
+        => authors.Any(author =>
+            ContainsIgnoreCase(commit.AuthorName, author) ||
+            ContainsIgnoreCase(commit.AuthorEmail, author));
+
+    private static bool CommitMessageMatches(Commit commit, string messageFilter)
+        => ContainsIgnoreCase(commit.Message, messageFilter) ||
+           ContainsIgnoreCase(commit.Title, messageFilter);
+
+    private static bool ContainsIgnoreCase(string? value, string searchValue)
+        => !string.IsNullOrWhiteSpace(value) &&
+           value.Contains(searchValue, StringComparison.OrdinalIgnoreCase);
+
+    private static string FormatGitLabDate(DateTime date)
+        => date.ToUniversalTime().ToString("O");
 }

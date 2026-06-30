@@ -78,7 +78,8 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 
 ### Commits
 
-- **List commits**
+- **Search commits**
+- **Find commit**
 - **Get commit**
 
 ### Merge requests
