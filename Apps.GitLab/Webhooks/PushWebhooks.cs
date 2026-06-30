@@ -10,7 +10,7 @@ namespace Apps.Gitlab.Webhooks;
 [WebhookList]
 public class PushWebhooks
 {
-    [Webhook("On commit pushed", typeof(PushEventHandler), Description = "On commit pushed")]
+    [Webhook("On commit pushed", typeof(PushEventHandler), Description = "On commit pushed to a repository branch")]
     public async Task<WebhookResponse<PushPayload>> CommitPushedHandler(WebhookRequest webhookRequest)
     {
         var data = JsonConvert.DeserializeObject<PushPayload>(webhookRequest.Body.ToString());
@@ -23,7 +23,7 @@ public class PushWebhooks
         };
     }
 
-    [Webhook("On files added", typeof(PushEventHandler), Description = "On files added")]
+    [Webhook("On files added", typeof(PushEventHandler), Description = "On files added by new commits")]
     public async Task<WebhookResponse<FilesListResponse>> FilesAddedHandler(WebhookRequest webhookRequest,
         [WebhookParameter] FolderInput input)
     {
@@ -47,7 +47,7 @@ public class PushWebhooks
         return GeneratePreflight<FilesListResponse>();
     }
 
-    [Webhook("On files modified", typeof(PushEventHandler), Description = "On files modified")]
+    [Webhook("On files modified", typeof(PushEventHandler), Description = "On files modified by new commits")]
     public async Task<WebhookResponse<FilesListResponse>> FilesModifiedHandler(WebhookRequest webhookRequest,
         [WebhookParameter] FolderInput input)
     {
@@ -71,7 +71,7 @@ public class PushWebhooks
         return GeneratePreflight<FilesListResponse>();
     }
 
-    [Webhook("On files added or modified", typeof(PushEventHandler), Description = "On files added or modified")]
+    [Webhook("On files added or modified", typeof(PushEventHandler), Description = "On files added or modified by new commits")]
     public async Task<WebhookResponse<FilesListResponse>> FilesAddedAndModifiedHandler(WebhookRequest webhookRequest,
         [WebhookParameter] FolderInput input)
     {
@@ -100,7 +100,7 @@ public class PushWebhooks
         return GeneratePreflight<FilesListResponse>();
     }
 
-    [Webhook("On files removed", typeof(PushEventHandler), Description = "On files removed")]
+    [Webhook("On files removed", typeof(PushEventHandler), Description = "On files removed by new commits")]
     public async Task<WebhookResponse<FilesListResponse>> FilesRemovedHandler(WebhookRequest webhookRequest,
         [WebhookParameter] FolderInput input)
     {

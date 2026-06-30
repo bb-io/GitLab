@@ -4,6 +4,6 @@ namespace Apps.Gitlab.Models.Commit.Requests;
 
 public class GetCommitRequest
 {
-    [Display("Commit ID (Sha)")]
+    [Display("Commit ID (SHA)")]
     public string CommitId { get; set; }
 }

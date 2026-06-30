@@ -35,7 +35,7 @@ public class RepositoryActions : GitLabActions
         _fileManagementClient = fileManagementClient;
     }
 
-    [Action("Create new repository", Description = "Create new repository")]
+    [Action("Create new repository", Description = "Create repository with selected settings")]
     public async Task<RepositoryResponse> CreateRepository([ActionParameter] CreateRepositoryInput input)
     {
         var endpoint = "/projects";
@@ -50,7 +50,7 @@ public class RepositoryActions : GitLabActions
         return RepositoryResponse.FromProject(project);
     }
 
-    [Action("Get repository file", Description = "Get repository file by path")]
+    [Action("Get repository file", Description = "Get file from a repository by file path")]
     public async Task<GetFileResponse> GetFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -87,7 +87,7 @@ public class RepositoryActions : GitLabActions
         };
     }
 
-    [Action("Get all files in folder", Description = "Get all files in folder")]
+    [Action("Get all files in folder", Description = "Get files from a repository folder")]
     public async Task<GetRepositoryFilesFromFilepathsResponse> GetAllFilesInFolder(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -143,14 +143,14 @@ public class RepositoryActions : GitLabActions
         return new GetRepositoryFilesFromFilepathsResponse { Files = resultFiles };
     }
 
-    [Action("Get repository", Description = "Get repository info")]
+    [Action("Get repository", Description = "Get repository details")]
     public async Task<RepositoryResponse> GetRepositoryById([ActionParameter] GetRepositoryRequest input)
     {
         var project = await GetProject(ParseProjectId(input.RepositoryId));
         return RepositoryResponse.FromProject(project);
     }
 
-    [Action("Get repository issues", Description = "Get opened issues against repository")]
+    [Action("Search repository issues", Description = "Get open issues in a repository")]
     public async Task<GetIssuesResponse> GetIssuesInRepository([ActionParameter] RepositoryRequest input)
     {
         var projectId = ParseProjectId(input.RepositoryId);
@@ -163,7 +163,7 @@ public class RepositoryActions : GitLabActions
         };
     }
 
-    [Action("Get repository merge requests", Description = "Get opened merge requests in a repository")]
+    [Action("Search repository merge requests", Description = "Get open merge requests in a repository")]
     public async Task<GetPullRequestsResponse> GetPullRequestsInRepository([ActionParameter] RepositoryRequest input)
     {
         var projectId = ParseProjectId(input.RepositoryId);
@@ -176,7 +176,7 @@ public class RepositoryActions : GitLabActions
         };
     }
 
-    [Action("List repository folder content", Description = "List repository folder content")]
+    [Action("Search repository folder content", Description = "Search folder content in a repository")]
     public async Task<RepositoryContentResponse> ListRepositoryContent(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -200,7 +200,7 @@ public class RepositoryActions : GitLabActions
         };
     }
 
-    [Action("List repositories", Description = "List all repositories")]
+    [Action("Search repositories", Description = "Search repositories available to connection")]
     public async Task<ListRepositoriesResponse> ListRepositories()
     {
         var request = RestClient.CreateRequest("/projects", Method.Get);
@@ -210,7 +210,7 @@ public class RepositoryActions : GitLabActions
         return new(projects.ToArray());
     }
 
-    [Action("Get files by filepaths", Description = "Get files by filepaths from webhooks")]
+    [Action("Search files by filepaths", Description = "Get files from a repository by file paths")]
     public async Task<GetRepositoryFilesFromFilepathsResponse> GetRepositoryFilesFromFilepaths(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -237,7 +237,7 @@ public class RepositoryActions : GitLabActions
         };
     }
 
-    [Action("Branch exists", Description = "Branch exists in specified repository")]
+    [Action("Check if branch exists", Description = "Check whether branch exists in a repository")]
     public async Task<bool> BranchExists(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter][Display("Branch name")] string branchNameRequest)

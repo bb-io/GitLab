@@ -6,7 +6,6 @@ using Apps.Gitlab.Models.Respository.Requests;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using GitLabApiClient.Models.Branches.Responses;
 using RestSharp;
 
@@ -17,7 +16,7 @@ public class BranchActions(InvocationContext invocationContext)
     : GitLabActions(invocationContext)
 {
 
-    [Action("List branches", Description = "List respository branches")]
+    [Action("Search branches", Description = "Search repository branches")]
     public async Task<ListRepositoryBranchesResponse> ListRepositoryBranches([ActionParameter] GetRepositoryRequest input)
     {
         var projectId = ParseProjectId(input.RepositoryId);
@@ -30,7 +29,7 @@ public class BranchActions(InvocationContext invocationContext)
         };
     }
 
-    [Action("Get branch", Description = "Get branch by name")]
+    [Action("Get branch", Description = "Get branch details by name")]
     public async Task<BranchDto> GetBranch(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetBranchRequest input)
@@ -44,7 +43,7 @@ public class BranchActions(InvocationContext invocationContext)
         return new BranchDto(branch);
     }
 
-    [Action("Create branch", Description = "Create branch")]
+    [Action("Create branch", Description = "Create branch from a base branch")]
     public async Task<BranchDto> CreateBranch(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] Models.Branch.Requests.CreateBranchRequest input)

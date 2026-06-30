@@ -22,6 +22,7 @@ namespace Apps.Gitlab.Actions;
 [ActionList("Commit")]
 public class CommitActions : GitLabActions
 {
+    private const int CommitsPageSize = 100;
     private readonly IFileManagementClient _fileManagementClient;
 
     public CommitActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
@@ -30,26 +31,124 @@ public class CommitActions : GitLabActions
         _fileManagementClient = fileManagementClient;
     }
 
-    [Action("List commits", Description = "List respository commits")]
+    [Action("Search commits", Description = "Search commits in a repository")]
     public async Task<ListRepositoryCommitsResponse> ListRepositoryCommits(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
-        [ActionParameter] GetOptionalBranchRequest branchRequest)
+        [ActionParameter] GetOptionalBranchRequest branchRequest,
+        [ActionParameter] ListCommitsRequest searchRequest)
+    {
+        var commits = await SearchRepositoryCommits(repositoryRequest, branchRequest, searchRequest);
+
+        return new()
+        {
+            Count = commits.Count,
+            Commits = commits.Select(commit => new CommitResponse(commit))
+        };
+    }
+
+    [Action("Find commit", Description = "Find first commit that matches search filters in a repository")]
+    public async Task<CommitResponse> FindCommit(
+        [ActionParameter] GetRepositoryRequest repositoryRequest,
+        [ActionParameter] GetOptionalBranchRequest branchRequest,
+        [ActionParameter] SearchCommitsRequest searchRequest)
+    {
+        var commit = await FindRepositoryCommit(repositoryRequest, branchRequest, searchRequest)
+            ?? throw new PluginApplicationException("No matching commit was found.");
+
+        return new(commit);
+    }
+
+    private async Task<List<Commit>> SearchRepositoryCommits(
+        GetRepositoryRequest repositoryRequest,
+        GetOptionalBranchRequest branchRequest,
+        ListCommitsRequest searchRequest)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var includedAuthors = NormalizeFilterValues(searchRequest.AuthorsToInclude).ToList();
+        var maximumResults = GetMaximumResults(searchRequest);
+        var commits = new List<Commit>();
+        var page = 1;
+
+        while (true)
+        {
+            var pageCommits = await GetRepositoryCommitsPage(projectId, branchRequest, searchRequest, includedAuthors, page);
+            if (pageCommits.Count == 0)
+                break;
+
+            var matchingCommits = FilterCommits(pageCommits, searchRequest, includedAuthors)
+                .Take(maximumResults - commits.Count)
+                .ToList();
+
+            commits.AddRange(matchingCommits);
+            if (commits.Count >= maximumResults)
+                break;
+
+            if (pageCommits.Count < CommitsPageSize)
+                break;
+
+            page++;
+        }
+
+        return commits;
+    }
+
+    private async Task<Commit?> FindRepositoryCommit(
+        GetRepositoryRequest repositoryRequest,
+        GetOptionalBranchRequest branchRequest,
+        SearchCommitsRequest searchRequest)
+    {
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var includedAuthors = NormalizeFilterValues(searchRequest.AuthorsToInclude).ToList();
+        var page = 1;
+
+        while (true)
+        {
+            var pageCommits = await GetRepositoryCommitsPage(projectId, branchRequest, searchRequest, includedAuthors, page);
+            if (pageCommits.Count == 0)
+                return null;
+
+            var commit = FilterCommits(pageCommits, searchRequest, includedAuthors).FirstOrDefault();
+            if (commit is not null)
+                return commit;
+
+            if (pageCommits.Count < CommitsPageSize)
+                return null;
+
+            page++;
+        }
+    }
+
+    private async Task<List<Commit>> GetRepositoryCommitsPage(
+        int projectId,
+        GetOptionalBranchRequest branchRequest,
+        SearchCommitsRequest searchRequest,
+        IReadOnlyCollection<string> includedAuthors,
+        int page)
+    {
         var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
+        request.AddQueryParameter("per_page", CommitsPageSize.ToString());
+        request.AddQueryParameter("page", page.ToString());
 
         if (!string.IsNullOrWhiteSpace(branchRequest.Name))
             request.AddQueryParameter("ref_name", branchRequest.Name);
 
-        var commits = await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
-        return new()
-        {
-            Commits = commits
-        };
+        if (searchRequest.CommitAfter.HasValue)
+            request.AddQueryParameter("since", FormatGitLabDate(searchRequest.CommitAfter.Value));
+
+        if (searchRequest.CommitBefore.HasValue)
+            request.AddQueryParameter("until", FormatGitLabDate(searchRequest.CommitBefore.Value));
+
+        if (!string.IsNullOrWhiteSpace(searchRequest.FilePath))
+            request.AddQueryParameter("path", searchRequest.FilePath);
+
+        if (includedAuthors.Count == 1)
+            request.AddQueryParameter("author", includedAuthors.First());
+
+        return await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
     }
 
-    [Action("Get commit", Description = "Get commit by id")]
-    public async Task<Commit> GetCommit(
+    [Action("Get commit", Description = "Get commit details by commit ID")]
+    public async Task<CommitResponse> GetCommit(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetCommitRequest input)
     {
@@ -58,10 +157,10 @@ public class CommitActions : GitLabActions
             $"/projects/{projectId}/repository/commits/{Uri.EscapeDataString(input.CommitId)}",
             Method.Get);
 
-        return await RestClient.ExecuteWithErrorHandling<Commit>(request);
+        return new(await RestClient.ExecuteWithErrorHandling<Commit>(request));
     }
 
-    [Action("List added or modified files in X hours", Description = "List added or modified files in X hours")]
+    [Action("Search added or modified files in X hours", Description = "Search files added or modified during specified number of hours")]
     public async Task<ListAddedOrModifiedInHoursResponse> ListAddedOrModifiedInHours(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -103,7 +202,7 @@ public class CommitActions : GitLabActions
         };
     }
 
-    [Action("Create or update file", Description = "Create or update file")]
+    [Action("Create or update file", Description = "Create file or update existing file in a repository")]
     public async Task<CommitDto> PushFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -142,7 +241,7 @@ public class CommitActions : GitLabActions
         return new(pushFileResult);
     }
 
-    [Action("Update file", Description = "Update file in repository")]
+    [Action("Update file", Description = "Update existing file in a repository")]
     public async Task<CommitDto> UpdateFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -166,7 +265,7 @@ public class CommitActions : GitLabActions
         return new(fileUpload);
     }
 
-    [Action("Delete file", Description = "Delete file from repository")]
+    [Action("Delete file", Description = "Delete file from a repository")]
     public async Task<DeleteFileResponse> DeleteFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -183,4 +282,53 @@ public class CommitActions : GitLabActions
             Message = fileDelete.Message
         };
     }
+
+    private static IEnumerable<Commit> FilterCommits(
+        IEnumerable<Commit> commits,
+        SearchCommitsRequest searchRequest,
+        IReadOnlyCollection<string> includedAuthors)
+    {
+        var excludedAuthors = NormalizeFilterValues(searchRequest.AuthorsToExclude).ToList();
+        var messageFilter = searchRequest.CommitMessageContains?.Trim();
+
+        return commits
+            .Where(commit => !searchRequest.CommitAfter.HasValue ||
+                             commit.CreatedAt.ToUniversalTime() > searchRequest.CommitAfter.Value.ToUniversalTime())
+            .Where(commit => !searchRequest.CommitBefore.HasValue ||
+                             commit.CreatedAt.ToUniversalTime() < searchRequest.CommitBefore.Value.ToUniversalTime())
+            .Where(commit => includedAuthors.Count == 0 || AuthorMatches(commit, includedAuthors))
+            .Where(commit => excludedAuthors.Count == 0 || !AuthorMatches(commit, excludedAuthors))
+            .Where(commit => string.IsNullOrWhiteSpace(messageFilter) || CommitMessageMatches(commit, messageFilter));
+    }
+
+    private static IEnumerable<string> NormalizeFilterValues(IEnumerable<string>? values)
+        => values?
+               .Where(value => !string.IsNullOrWhiteSpace(value))
+               .Select(value => value.Trim())
+           ?? Enumerable.Empty<string>();
+
+    private static int GetMaximumResults(ListCommitsRequest searchRequest)
+    {
+        var maximumResults = searchRequest.MaximumResults ?? 100;
+        if (maximumResults <= 0)
+            throw new PluginMisconfigurationException("Maximum results must be greater than 0.");
+
+        return maximumResults;
+    }
+
+    private static bool AuthorMatches(Commit commit, IEnumerable<string> authors)
+        => authors.Any(author =>
+            ContainsIgnoreCase(commit.AuthorName, author) ||
+            ContainsIgnoreCase(commit.AuthorEmail, author));
+
+    private static bool CommitMessageMatches(Commit commit, string messageFilter)
+        => ContainsIgnoreCase(commit.Message, messageFilter) ||
+           ContainsIgnoreCase(commit.Title, messageFilter);
+
+    private static bool ContainsIgnoreCase(string? value, string searchValue)
+        => !string.IsNullOrWhiteSpace(value) &&
+           value.Contains(searchValue, StringComparison.OrdinalIgnoreCase);
+
+    private static string FormatGitLabDate(DateTime date)
+        => date.ToUniversalTime().ToString("O");
 }
