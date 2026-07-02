@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <Product>GitLab</Product>
     <Description>GitLab is a developer platform that allows developers to create, store, and manage their code. This app focuses on connecting repository events and file actions into the Blackbird ecosystem.</Description>
-    <Version>1.0.15</Version>
+    <Version>1.0.16</Version>
     <AssemblyName>Apps.GitLab</AssemblyName>
   </PropertyGroup>
 
@@ -14,6 +14,7 @@
     <PackageReference Include="Blackbird.Applications.SDK.Blueprints" Version="1.0.2" />
     <PackageReference Include="Blackbird.Applications.SDK.Extensions.FileManagement" Version="1.1.0" />
     <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.26" />
+    <PackageReference Include="Blackbird.Filters" Version="1.2.7" />
     <PackageReference Include="GitLabApiClient" Version="1.8.0" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.4" />
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="8.0.0" />
