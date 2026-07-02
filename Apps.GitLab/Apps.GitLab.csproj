@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <Product>GitLab</Product>
     <Description>GitLab is a developer platform that allows developers to create, store, and manage their code. This app focuses on connecting repository events and file actions into the Blackbird ecosystem.</Description>
-    <Version>1.0.14</Version>
+    <Version>1.0.15</Version>
     <AssemblyName>Apps.GitLab</AssemblyName>
   </PropertyGroup>
 
@@ -25,6 +25,12 @@
   </ItemGroup>
 	<ItemGroup>
 		<EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.jpg" />
-		<EmbeddedResource CopyToOutputDirectory="Always" Include="..\README.md" Link="README.md" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="..\README.md">
+			<Link>README.md</Link>
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</EmbeddedResource>
 	</ItemGroup>
 </Project>
