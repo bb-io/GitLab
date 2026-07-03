@@ -1,18 +1,21 @@
 using System.Net.Mime;
+using Apps.Gitlab.Extensions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Utils.Extensions.Files;
+using Blackbird.Filters.Enums;
 using Blackbird.Filters.Transformations;
 
 namespace Apps.GitLab.Utils.File;
 
 public static class FileHelper
 {
-    public static FileContentResult ProcessDownloadedFile(FileToProcess fileToProcess)
+    public static ProcessedDownloadedFile ProcessDownloadedFile(DownloadedFile downloadedFile)
     {
-        var filename = Path.GetFileName(fileToProcess.Path);
+        var filename = Path.GetFileName(downloadedFile.Path);
         if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
             mimeType = MediaTypeNames.Application.Octet;
 
-        var stream = new MemoryStream(Convert.FromBase64String(fileToProcess.Content));
+        var stream = new MemoryStream(Convert.FromBase64String(downloadedFile.Content));
         var transformationResult = Transformation.Load(stream, filename, mimeType);
         
         if (!transformationResult.Success)
@@ -20,24 +23,45 @@ public static class FileHelper
             stream.Position = 0;
             return new(stream, mimeType, filename);
         }
-
-        string encodedPath = string.Join("/", fileToProcess.Path.Split('/').Select(Uri.EscapeDataString));
-        string blobUrl = $"{fileToProcess.RepoWebUrl}/-/blob/{fileToProcess.BranchName}/{encodedPath}";
-        string editUrl = $"{fileToProcess.RepoWebUrl}/-/edit/{fileToProcess.BranchName}/{encodedPath}";
         
-        var transformation = transformationResult.Value!;
-
-        transformation.SourceLanguage = filename.Split('.')[0];
-        transformation.SourceSystemReference.ContentId = blobUrl;
-        transformation.SourceSystemReference.AdminUrl = editUrl;
-        transformation.SourceSystemReference.ContentName = filename;
-        transformation.SourceSystemReference.SystemName = "GitLab";
-        transformation.SourceSystemReference.SystemRef = "https://gitlab.com/";
+        var transformation = transformationResult.Value.AddSourceMetadata(
+            downloadedFile.Path, 
+            filename, 
+            downloadedFile.BranchName, 
+            downloadedFile.RepoWebUrl);
 
         var sourceLoadResult = transformation.Source();
         if (!sourceLoadResult.Success)
             throw new PluginMisconfigurationException(sourceLoadResult.Error);
         
         return new(sourceLoadResult.Value.ToStream(), mimeType, filename);
+    }
+    
+    public static async Task<ProcessedUploadedFile> ProcessUploadFile(UploadedFile uploadedFile)
+    {
+        var transformationResult = Transformation.Load(uploadedFile.Stream, uploadedFile.Name, uploadedFile.ContentType);
+        bool isJson = uploadedFile.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase);
+        
+        if (transformationResult.Success && isJson)
+        {
+            var sourceLoadResult = transformationResult.Value.Source();
+            if (!sourceLoadResult.Success)
+                throw new PluginMisconfigurationException(sourceLoadResult.Error);
+
+            var bytes = await sourceLoadResult.Value.ToStream(MetadataHandling.Exclude).GetByteData();
+            return new(bytes, null);
+        }
+        if (transformationResult.Success)
+        {
+            var targetLoadResult = transformationResult.Value.Target();
+            if (!targetLoadResult.Success)
+                throw new PluginMisconfigurationException(targetLoadResult.Error);
+
+            var bytes = await targetLoadResult.Value.ToStream(MetadataHandling.Exclude).GetByteData();
+            return new(bytes, transformationResult.Value);
+        }
+        
+        var raw = await uploadedFile.Stream.GetByteData();
+        return new(raw, null);     
     }
 }

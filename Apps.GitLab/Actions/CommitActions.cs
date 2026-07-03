@@ -1,3 +1,4 @@
+using System.Net;
 using Apps.Gitlab.Actions.Base;
 using Apps.Gitlab.Models.Branch.Requests;
 using Apps.Gitlab.Models.Commit.Requests;
@@ -5,31 +6,27 @@ using Apps.Gitlab.Models.Respository.Requests;
 using Apps.Gitlab.Webhooks;
 using Apps.GitLab.Constants;
 using Apps.GitLab.Dtos;
+using Apps.Gitlab.Extensions;
 using Apps.GitLab.Models.Commit.Requests;
 using Apps.GitLab.Models.Commit.Responses;
-using Apps.GitLab.Models.Respository.Requests;
+using Apps.GitLab.Utils.File;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using Blackbird.Filters.Constants;
 using GitLabApiClient.Models.Commits.Responses;
+using GitLabApiClient.Models.Projects.Responses;
 using RestSharp;
 
 namespace Apps.Gitlab.Actions;
 
 [ActionList("Commit")]
-public class CommitActions : GitLabActions
+public class CommitActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
+    : GitLabActions(invocationContext)
 {
     private const int CommitsPageSize = 100;
-    private readonly IFileManagementClient _fileManagementClient;
-
-    public CommitActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
-        : base(invocationContext)
-    {
-        _fileManagementClient = fileManagementClient;
-    }
 
     [Action("Search commits", Description = "Search commits in a repository")]
     public async Task<ListRepositoryCommitsResponse> ListRepositoryCommits(
@@ -202,67 +199,87 @@ public class CommitActions : GitLabActions
         };
     }
 
-    [Action("Create or update file", Description = "Create file or update existing file in a repository")]
-    public async Task<CommitDto> PushFile(
+    [Action("Upload file", Description = "Create file or update existing file in a repository")]
+    public async Task<UploadFileResponse> PushFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] PushFileRequest input)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var repository = await RestClient.GetProject(projectId);
+        var branch = branchRequest.Name ?? repository.DefaultBranch;
 
-        var repContent =
-            await new RepositoryActions(InvocationContext, _fileManagementClient).ListRepositoryContent(
-                repositoryRequest, branchRequest, new FolderContentWithTypeRequest { IncludeSubfolders = true });
-
-        if (repContent.Content.Where(x => x.Type == GitLabItemTypes.Blob).Any(p => p.Path == input.DestinationFilePath))
-        {
-            return await UpdateFile(
-                repositoryRequest,
-                branchRequest,
-                new PushFileRequest
-                {
-                    DestinationFilePath = input.DestinationFilePath,
-                    File = input.File,
-                    CommitMessage = input.CommitMessage
-                });
-        }
-
-        if (repContent.Content.Where(x => x.Type == GitLabItemTypes.Tree).Select(x => x.Path)
-            .Contains(input.DestinationFilePath.Trim('/')))
-        {
-            throw new PluginMisconfigurationException("Destination file path is invalid!");
-        }
-
-        var file = await _fileManagementClient.DownloadAsync(input.File);
-        var fileBytes = await file.GetByteData();
-        var pushFileResult = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
-            input.DestinationFilePath, fileBytes, GitLabCommitActions.Create);
-
-        return new(pushFileResult);
+        var action = await CheckFileExists(projectId, input.DestinationFilePath, branch)
+            ? GitLabCommitActions.Update
+            : GitLabCommitActions.Create;
+        
+        return await CommitFile(repository, branch, input, action);
     }
 
     [Action("Update file", Description = "Update existing file in a repository")]
-    public async Task<CommitDto> UpdateFile(
+    public async Task<UploadFileResponse> UpdateFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] PushFileRequest input)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var repository = await RestClient.GetProject(projectId);
+        var branch = branchRequest.Name ?? repository.DefaultBranch;
+        
+        var fileExists = await CheckFileExists(projectId, input.DestinationFilePath, branch);
+        if (!fileExists)
+            throw new PluginMisconfigurationException("File does not exist");
+        
+        return await CommitFile(repository, branch, input, GitLabCommitActions.Update);
+    }
+    
+    private async Task<UploadFileResponse> CommitFile(
+        Project repository, 
+        string branch,
+        PushFileRequest input,
+        string action)
+    {
+        int projectId = repository.Id;
+        var fileStream = await fileManagementClient.DownloadAsync(input.File);
+        var uploadedFile = new UploadedFile(fileStream, input.File.Name, input.File.ContentType);
+        var processedFile = await FileHelper.ProcessUploadFile(uploadedFile);
 
-        var repContent =
-            await new RepositoryActions(InvocationContext, _fileManagementClient).ListRepositoryContent(
-                repositoryRequest, branchRequest,
-                new FolderContentWithTypeRequest { IncludeSubfolders = true, ContentType = GitLabItemTypes.Blob });
+        var pushResult = await RestClient.PushChanges(
+            projectId, 
+            branch, 
+            input.CommitMessage,
+            input.DestinationFilePath, 
+            processedFile.FileBytes, 
+            action);
+        
+        var commitDto = new CommitDto(pushResult);
 
-        if (!repContent.Content.Select(x => x.Path).Contains(input.DestinationFilePath.Trim('/')))
-            throw new PluginApplicationException("File does not exist by specified file path!");
+        if (processedFile.Transformation is null)
+            return new(commitDto, input.File);
 
-        var file = await _fileManagementClient.DownloadAsync(input.File);
-        var fileBytes = await file.GetByteData();
-        var fileUpload = await RestClient.PushChanges(projectId, branchRequest.Name, input.CommitMessage,
-            input.DestinationFilePath, fileBytes, GitLabCommitActions.Update);
+        var uploadedFileInfo = await RestClient.GetFileInfo(projectId, input.DestinationFilePath, branch);
 
-        return new(fileUpload);
+        var transformation = processedFile.Transformation.AddTargetMetadata(
+            uploadedFileInfo.FilePath, 
+            uploadedFile.Name, 
+            branch, 
+            repository.WebUrl);
+
+        var transformedFile = await fileManagementClient.UploadAsync(
+            transformation.ToStream(), 
+            MediaTypes.Xliff2, 
+            transformation.BilingualFileName);
+
+        return new(commitDto, transformedFile);
+    }
+    
+    public async Task<bool> CheckFileExists(int projectId, string filePath, string branch)
+    {
+        var endpoint = $"/projects/{projectId}/repository/files/{Uri.EscapeDataString(filePath.Trim('/'))}";
+        var request = RestClient.CreateRequest(endpoint, Method.Head).AddQueryParameter("ref", branch);
+        
+        var response = await RestClient.ExecuteWithErrorHandling(request, HttpStatusCode.NotFound);
+        return response.IsSuccessStatusCode;
     }
 
     [Action("Delete file", Description = "Delete file from a repository")]

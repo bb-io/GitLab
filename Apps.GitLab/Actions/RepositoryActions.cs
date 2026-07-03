@@ -50,17 +50,13 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         [ActionParameter] GetFileRequest getFileRequest)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
-        var repository = await GetProject(projectId);
+        var repository = await RestClient.GetProject(projectId);
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
-        string endpoint = $"/projects/{projectId}/repository/files/{Uri.EscapeDataString(getFileRequest.FilePath)}";
-        var request = RestClient.CreateRequest(endpoint, Method.Get).AddQueryParameter("ref", branch);
-
-        var repoFileResponse = await RestClient.ExecuteWithErrorHandling<RepositoryFileResponse>(request) ?? 
-                               throw new PluginMisconfigurationException($"File does not exist ({getFileRequest.FilePath})");
-
-        var fileToProcess = new FileToProcess(repoFileResponse.Content, getFileRequest.FilePath, repository.WebUrl, branch);
+        var fileInfo = await RestClient.GetFileInfo(projectId, getFileRequest.FilePath, branch);
+        var fileToProcess = new DownloadedFile(fileInfo.Content, getFileRequest.FilePath, repository.WebUrl, branch);
         var fileData = FileHelper.ProcessDownloadedFile(fileToProcess);
+        
         var fileReference = await fileManagementClient.UploadAsync(fileData.FileStream, fileData.MimeType, fileData.FileName);
         return new GetFileResponse
         {
@@ -129,7 +125,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
     [Action("Get repository", Description = "Get repository details")]
     public async Task<RepositoryResponse> GetRepositoryById([ActionParameter] GetRepositoryRequest input)
     {
-        var project = await GetProject(ParseProjectId(input.RepositoryId));
+        var project = await RestClient.GetProject(ParseProjectId(input.RepositoryId));
         return RepositoryResponse.FromProject(project);
     }
 
@@ -232,12 +228,4 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var branches = await RestClient.ExecuteWithErrorHandling<List<GitLabApiClient.Models.Branches.Responses.Branch>>(request);
         return branches.Any(x => x.Name == branchNameRequest);
     }
-
-    private Task<Project> GetProject(int projectId)
-    {
-        var request = RestClient.CreateRequest($"/projects/{projectId}", Method.Get);
-        return RestClient.ExecuteWithErrorHandling<Project>(request);
-    }
-    
-    
 }
