@@ -121,7 +121,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 - **List added or modified files in X hours** Search files added or modified during specified number of hours.
   Advanced settings:
   - **Path pattern**: Use forward slash '/' to represent directory separator. Use '*' to represent wildcards in file and directory names. Use '**' to represent arbitrary directory depth.
-- **Create or update file** Create file or update existing file in a repository.
+- **Upload file** Create file or update existing file in a repository.
 - **Update file** Update existing file in a repository.
 - **Delete file** Delete file from a repository.
 
