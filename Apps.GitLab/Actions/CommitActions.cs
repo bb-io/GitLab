@@ -263,7 +263,8 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
             uploadedFileInfo.FilePath, 
             uploadedFile.Name, 
             branch, 
-            repository.WebUrl);
+            repository.WebUrl,
+            RestClient.BaseUrl);
 
         var transformedFile = await fileManagementClient.UploadAsync(
             transformation.ToStream(), 

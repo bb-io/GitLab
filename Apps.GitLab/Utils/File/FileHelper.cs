@@ -28,7 +28,8 @@ public static class FileHelper
             downloadedFile.Path, 
             filename, 
             downloadedFile.BranchName, 
-            downloadedFile.RepoWebUrl);
+            downloadedFile.RepoWebUrl,
+            downloadedFile.BaseUrl);
 
         var sourceLoadResult = transformation.Source();
         if (!sourceLoadResult.Success)

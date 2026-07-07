@@ -2,7 +2,9 @@ using Apps.Gitlab.Actions;
 using Apps.Gitlab.Models.Branch.Requests;
 using Apps.Gitlab.Models.Respository.Requests;
 using Apps.GitLab.Constants;
+using Apps.Gitlab.Models.Commit.Requests;
 using Apps.GitLab.Models.Commit.Requests;
+using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Tests.GitLab.Base;
 
@@ -194,5 +196,28 @@ public class CommitActionTests : TestBaseWithContext
             });
 
         Assert.AreEqual("9e41fdbe88e1a2099db6dd31c769267a2bf420f3", result.Id);
+    }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
+    public async Task PushFile_WithValidFile_ReturnsUploadResponse(InvocationContext context)
+    {
+        // Arrange
+        string fileName = "ja-JP.test.html";
+        var actions = new CommitActions(context, FileManagementClient);
+        var repoRequest = new GetRepositoryRequest { RepositoryId = "84026361" };
+        var branchRequest = new GetOptionalBranchRequest { };
+        var pushFileInput = new PushFileRequest
+        {
+            CommitMessage = "test from tests",
+            DestinationFilePath = fileName,
+            File = new FileReference { Name = fileName }
+        };
+
+        // Act
+        var result = await actions.PushFile(repoRequest, branchRequest, pushFileInput);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result);
     }
 }

@@ -15,7 +15,8 @@ public static class TransformationExtensions
         string filePath, 
         string fileName, 
         string branchName, 
-        string repoWebUrl)
+        string repoWebUrl,
+        string baseUrl)
     {
         var (blobUrl, editUrl) = BuildUrls(filePath, branchName, repoWebUrl);
         t.SourceLanguage = fileName.Split('.')[0];
@@ -23,7 +24,7 @@ public static class TransformationExtensions
         t.SourceSystemReference.AdminUrl = editUrl;
         t.SourceSystemReference.ContentName = fileName;
         t.SourceSystemReference.SystemName = "GitLab";
-        t.SourceSystemReference.SystemRef = "https://gitlab.com/";
+        t.SourceSystemReference.SystemRef = baseUrl;
         return t;
     }
 
@@ -32,7 +33,8 @@ public static class TransformationExtensions
         string filePath, 
         string fileName, 
         string branchName, 
-        string repoWebUrl)
+        string repoWebUrl,
+        string baseUrl)
     {
         var (blobUrl, editUrl) = BuildUrls(filePath, branchName, repoWebUrl);
         t.TargetLanguage = fileName.Split('.')[0];
@@ -40,7 +42,7 @@ public static class TransformationExtensions
         t.TargetSystemReference.AdminUrl = editUrl;
         t.TargetSystemReference.ContentName = fileName;
         t.TargetSystemReference.SystemName = "GitLab";
-        t.TargetSystemReference.SystemRef = "https://gitlab.com/";
+        t.TargetSystemReference.SystemRef = baseUrl;
         return t;
     }
 }

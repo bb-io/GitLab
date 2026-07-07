@@ -54,7 +54,12 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
         var fileInfo = await RestClient.GetFileInfo(projectId, getFileRequest.FilePath, branch);
-        var fileToProcess = new DownloadedFile(fileInfo.Content, getFileRequest.FilePath, repository.WebUrl, branch);
+        var fileToProcess = new DownloadedFile(
+            fileInfo.Content,
+            getFileRequest.FilePath,
+            repository.WebUrl,
+            branch,
+            RestClient.BaseUrl);
         var fileData = FileHelper.ProcessDownloadedFile(fileToProcess);
         
         var fileReference = await fileManagementClient.UploadAsync(fileData.FileStream, fileData.MimeType, fileData.FileName);
