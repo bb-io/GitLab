@@ -11,7 +11,6 @@ using Apps.GitLab.Models.Respository.Responses;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.Http;
@@ -21,20 +20,14 @@ using GitLabApiClient.Models.Projects.Responses;
 using GitLabApiClient.Models.Trees.Responses;
 using RestSharp;
 using System.Net.Mime;
+using Apps.GitLab.Utils.File;
 
 namespace Apps.Gitlab.Actions;
 
 [ActionList("Repository")]
-public class RepositoryActions : GitLabActions
+public class RepositoryActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
+    : GitLabActions(invocationContext)
 {
-    private readonly IFileManagementClient _fileManagementClient;
-
-    public RepositoryActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
-        : base(invocationContext)
-    {
-        _fileManagementClient = fileManagementClient;
-    }
-
     [Action("Create new repository", Description = "Create repository with selected settings")]
     public async Task<RepositoryResponse> CreateRepository([ActionParameter] CreateRepositoryInput input)
     {
@@ -50,39 +43,30 @@ public class RepositoryActions : GitLabActions
         return RepositoryResponse.FromProject(project);
     }
 
-    [Action("Get repository file", Description = "Get file from a repository by file path")]
+    [Action("Download file", Description = "Download a file from a repository by file path")]
     public async Task<GetFileResponse> GetFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] GetFileRequest getFileRequest)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
-        var repository = await GetProject(projectId);
+        var repository = await RestClient.GetProject(projectId);
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
-        var request = RestClient.CreateRequest(
-            $"/projects/{projectId}/repository/files/{Uri.EscapeDataString(getFileRequest.FilePath)}",
-            Method.Get);
-        request.AddQueryParameter("ref", branch);
-
-        var fileData = await RestClient.ExecuteWithErrorHandling<RepositoryFileResponse>(request);
-        if (fileData == null)
-            throw new PluginMisconfigurationException($"File does not exist ({getFileRequest.FilePath})");
-
-        var filename = Path.GetFileName(getFileRequest.FilePath);
-        if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
-            mimeType = MediaTypeNames.Application.Octet;
-
-        FileReference file;
-        using (var stream = new MemoryStream(Convert.FromBase64String(fileData.Content)))
-        {
-            file = await _fileManagementClient.UploadAsync(stream, mimeType, filename);
-        }
-
+        var fileInfo = await RestClient.GetFileInfo(projectId, getFileRequest.FilePath, branch);
+        var fileToProcess = new DownloadedFile(
+            fileInfo.Content,
+            getFileRequest.FilePath,
+            repository.WebUrl,
+            branch,
+            RestClient.BaseUrl);
+        var fileData = FileHelper.ProcessDownloadedFile(fileToProcess, InvocationContext.Logger, getFileRequest.LanguageCode, getFileRequest.ContentId);
+        
+        var fileReference = await fileManagementClient.UploadAsync(fileData.FileStream, fileData.MimeType, fileData.FileName);
         return new GetFileResponse
         {
             FilePath = getFileRequest.FilePath,
-            File = file,
+            File = fileReference,
             FileExtension = Path.GetExtension(getFileRequest.FilePath)
         };
     }
@@ -132,7 +116,7 @@ public class RepositoryActions : GitLabActions
             if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
                 mimeType = MediaTypeNames.Application.Octet;
 
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, mimeType, filename);
+            var uploadedFile = await fileManagementClient.UploadAsync(file.FileStream, mimeType, filename);
             resultFiles.Add(new GitLabFile
             {
                 File = uploadedFile,
@@ -146,7 +130,7 @@ public class RepositoryActions : GitLabActions
     [Action("Get repository", Description = "Get repository details")]
     public async Task<RepositoryResponse> GetRepositoryById([ActionParameter] GetRepositoryRequest input)
     {
-        var project = await GetProject(ParseProjectId(input.RepositoryId));
+        var project = await RestClient.GetProject(ParseProjectId(input.RepositoryId));
         return RepositoryResponse.FromProject(project);
     }
 
@@ -248,11 +232,5 @@ public class RepositoryActions : GitLabActions
 
         var branches = await RestClient.ExecuteWithErrorHandling<List<GitLabApiClient.Models.Branches.Responses.Branch>>(request);
         return branches.Any(x => x.Name == branchNameRequest);
-    }
-
-    private Task<Project> GetProject(int projectId)
-    {
-        var request = RestClient.CreateRequest($"/projects/{projectId}", Method.Get);
-        return RestClient.ExecuteWithErrorHandling<Project>(request);
     }
 }

@@ -89,7 +89,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
   - **Enable printing merge request link**: Option to print merge request links.
   - **CI config path**: CI config file path.
   - **Initialize with README**: Option to create an initial README file.
-- **Get repository file** Get file from a repository by file path.
+- **Download file** Download a file from a repository by file path.
   Advanced settings:
   - **Branch name**: Branch to use instead of the default branch.
 - **Get all files in folder** Get files from a repository folder.
@@ -121,7 +121,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 - **List added or modified files in X hours** Search files added or modified during specified number of hours.
   Advanced settings:
   - **Path pattern**: Use forward slash '/' to represent directory separator. Use '*' to represent wildcards in file and directory names. Use '**' to represent arbitrary directory depth.
-- **Create or update file** Create file or update existing file in a repository.
+- **Upload file** Create file or update existing file in a repository.
 - **Update file** Update existing file in a repository.
 - **Delete file** Delete file from a repository.
 
