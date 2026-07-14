@@ -60,7 +60,12 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
             repository.WebUrl,
             branch,
             RestClient.BaseUrl);
-        var fileData = FileHelper.ProcessDownloadedFile(fileToProcess, InvocationContext.Logger, getFileRequest.LanguageCode, getFileRequest.ContentId);
+        var fileData = FileHelper.ProcessDownloadedFile(
+            fileToProcess,
+            InvocationContext.Logger,
+            getFileRequest.LanguageCode,
+            getFileRequest.ContentId,
+            getFileRequest.ContentName);
         
         var fileReference = await fileManagementClient.UploadAsync(fileData.FileStream, fileData.MimeType, fileData.FileName);
         return new GetFileResponse
