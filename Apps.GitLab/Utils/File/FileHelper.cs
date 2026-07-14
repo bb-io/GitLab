@@ -10,7 +10,12 @@ namespace Apps.GitLab.Utils.File;
 
 public static class FileHelper
 {
-    public static ProcessedDownloadedFile ProcessDownloadedFile(DownloadedFile downloadedFile, Logger? logger, string? language, string? contentId)
+    public static ProcessedDownloadedFile ProcessDownloadedFile(
+        DownloadedFile downloadedFile,
+        Logger? logger,
+        string? language,
+        string? contentId,
+        string? contentName)
     {
         var filename = Path.GetFileName(downloadedFile.Path);
         if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
@@ -32,7 +37,7 @@ public static class FileHelper
         fileContent.Language = language;
         fileContent.SystemReference.ContentId = contentId;
         fileContent.SystemReference.AdminUrl = editUrl;
-        fileContent.SystemReference.ContentName = filename;
+        fileContent.SystemReference.ContentName = string.IsNullOrWhiteSpace(contentName) ? filename : contentName;
         fileContent.SystemReference.SystemName = "Gitlab";
         fileContent.SystemReference.SystemRef = "https://gitlab.com/";
         

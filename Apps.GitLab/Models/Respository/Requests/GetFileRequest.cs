@@ -15,4 +15,7 @@ public class GetFileRequest
 
     [Display("Content ID", Description = "The ID of the content, used by Blacklake when diffing.")]
     public string? ContentId { get; set; }
+
+    [Display("Content name")]
+    public string? ContentName { get; set; }
 }
