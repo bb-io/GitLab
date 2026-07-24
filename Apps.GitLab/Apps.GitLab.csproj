@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <Product>GitLab</Product>
     <Description>GitLab is a developer platform that allows developers to create, store, and manage their code. This app focuses on connecting repository events and file actions into the Blackbird ecosystem.</Description>
-    <Version>1.0.19</Version>
+    <Version>1.0.20</Version>
     <AssemblyName>Apps.GitLab</AssemblyName>
   </PropertyGroup>
 
