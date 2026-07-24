@@ -21,7 +21,8 @@ public static class FileHelper
         string? language,
         string? contentId,
         string? contentName,
-        string? outputFileType = null)
+        string? outputFileType = null,
+        string? targetLocale = null)
     {
         outputFileType ??= OutputFileTypes.Original;
         if (outputFileType is not OutputFileTypes.Original
@@ -64,7 +65,7 @@ public static class FileHelper
         if (outputFileType == OutputFileTypes.Original)
             return new(fileContent.ToStream(), mimeType, filename);
 
-        var transformation = fileContent.CreateTransformation();
+        var transformation = fileContent.CreateTransformation(targetLocale);
         if (outputFileType == OutputFileTypes.Xliff1)
         {
             var metadata = new[]

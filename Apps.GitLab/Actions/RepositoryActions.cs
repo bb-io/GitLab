@@ -66,7 +66,8 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
             getFileRequest.LanguageCode,
             getFileRequest.ContentId,
             getFileRequest.ContentName,
-            getFileRequest.OutputFileType);
+            getFileRequest.OutputFileType,
+            getFileRequest.TargetLocale);
         
         var fileReference = await fileManagementClient.UploadAsync(fileData.FileStream, fileData.MimeType, fileData.FileName);
         return new GetFileResponse

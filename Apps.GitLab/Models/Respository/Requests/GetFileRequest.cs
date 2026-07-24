@@ -24,4 +24,7 @@ public class GetFileRequest
     [Display("Output file type", Description = "Output format. Defaults to Original.")]
     [StaticDataSource(typeof(OutputFileTypeDataHandler))]
     public string? OutputFileType { get; set; }
+
+    [Display("Target locale")]
+    public string? TargetLocale { get; set; }
 }

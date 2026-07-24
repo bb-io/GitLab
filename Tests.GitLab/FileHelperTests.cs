@@ -44,7 +44,8 @@ public class FileHelperTests
             "en-US",
             "content-123",
             "Sample",
-            OutputFileTypes.Xliff1);
+            OutputFileTypes.Xliff1,
+            "nl-NL");
 
         Assert.AreEqual("sample.html.xlf", result.FileName);
         Assert.AreEqual("application/x-xliff+xml", result.MimeType);
@@ -53,6 +54,7 @@ public class FileHelperTests
         var root = XDocument.Parse(content).Root!;
         Assert.AreEqual(Xliff1Serializer.XliffNs.NamespaceName, root.Name.NamespaceName);
         Assert.AreEqual("1.2", root.Attribute("version")?.Value);
+        Assert.AreEqual("nl-NL", root.Element(Xliff1Serializer.XliffNs + "file")?.Attribute("target-language")?.Value);
         StringAssert.Contains(content, "source-ucid");
         StringAssert.Contains(content, "content-123");
         StringAssert.Contains(content, "source-system-name");
@@ -68,7 +70,8 @@ public class FileHelperTests
             "en-US",
             "content-123",
             "Sample",
-            OutputFileTypes.Xliff2);
+            OutputFileTypes.Xliff2,
+            "nl-NL");
 
         Assert.AreEqual("sample.html.xlf", result.FileName);
         Assert.AreEqual("application/xliff+xml", result.MimeType);
@@ -77,6 +80,7 @@ public class FileHelperTests
         var root = XDocument.Parse(content).Root!;
         Assert.AreEqual("urn:oasis:names:tc:xliff:document:2.2", root.Name.NamespaceName);
         Assert.AreEqual("2.2", root.Attribute("version")?.Value);
+        Assert.AreEqual("nl-NL", root.Attribute("trgLang")?.Value);
         StringAssert.Contains(content, "source-ucid");
         StringAssert.Contains(content, "content-123");
         StringAssert.Contains(content, "source-system-name");
