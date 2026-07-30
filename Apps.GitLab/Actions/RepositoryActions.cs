@@ -65,14 +65,16 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
             InvocationContext.Logger,
             getFileRequest.LanguageCode,
             getFileRequest.ContentId,
-            getFileRequest.ContentName);
+            getFileRequest.ContentName,
+            getFileRequest.OutputFileType,
+            getFileRequest.TargetLocale);
         
         var fileReference = await fileManagementClient.UploadAsync(fileData.FileStream, fileData.MimeType, fileData.FileName);
         return new GetFileResponse
         {
             FilePath = getFileRequest.FilePath,
             File = fileReference,
-            FileExtension = Path.GetExtension(getFileRequest.FilePath)
+            FileExtension = Path.GetExtension(fileData.FileName)
         };
     }
 
