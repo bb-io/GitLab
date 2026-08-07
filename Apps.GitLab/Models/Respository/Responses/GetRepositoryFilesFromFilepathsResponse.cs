@@ -2,7 +2,9 @@
 
 using Blackbird.Applications.Sdk.Common;
 
-namespace Apps.Gitlab.Models.Respository.Responses;
+using Apps.GitLab.Models.Responses;
+
+namespace Apps.GitLab.Models.Respository.Responses;
 
 public class GetRepositoryFilesFromFilepathsResponse
 {
@@ -11,5 +13,6 @@ public class GetRepositoryFilesFromFilepathsResponse
     [Display("Number of units")]
     public int NumberOfUnits { get; set; }
 
-    public IEnumerable<Apps.GitLab.Models.Responses.MetadataResponse> Metadata { get; set; } = [];
+    [Display("Metadata")]
+    public IEnumerable<MetadataResponse> Metadata { get; set; } = [];
 }

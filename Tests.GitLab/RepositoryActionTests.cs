@@ -102,5 +102,26 @@ public class RepositoryActionTests : TestBaseWithContext
         Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.PersonReference)));
         Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.ToolReference)));
     }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
+    public async Task GetAllFilesInFolder_WithoutSubfolders_RetainsFilesInRequestedFolder(InvocationContext context)
+    {
+        var action = new RepositoryActions(context, FileManagementClient);
+
+        var result = await action.GetAllFilesInFolder(
+            new GetRepositoryRequest { RepositoryId = "83929674" },
+            new GetOptionalBranchRequest(),
+            new FolderContentRequest
+            {
+                Path = "locales/en-US",
+                IncludeSubfolders = false
+            });
+
+        Assert.IsTrue(result.Files.Any());
+        Assert.IsTrue(result.Files.All(file =>
+            Path.GetDirectoryName(file.FilePath)?.Replace('\\', '/') == "locales/en-US"));
+        Assert.IsTrue(result.Metadata.Any());
+        Assert.IsTrue(result.Metadata.All(metadata => metadata.Provenance.Review.Tool == "GitLab"));
+    }
 }
 

@@ -239,6 +239,7 @@ public class CommitActionTests : TestBaseWithContext
         Assert.IsNotNull(result.Metadata.Provenance.Review);
         Assert.AreEqual("Blackbird.io", result.Metadata.Provenance.Review.Tool);
         Assert.AreEqual(context.Flight?.Url, result.Metadata.Provenance.Review.ToolReference);
+        Assert.AreEqual(2, result.NumberOfUnits);
 
         var commit = await actions.GetCommit(repoRequest, new GetCommitRequest { CommitId = result.Commit.Id });
         Assert.AreEqual(
@@ -273,9 +274,9 @@ public class CommitActionTests : TestBaseWithContext
         Assert.IsNotNull(result);
 
         Assert.IsNotNull(result.Metadata);
-        Assert.AreEqual("fr-ca", result.Metadata.Language);
+        Assert.AreEqual("fr-CA", result.Metadata.Language);
         Assert.AreEqual("en-US", result.Metadata.SourceLanguage);
-        Assert.AreEqual("fr-ca", result.Metadata.TargetLanguage);
+        Assert.AreEqual("fr-CA", result.Metadata.TargetLanguage);
         Assert.AreEqual("Gitlab", result.Metadata.SystemReference.SystemName);
         Assert.AreEqual("localizationblackbird/collecting-references-demo:locales/fr-ca/messages-bilingual.po", result.Metadata.SystemReference.ContentId);
         Assert.AreEqual(
@@ -290,6 +291,7 @@ public class CommitActionTests : TestBaseWithContext
         Assert.IsNotNull(result.Metadata.Provenance.Review);
         Assert.AreEqual("Blackbird.io", result.Metadata.Provenance.Review.Tool);
         Assert.AreEqual("https://www.blackbird.io/", result.Metadata.Provenance.Review.ToolReference);
+        Assert.AreEqual(56, result.NumberOfUnits);
 
         var commit = await actions.GetCommit(repoRequest, new GetCommitRequest { CommitId = result.Commit.Id });
         Assert.AreEqual(

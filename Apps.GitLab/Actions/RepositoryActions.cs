@@ -54,17 +54,26 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var repository = await RestClient.GetProject(projectId);
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
-        var fileInfo = await RestClient.GetFileInfo(projectId, getFileRequest.FilePath, branch);
-        var latestCommit = await GetLatestFileCommit(projectId, getFileRequest.FilePath, branch);
+        return await GetFile(projectId, repository, branch, getFileRequest.FilePath);
+    }
 
-        var fileName = Path.GetFileName(getFileRequest.FilePath);
+    private async Task<GetFileResponse> GetFile(
+        int projectId,
+        Project repository,
+        string branch,
+        string filePath)
+    {
+        var fileInfo = await RestClient.GetFileInfo(projectId, filePath, branch);
+        var latestCommit = await GetLatestFileCommit(projectId, filePath, branch);
+
+        var fileName = Path.GetFileName(filePath);
         var mimeType = MimeTypes.GetMimeType(fileName);
         var fileStream = new MemoryStream(Convert.FromBase64String(fileInfo.Content));
         var fileWithMetadata = InteroperableFileHelper.AddMetadata(
             fileStream: fileStream,
             fileName: fileName,
             contentType: mimeType,
-            path: getFileRequest.FilePath,
+            path: filePath,
             repoWebUrl: repository.WebUrl,
             branchName: branch,
             repoPathWithNamespace: repository.PathWithNamespace,
@@ -82,8 +91,8 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         return new GetFileResponse
         {
             File = fileReference,
-            FilePath = getFileRequest.FilePath,
-            FileExtension = Path.GetExtension(getFileRequest.FilePath),
+            FilePath = filePath,
+            FileExtension = Path.GetExtension(filePath),
             NumberOfUnits = fileWithMetadata.NumberOfUnits,
             Metadata = fileWithMetadata.Metadata
         };
@@ -112,27 +121,35 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         }
 
         var includeSubFolders = folderContentRequest.IncludeSubfolders.GetValueOrDefault();
+        var normalizedFolderPath = folderContentRequest.Path?.Trim('/');
+        var selectedFiles = new List<BlackbirdZipEntry>();
         foreach (var file in filesFromZip)
         {
             file.Path = file.Path.Substring(file.Path.IndexOf('/') + 1);
             if (file.FileStream.Length == 0)
                 continue;
 
-            if (!string.IsNullOrEmpty(folderContentRequest.Path))
+            if (!string.IsNullOrEmpty(normalizedFolderPath))
             {
-                var normalizedFolderPath = folderContentRequest.Path.Trim('/');
                 var normalizedDirectory = Path.GetDirectoryName(file.Path)?.TrimStart('\\').Replace('\\', '/');
 
-                var shouldBeSkipped = (includeSubFolders && !file.Path.StartsWith(folderContentRequest.Path))
+                var shouldBeSkipped = (includeSubFolders && !file.Path.StartsWith(normalizedFolderPath))
                     || (!includeSubFolders && normalizedDirectory != normalizedFolderPath);
 
                 if (shouldBeSkipped)
                     continue;
             }
             
-            if (!includeSubFolders && !string.IsNullOrEmpty(Path.GetDirectoryName(file.Path)))
+            if (string.IsNullOrEmpty(normalizedFolderPath) &&
+                !includeSubFolders &&
+                !string.IsNullOrEmpty(Path.GetDirectoryName(file.Path)))
                 continue;
 
+            selectedFiles.Add(file);
+        }
+
+        foreach (var file in selectedFiles)
+        {
             using var fileStream = new MemoryStream();
             await file.FileStream.CopyToAsync(fileStream);
             var latestCommit = await GetLatestFileCommit(projectId, file.Path, branch);
@@ -246,15 +263,15 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] GetRepositoryFilesFromFilepathsRequest input)
     {
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var repository = await RestClient.GetProject(projectId);
+        var branch = branchRequest.Name ?? repository.DefaultBranch;
         var files = new List<GitLabFile>();
         var metadata = new List<Apps.GitLab.Models.Responses.MetadataResponse>();
         var numberOfUnits = 0;
         foreach (var filePath in input.FilePaths)
         {
-            var fileData = await GetFile(
-                repositoryRequest,
-                branchRequest,
-                new GetFileRequest { FilePath = filePath });
+            var fileData = await GetFile(projectId, repository, branch, filePath);
 
             files.Add(new GitLabFile
             {

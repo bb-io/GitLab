@@ -28,12 +28,13 @@ public static class InteroperableFileHelper
     public static (string blobUrl, string editUrl) BuildUrls(string filePath, string branchName, string repoWebUrl)
     {
         var encodedPath = string.Join("/", filePath.Split('/').Select(Uri.EscapeDataString));
-        var blobUrl = $"{repoWebUrl}/-/blob/{branchName}/{encodedPath}";
-        var editUrl = $"{repoWebUrl}/-/edit/{branchName}/{encodedPath}";
+        var encodedBranchName = Uri.EscapeDataString(branchName);
+        var blobUrl = $"{repoWebUrl}/-/blob/{encodedBranchName}/{encodedPath}";
+        var editUrl = $"{repoWebUrl}/-/edit/{encodedBranchName}/{encodedPath}";
         return (blobUrl, editUrl);
     }
 
-    public static (byte[] Content, BlackbirdMetadataType? MetadataType) StripMetadata(
+    public static async Task<(byte[] Content, BlackbirdMetadataType? MetadataType)> StripMetadata(
         Stream fileStream,
         string fileName,
         string contentType,
@@ -45,7 +46,7 @@ public static class InteroperableFileHelper
         if (!contentResult.Success)
         {
             logger?.LogInformation($"Not a Blackbird interoperable file: {transformationResult.Error}", []);
-            return (ReadAllBytes(fileStream), null);
+            return (await ReadAllBytes(fileStream), null);
         }
 
         var contentWithoutMetadata = System.Text.Encoding.UTF8.GetBytes(
@@ -149,13 +150,13 @@ public static class InteroperableFileHelper
             numberOfUnits);
     }
 
-    private static byte[] ReadAllBytes(Stream stream)
+    private static async Task<byte[]> ReadAllBytes(Stream stream)
     {
         if (stream.CanSeek)
             stream.Position = 0;
 
         using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
+        await stream.CopyToAsync(buffer);
 
         return buffer.ToArray();
     }

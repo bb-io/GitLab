@@ -244,7 +244,7 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
         await downloadedFileStream.CopyToAsync(fileStream);
         fileStream.Position = 0;
 
-        var processedFile = InteroperableFileHelper.StripMetadata(
+        var processedFile = await InteroperableFileHelper.StripMetadata(
             fileStream: fileStream,
             fileName: input.File.Name,
             contentType: input.File.ContentType,
