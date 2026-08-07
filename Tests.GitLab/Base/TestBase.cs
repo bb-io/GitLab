@@ -47,7 +47,8 @@ public class TestBase
         {
             InvocationContexts.Add(new InvocationContext
             {
-                AuthenticationCredentialsProviders = credentialGroup
+                AuthenticationCredentialsProviders = credentialGroup,
+                Flight = new FlightInfo { Url = "https://app.blackbird.io/flights/test-flight" }
             });
         }
     }

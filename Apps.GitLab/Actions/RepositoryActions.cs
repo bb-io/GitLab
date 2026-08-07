@@ -19,8 +19,9 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using GitLabApiClient.Models.Projects.Responses;
 using GitLabApiClient.Models.Trees.Responses;
 using RestSharp;
-using System.Net.Mime;
-using Apps.GitLab.Utils.File;
+using Apps.GitLab.Utils;
+using GitLabApiClient.Models.Commits.Responses;
+using Blackbird.Filters.Shared;
 
 namespace Apps.Gitlab.Actions;
 
@@ -53,28 +54,47 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var repository = await RestClient.GetProject(projectId);
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
-        var fileInfo = await RestClient.GetFileInfo(projectId, getFileRequest.FilePath, branch);
-        var fileToProcess = new DownloadedFile(
-            fileInfo.Content,
-            getFileRequest.FilePath,
-            repository.WebUrl,
-            branch,
-            RestClient.BaseUrl);
-        var fileData = FileHelper.ProcessDownloadedFile(
-            fileToProcess,
-            InvocationContext.Logger,
-            getFileRequest.LanguageCode,
-            getFileRequest.ContentId,
-            getFileRequest.ContentName,
-            getFileRequest.OutputFileType,
-            getFileRequest.TargetLocale);
+        return await GetFile(projectId, repository, branch, getFileRequest.FilePath);
+    }
+
+    private async Task<GetFileResponse> GetFile(
+        int projectId,
+        Project repository,
+        string branch,
+        string filePath)
+    {
+        var fileInfo = await RestClient.GetFileInfo(projectId, filePath, branch);
+        var latestCommit = await GetLatestFileCommit(projectId, filePath, branch);
+
+        var fileName = Path.GetFileName(filePath);
+        var mimeType = MimeTypes.GetMimeType(fileName);
+        var fileStream = new MemoryStream(Convert.FromBase64String(fileInfo.Content));
+        var fileWithMetadata = InteroperableFileHelper.AddMetadata(
+            fileStream: fileStream,
+            fileName: fileName,
+            contentType: mimeType,
+            path: filePath,
+            repoWebUrl: repository.WebUrl,
+            branchName: branch,
+            repoPathWithNamespace: repository.PathWithNamespace,
+            baseUrl: RestClient.BaseUrl,
+            dateChanged: new DateTimeOffset(latestCommit.CommittedDate),
+            reviewProvenance: CreateReviewProvenance(latestCommit),
+            metadataType: BlackbirdMetadataType.Source,
+            logger: InvocationContext.Logger);
         
-        var fileReference = await fileManagementClient.UploadAsync(fileData.FileStream, fileData.MimeType, fileData.FileName);
+        var fileReference = await fileManagementClient.UploadAsync(
+            fileWithMetadata.FileStream,
+            fileWithMetadata.MimeType,
+            fileWithMetadata.FileName);
+
         return new GetFileResponse
         {
-            FilePath = getFileRequest.FilePath,
             File = fileReference,
-            FileExtension = Path.GetExtension(fileData.FileName)
+            FilePath = filePath,
+            FileExtension = Path.GetExtension(filePath),
+            NumberOfUnits = fileWithMetadata.NumberOfUnits,
+            Metadata = fileWithMetadata.Metadata
         };
     }
 
@@ -85,8 +105,12 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         [ActionParameter] FolderContentRequest folderContentRequest)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var repository = await RestClient.GetProject(projectId);
+        var branch = branchRequest.Name ?? repository.DefaultBranch;
         var resultFiles = new List<GitLabFile>();
-        var content = await RestClient.GetArchive(projectId, branchRequest.Name);
+        var metadata = new List<Apps.GitLab.Models.Responses.MetadataResponse>();
+        var numberOfUnits = 0;
+        var content = await RestClient.GetArchive(projectId, branch);
         if (content.Length == 0)
             throw new PluginMisconfigurationException("Repository is empty!");
 
@@ -97,41 +121,73 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         }
 
         var includeSubFolders = folderContentRequest.IncludeSubfolders.GetValueOrDefault();
+        var normalizedFolderPath = folderContentRequest.Path?.Trim('/');
+        var selectedFiles = new List<BlackbirdZipEntry>();
         foreach (var file in filesFromZip)
         {
             file.Path = file.Path.Substring(file.Path.IndexOf('/') + 1);
             if (file.FileStream.Length == 0)
                 continue;
 
-            if (!string.IsNullOrEmpty(folderContentRequest.Path))
+            if (!string.IsNullOrEmpty(normalizedFolderPath))
             {
-                var normalizedFolderPath = folderContentRequest.Path.Trim('/');
                 var normalizedDirectory = Path.GetDirectoryName(file.Path)?.TrimStart('\\').Replace('\\', '/');
 
-                if ((includeSubFolders && !file.Path.StartsWith(folderContentRequest.Path)) ||
-                    (!includeSubFolders && normalizedDirectory != normalizedFolderPath))
-                {
+                var shouldBeSkipped = (includeSubFolders && !file.Path.StartsWith(normalizedFolderPath))
+                    || (!includeSubFolders && normalizedDirectory != normalizedFolderPath);
+
+                if (shouldBeSkipped)
                     continue;
-                }
             }
-            else if (!includeSubFolders && !string.IsNullOrEmpty(Path.GetDirectoryName(file.Path)))
-            {
+            
+            if (string.IsNullOrEmpty(normalizedFolderPath) &&
+                !includeSubFolders &&
+                !string.IsNullOrEmpty(Path.GetDirectoryName(file.Path)))
                 continue;
-            }
 
-            var filename = Path.GetFileName(file.Path);
-            if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
-                mimeType = MediaTypeNames.Application.Octet;
-
-            var uploadedFile = await fileManagementClient.UploadAsync(file.FileStream, mimeType, filename);
-            resultFiles.Add(new GitLabFile
-            {
-                File = uploadedFile,
-                FilePath = file.Path
-            });
+            selectedFiles.Add(file);
         }
 
-        return new GetRepositoryFilesFromFilepathsResponse { Files = resultFiles };
+        foreach (var file in selectedFiles)
+        {
+            using var fileStream = new MemoryStream();
+            await file.FileStream.CopyToAsync(fileStream);
+            var latestCommit = await GetLatestFileCommit(projectId, file.Path, branch);
+
+            var fileName = Path.GetFileName(file.Path);
+            var mimeType = MimeTypes.GetMimeType(fileName);
+            fileStream.Position = 0;
+            var fileWithMetadata = InteroperableFileHelper.AddMetadata(
+                fileStream: fileStream,
+                fileName: fileName,
+                contentType: mimeType,
+                path: file.Path,
+                repoWebUrl: repository.WebUrl,
+                branchName: branch,
+                repoPathWithNamespace: repository.PathWithNamespace,
+                baseUrl: RestClient.BaseUrl,
+                dateChanged: new DateTimeOffset(latestCommit.CommittedDate),
+                reviewProvenance: CreateReviewProvenance(latestCommit),
+                metadataType: BlackbirdMetadataType.Source,
+                logger: InvocationContext.Logger);
+
+            var uploadedFile = await fileManagementClient.UploadAsync(
+                fileWithMetadata.FileStream,
+                fileWithMetadata.MimeType,
+                fileWithMetadata.FileName);
+
+            resultFiles.Add(new GitLabFile { File = uploadedFile, FilePath = file.Path });
+            numberOfUnits += fileWithMetadata.NumberOfUnits;
+            if (fileWithMetadata.Metadata is not null)
+                metadata.Add(fileWithMetadata.Metadata);
+        }
+
+        return new GetRepositoryFilesFromFilepathsResponse
+        {
+            Files = resultFiles,
+            NumberOfUnits = numberOfUnits,
+            Metadata = metadata
+        };
     }
 
     [Action("Get repository", Description = "Get repository details")]
@@ -207,26 +263,55 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         [ActionParameter] GetOptionalBranchRequest branchRequest,
         [ActionParameter] GetRepositoryFilesFromFilepathsRequest input)
     {
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var repository = await RestClient.GetProject(projectId);
+        var branch = branchRequest.Name ?? repository.DefaultBranch;
         var files = new List<GitLabFile>();
+        var metadata = new List<Apps.GitLab.Models.Responses.MetadataResponse>();
+        var numberOfUnits = 0;
         foreach (var filePath in input.FilePaths)
         {
-            var fileData = await GetFile(
-                repositoryRequest,
-                branchRequest,
-                new GetFileRequest { FilePath = filePath });
+            var fileData = await GetFile(projectId, repository, branch, filePath);
 
             files.Add(new GitLabFile
             {
                 FilePath = fileData.FilePath,
                 File = fileData.File
             });
+            numberOfUnits += fileData.NumberOfUnits;
+
+            if (fileData.Metadata is not null)
+                metadata.Add(fileData.Metadata);
         }
 
         return new()
         {
-            Files = files
+            Files = files,
+            NumberOfUnits = numberOfUnits,
+            Metadata = metadata
         };
     }
+
+    private async Task<Commit> GetLatestFileCommit(int projectId, string filePath, string branch)
+    {
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
+        request.AddQueryParameter("ref_name", branch);
+        request.AddQueryParameter("path", filePath);
+        request.AddQueryParameter("per_page", "1");
+
+        var commits = await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
+        return commits.FirstOrDefault()
+            ?? throw new PluginApplicationException($"No commit was found for file '{filePath}' on branch '{branch}'.");
+    }
+
+    private static ProvenanceRecord CreateReviewProvenance(Commit commit)
+        => new()
+        {
+            Person = commit.AuthorName,
+            PersonReference = commit.AuthorEmail,
+            Tool = "GitLab",
+            ToolReference = commit.WebUrl
+        };
 
     [Action("Check if branch exists", Description = "Check whether branch exists in a repository")]
     public async Task<bool> BranchExists(

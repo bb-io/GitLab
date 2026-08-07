@@ -1,0 +1,1265 @@
+<xliff srcLang="en-US" trgLang="fr-CA" version="2.2" xmlns:mda="urn:oasis:names:tc:xliff:metadata:2.0" xmlns:its="http://www.w3.org/2005/11/its" xmlns="urn:oasis:names:tc:xliff:document:2.2">
+  <file id="f1">
+    <skeleton>msgid ""
+msgstr ""
+"Project-Id-Version: collecting-references-demo 3.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en-US\n"
+"Blackbird-Changed-Date: 2024-01-15T09:00:00.0000000+00:00\n"
+"Blackbird-System-Ucid: localizationblackbird/collecting-references-demo:locales/en-US/messages.po\n"
+"Blackbird-System-Content-Name: localizationblackbird/collecting-references-demo:locales/en-US/messages.po\n"
+"Blackbird-System-Admin-Url: https://gitlab.com/localizationblackbird/collecting-references-demo/-/edit/main/locales/en-US/messages.po\n"
+"Blackbird-System-System-Name: Gitlab\n"
+"Blackbird-System-System-Ref: https://gitlab.com\n"
+
+#. PRD-101 login
+msgctxt "prd-101.login"
+msgid "Sign in to your workspace"
+msgstr "Sign in to your workspace"
+
+#. PRD-101 login
+msgctxt "prd-101.login"
+msgid "Keep me signed in on this device"
+msgstr "Keep me signed in on this device"
+
+#. PRD-101 login
+msgctxt "prd-101.login"
+msgid "We could not match those credentials"
+msgstr "We could not match those credentials"
+
+#. PRD-102 signup
+msgctxt "prd-102.signup"
+msgid "Create your team workspace"
+msgstr "Create your team workspace"
+
+#. PRD-102 signup
+msgctxt "prd-102.signup"
+msgid "Accept your invitation to join the team"
+msgstr "Accept your invitation to join the team"
+
+#. PRD-103 profile
+msgctxt "prd-103.profile"
+msgid "Profile details"
+msgstr "Profile details"
+
+#. PRD-103 profile
+msgctxt "prd-103.profile"
+msgid "Upload a square profile image"
+msgstr "Upload a square profile image"
+
+#. PRD-103 profile
+msgctxt "prd-103.profile"
+msgid "Choose where teammates can contact you"
+msgstr "Choose where teammates can contact you"
+
+#. PRD-103 profile
+msgctxt "prd-103.profile"
+msgid "Profile changes saved"
+msgstr "Profile changes saved"
+
+#. PRD-104 notifications
+msgctxt "prd-104.notifications"
+msgid "Choose how you receive updates"
+msgstr "Choose how you receive updates"
+
+#. PRD-105 billing
+msgctxt "prd-105.billing"
+msgid "Current plan and billing cycle"
+msgstr "Current plan and billing cycle"
+
+#. PRD-105 billing
+msgctxt "prd-105.billing"
+msgid "Download previous invoices"
+msgstr "Download previous invoices"
+
+#. PRD-105 billing
+msgctxt "prd-105.billing"
+msgid "Update payment method"
+msgstr "Update payment method"
+
+#. PRD-105 billing
+msgctxt "prd-105.billing"
+msgid "Add tax details for invoices"
+msgstr "Add tax details for invoices"
+
+#. PRD-105 billing
+msgctxt "prd-105.billing"
+msgid "Payment needs attention"
+msgstr "Payment needs attention"
+
+#. PRD-106 search
+msgctxt "prd-106.search"
+msgid "Search projects, people, and files"
+msgstr "Search projects, people, and files"
+
+#. PRD-106 search
+msgctxt "prd-106.search"
+msgid "No matching results found"
+msgstr "No matching results found"
+
+#. PRD-107 dashboard
+msgctxt "prd-107.dashboard"
+msgid "Today in your workspace"
+msgstr "Today in your workspace"
+
+#. PRD-107 dashboard
+msgctxt "prd-107.dashboard"
+msgid "Open tasks needing review"
+msgstr "Open tasks needing review"
+
+#. PRD-107 dashboard
+msgctxt "prd-107.dashboard"
+msgid "Next milestone due soon"
+msgstr "Next milestone due soon"
+
+#. PRD-108 reports
+msgctxt "prd-108.reports"
+msgid "Choose a report to review"
+msgstr "Choose a report to review"
+
+#. PRD-108 reports
+msgctxt "prd-108.reports"
+msgid "Send this report every Monday"
+msgstr "Send this report every Monday"
+
+#. PRD-109 permissions
+msgctxt "prd-109.permissions"
+msgid "Roles define what teammates can access"
+msgstr "Roles define what teammates can access"
+
+#. PRD-109 permissions
+msgctxt "prd-109.permissions"
+msgid "Editors can update shared project content"
+msgstr "Editors can update shared project content"
+
+#. PRD-109 permissions
+msgctxt "prd-109.permissions"
+msgid "Admins can manage billing and access"
+msgstr "Admins can manage billing and access"
+
+#. PRD-109 permissions
+msgctxt "prd-109.permissions"
+msgid "This change may remove user access"
+msgstr "This change may remove user access"
+
+#. PRD-110 export
+msgctxt "prd-110.export"
+msgid "Export workspace data"
+msgstr "Export workspace data"
+
+#. PRD-111 onboarding
+msgctxt "prd-111.onboarding"
+msgid "Complete your setup checklist"
+msgstr "Complete your setup checklist"
+
+#. PRD-111 onboarding
+msgctxt "prd-111.onboarding"
+msgid "Name your workspace"
+msgstr "Name your workspace"
+
+#. PRD-111 onboarding
+msgctxt "prd-111.onboarding"
+msgid "Invite teammates to collaborate"
+msgstr "Invite teammates to collaborate"
+
+#. PRD-111 onboarding
+msgctxt "prd-111.onboarding"
+msgid "Explore a sample project"
+msgstr "Explore a sample project"
+
+#. PRD-111 onboarding
+msgctxt "prd-111.onboarding"
+msgid "Setup complete"
+msgstr "Setup complete"
+
+#. PRD-112 password-reset
+msgctxt "prd-112.password-reset"
+msgid "Send password reset link"
+msgstr "Send password reset link"
+
+#. PRD-112 password-reset
+msgctxt "prd-112.password-reset"
+msgid "Check your email for a reset link"
+msgstr "Check your email for a reset link"
+
+#. PRD-112 password-reset
+msgctxt "prd-112.password-reset"
+msgid "Password updated"
+msgstr "Password updated"
+
+#. PRD-113 audit-log
+msgctxt "prd-113.audit-log"
+msgid "Review workspace audit events"
+msgstr "Review workspace audit events"
+
+#. PRD-113 audit-log
+msgctxt "prd-113.audit-log"
+msgid "Filter events by user or action"
+msgstr "Filter events by user or action"
+
+#. PRD-114 teams
+msgctxt "prd-114.teams"
+msgid "Teams in this workspace"
+msgstr "Teams in this workspace"
+
+#. PRD-114 teams
+msgctxt "prd-114.teams"
+msgid "Create a team for shared work"
+msgstr "Create a team for shared work"
+
+#. PRD-114 teams
+msgctxt "prd-114.teams"
+msgid "Manage team members"
+msgstr "Manage team members"
+
+#. PRD-114 teams
+msgctxt "prd-114.teams"
+msgid "Archive inactive team"
+msgstr "Archive inactive team"
+
+#. PRD-115 preferences
+msgctxt "prd-115.preferences"
+msgid "Personal preferences"
+msgstr "Personal preferences"
+
+#. PRD-116 subscription
+msgctxt "prd-116.subscription"
+msgid "Subscription summary"
+msgstr "Subscription summary"
+
+#. PRD-116 subscription
+msgctxt "prd-116.subscription"
+msgid "Usage included in your plan"
+msgstr "Usage included in your plan"
+
+#. PRD-116 subscription
+msgctxt "prd-116.subscription"
+msgid "Upgrade to unlock more capacity"
+msgstr "Upgrade to unlock more capacity"
+
+#. PRD-116 subscription
+msgctxt "prd-116.subscription"
+msgid "Your plan renews soon"
+msgstr "Your plan renews soon"
+
+#. PRD-116 subscription
+msgctxt "prd-116.subscription"
+msgid "Cancel subscription at period end"
+msgstr "Cancel subscription at period end"
+
+#. PRD-117 activity-feed
+msgctxt "prd-117.activity-feed"
+msgid "Recent workspace activity"
+msgstr "Recent workspace activity"
+
+#. PRD-117 activity-feed
+msgctxt "prd-117.activity-feed"
+msgid "Earlier this week"
+msgstr "Earlier this week"
+
+#. PRD-117 activity-feed
+msgctxt "prd-117.activity-feed"
+msgid "No activity yet"
+msgstr "No activity yet"
+
+#. PRD-118 invitations
+msgctxt "prd-118.invitations"
+msgid "Invite someone by email"
+msgstr "Invite someone by email"
+
+#. PRD-118 invitations
+msgctxt "prd-118.invitations"
+msgid "Invitation pending"
+msgstr "Invitation pending"
+
+#. PRD-119 api-keys
+msgctxt "prd-119.api-keys"
+msgid "Manage API keys"
+msgstr "Manage API keys"
+
+#. PRD-119 api-keys
+msgctxt "prd-119.api-keys"
+msgid "Copy this key now"
+msgstr "Copy this key now"
+
+#. PRD-119 api-keys
+msgctxt "prd-119.api-keys"
+msgid "Rotate API key"
+msgstr "Rotate API key"
+
+#. PRD-120 help-center
+msgctxt "prd-120.help-center"
+msgid "Search the help center"
+msgstr "Search the help center"
+</skeleton>
+    <mda:metadata>
+      <mda:metaGroup category="blackbird">
+        <mda:meta type="original-name">messages.po</mda:meta>
+        <mda:meta type="original-media-type">text/x-gettext-translation</mda:meta>
+        <mda:meta type="changed-date">2024-01-15T09:00:00.0000000+00:00</mda:meta>
+        <mda:meta type="source-ucid">localizationblackbird/collecting-references-demo:locales/en-US/messages.po</mda:meta>
+        <mda:meta type="source-content-name">localizationblackbird/collecting-references-demo:locales/en-US/messages.po</mda:meta>
+        <mda:meta type="source-admin-url">https://gitlab.com/localizationblackbird/collecting-references-demo/-/edit/main/locales/en-US/messages.po</mda:meta>
+        <mda:meta type="source-system-name">Gitlab</mda:meta>
+        <mda:meta type="source-system-ref">https://gitlab.com</mda:meta>
+      </mda:metaGroup>
+      <mda:meta type="Project-Id-Version">collecting-references-demo 3.0</mda:meta>
+      <mda:meta type="Content-Type">text/plain; charset=UTF-8</mda:meta>
+      <mda:meta type="Content-Transfer-Encoding">8bit</mda:meta>
+      <mda:meta type="Language">en-US</mda:meta>
+    </mda:metadata>
+    <unit id="u1" name="Sign in to your workspace" its:locQualityRatingScore="0.886430025100708" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Sign in to your workspace</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Sign in to your workspace</source>
+        <target>Connectez-vous à votre espace de travail</target>
+      </segment>
+    </unit>
+    <unit id="u2" name="Keep me signed in on this device" its:locQualityRatingScore="0.6442700028419495" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Keep me signed in on this device</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Keep me signed in on this device</source>
+        <target>Rester connecté sur cet appareil</target>
+      </segment>
+    </unit>
+    <unit id="u3" name="We could not match those credentials" its:locQualityRatingScore="0.8699399828910828" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">We could not match those credentials</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>We could not match those credentials</source>
+        <target>Nous n'avons pas pu faire correspondre ces identifiants.</target>
+      </segment>
+    </unit>
+    <unit id="u4" name="Create your team workspace" its:locQualityRatingScore="0.9222099781036377" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Create your team workspace</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Create your team workspace</source>
+        <target>Créez votre espace de travail d’équipe</target>
+      </segment>
+    </unit>
+    <unit id="u5" name="Accept your invitation to join the team" its:locQualityRatingScore="0.941510021686554" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Accept your invitation to join the team</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Accept your invitation to join the team</source>
+        <target>Accepter votre invitation à rejoindre l’équipe</target>
+      </segment>
+    </unit>
+    <unit id="u6" name="Profile details" its:locQualityRatingScore="0.8985300064086914" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Profile details</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Profile details</source>
+        <target>Détails du profil</target>
+      </segment>
+    </unit>
+    <unit id="u7" name="Upload a square profile image" its:locQualityRatingScore="0.7563199996948242" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Upload a square profile image</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Upload a square profile image</source>
+        <target>Téléversez une image de profil carrée</target>
+      </segment>
+    </unit>
+    <unit id="u8" name="Choose where teammates can contact you" its:locQualityRatingScore="0.8526300191879272" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Choose where teammates can contact you</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Choose where teammates can contact you</source>
+        <target>Choisissez où vos coéquipiers peuvent vous contacter</target>
+      </segment>
+    </unit>
+    <unit id="u9" name="Profile changes saved" its:locQualityRatingScore="0.9381899833679199" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Profile changes saved</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Profile changes saved</source>
+        <target>Modifications du profil enregistrées</target>
+      </segment>
+    </unit>
+    <unit id="u10" name="Choose how you receive updates" its:locQualityRatingScore="0.8461800217628479" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Choose how you receive updates</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Choose how you receive updates</source>
+        <target>Choisissez comment vous recevez les mises à jour</target>
+      </segment>
+    </unit>
+    <unit id="u11" name="Current plan and billing cycle" its:locQualityRatingScore="0.8057399988174438" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Current plan and billing cycle</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Current plan and billing cycle</source>
+        <target>Forfait actuel et cycle de facturation</target>
+      </segment>
+    </unit>
+    <unit id="u12" name="Download previous invoices" its:locQualityRatingScore="0.8960099816322327" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Download previous invoices</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Download previous invoices</source>
+        <target>Télécharger les factures précédentes</target>
+      </segment>
+    </unit>
+    <unit id="u13" name="Update payment method" its:locQualityRatingScore="0.827019989490509" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Update payment method</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Update payment method</source>
+        <target>Mettre à jour le mode de paiement</target>
+      </segment>
+    </unit>
+    <unit id="u14" name="Add tax details for invoices" its:locQualityRatingScore="0.818589985370636" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Add tax details for invoices</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Add tax details for invoices</source>
+        <target>Ajouter les détails de la taxe pour les factures</target>
+      </segment>
+    </unit>
+    <unit id="u15" name="Payment needs attention" its:locQualityRatingScore="0.806879997253418" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Payment needs attention</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Payment needs attention</source>
+        <target>Le paiement nécessite une attention particulière.</target>
+      </segment>
+    </unit>
+    <unit id="u16" name="Search projects, people, and files" its:locQualityRatingScore="0.9368500113487244" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Search projects, people, and files</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Search projects, people, and files</source>
+        <target>Rechercher des projets, des personnes et des fichiers</target>
+      </segment>
+    </unit>
+    <unit id="u17" name="No matching results found" its:locQualityRatingScore="0.9548400044441223" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">No matching results found</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="final">
+        <source>No matching results found</source>
+        <target>Aucun résultat correspondant trouvé</target>
+      </segment>
+    </unit>
+    <unit id="u18" name="Today in your workspace" its:locQualityRatingScore="0.8773999810218811" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Today in your workspace</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Today in your workspace</source>
+        <target>Aujourd'hui dans votre espace de travail</target>
+      </segment>
+    </unit>
+    <unit id="u19" name="Open tasks needing review" its:locQualityRatingScore="0.6894999742507935" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Open tasks needing review</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Open tasks needing review</source>
+        <target>Tâches ouvertes nécessitant une révision</target>
+      </segment>
+    </unit>
+    <unit id="u20" name="Next milestone due soon" its:locQualityRatingScore="0.7406700253486633" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Next milestone due soon</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Next milestone due soon</source>
+        <target>La prochaine étape importante est prévue bientôt.</target>
+      </segment>
+    </unit>
+    <unit id="u21" name="Choose a report to review" its:locQualityRatingScore="0.8790900111198425" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Choose a report to review</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Choose a report to review</source>
+        <target>Choisissez un rapport à examiner</target>
+      </segment>
+    </unit>
+    <unit id="u22" name="Send this report every Monday" its:locQualityRatingScore="0.8653500080108643" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Send this report every Monday</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Send this report every Monday</source>
+        <target>Envoyez ce rapport chaque lundi.</target>
+      </segment>
+    </unit>
+    <unit id="u23" name="Roles define what teammates can access" its:locQualityRatingScore="0.7884500026702881" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Roles define what teammates can access</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Roles define what teammates can access</source>
+        <target>Les rôles déterminent à quoi les membres de l’équipe peuvent accéder.</target>
+      </segment>
+    </unit>
+    <unit id="u24" name="Editors can update shared project content" its:locQualityRatingScore="0.8517699837684631" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Editors can update shared project content</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Editors can update shared project content</source>
+        <target>Les éditeurs peuvent mettre à jour le contenu du projet partagé.</target>
+      </segment>
+    </unit>
+    <unit id="u25" name="Admins can manage billing and access" its:locQualityRatingScore="0.9417300224304199" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Admins can manage billing and access</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Admins can manage billing and access</source>
+        <target>Les administrateurs peuvent gérer la facturation et l'accès.</target>
+      </segment>
+    </unit>
+    <unit id="u26" name="This change may remove user access" its:locQualityRatingScore="0.9141600131988525" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">This change may remove user access</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>This change may remove user access</source>
+        <target>Cette modification pourrait supprimer l'accès des utilisateurs.</target>
+      </segment>
+    </unit>
+    <unit id="u27" name="Export workspace data" its:locQualityRatingScore="0.8626599907875061" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Export workspace data</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Export workspace data</source>
+        <target>Exporter les données de l’espace de travail</target>
+      </segment>
+    </unit>
+    <unit id="u28" name="Complete your setup checklist" its:locQualityRatingScore="0.7193700075149536" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Complete your setup checklist</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Complete your setup checklist</source>
+        <target>Terminez votre liste de vérification de configuration</target>
+      </segment>
+    </unit>
+    <unit id="u29" name="Name your workspace" its:locQualityRatingScore="0.7268099784851074" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Name your workspace</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Name your workspace</source>
+        <target>Nommez votre espace de travail</target>
+      </segment>
+    </unit>
+    <unit id="u30" name="Invite teammates to collaborate" its:locQualityRatingScore="0.886139988899231" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Invite teammates to collaborate</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Invite teammates to collaborate</source>
+        <target>Invitez des coéquipiers à collaborer</target>
+      </segment>
+    </unit>
+    <unit id="u31" name="Explore a sample project" its:locQualityRatingScore="0.8940799832344055" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Explore a sample project</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Explore a sample project</source>
+        <target>Explorez un projet d’exemple</target>
+      </segment>
+    </unit>
+    <unit id="u32" name="Setup complete" its:locQualityRatingScore="0.8479800224304199" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Setup complete</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Setup complete</source>
+        <target>Configuration terminée</target>
+      </segment>
+    </unit>
+    <unit id="u33" name="Send password reset link" its:locQualityRatingScore="0.8518499732017517" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Send password reset link</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Send password reset link</source>
+        <target>Envoyer le lien de réinitialisation du mot de passe</target>
+      </segment>
+    </unit>
+    <unit id="u34" name="Check your email for a reset link" its:locQualityRatingScore="0.909060001373291" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Check your email for a reset link</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Check your email for a reset link</source>
+        <target>Vérifiez votre courriel pour un lien de réinitialisation.</target>
+      </segment>
+    </unit>
+    <unit id="u35" name="Password updated" its:locQualityRatingScore="0.9015499949455261" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Password updated</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Password updated</source>
+        <target>Mot de passe mis à jour</target>
+      </segment>
+    </unit>
+    <unit id="u36" name="Review workspace audit events" its:locQualityRatingScore="0.8557299971580505" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Review workspace audit events</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Review workspace audit events</source>
+        <target>Examiner les événements d’audit de l’espace de travail</target>
+      </segment>
+    </unit>
+    <unit id="u37" name="Filter events by user or action" its:locQualityRatingScore="0.9318199753761292" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Filter events by user or action</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Filter events by user or action</source>
+        <target>Filtrer les événements par utilisateur ou par action</target>
+      </segment>
+    </unit>
+    <unit id="u38" name="Teams in this workspace" its:locQualityRatingScore="0.7261499762535095" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Teams in this workspace</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Teams in this workspace</source>
+        <target>Équipes dans cet espace de travail</target>
+      </segment>
+    </unit>
+    <unit id="u39" name="Create a team for shared work" its:locQualityRatingScore="0.8502900004386902" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Create a team for shared work</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Create a team for shared work</source>
+        <target>Créer une équipe pour le travail collaboratif</target>
+      </segment>
+    </unit>
+    <unit id="u40" name="Manage team members" its:locQualityRatingScore="0.8927299976348877" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Manage team members</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Manage team members</source>
+        <target>Gérer les membres de l’équipe</target>
+      </segment>
+    </unit>
+    <unit id="u41" name="Archive inactive team" its:locQualityRatingScore="0.7554399967193604" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Archive inactive team</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Archive inactive team</source>
+        <target>Archiver l’équipe inactive</target>
+      </segment>
+    </unit>
+    <unit id="u42" name="Personal preferences" its:locQualityRatingScore="0.9496399760246277" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Personal preferences</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Personal preferences</source>
+        <target>Préférences personnelles</target>
+      </segment>
+    </unit>
+    <unit id="u43" name="Subscription summary" its:locQualityRatingScore="0.8018800020217896" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Subscription summary</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Subscription summary</source>
+        <target>Résumé de l’abonnement</target>
+      </segment>
+    </unit>
+    <unit id="u44" name="Usage included in your plan" its:locQualityRatingScore="0.8008999824523926" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Usage included in your plan</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Usage included in your plan</source>
+        <target>Utilisation incluse dans votre forfait</target>
+      </segment>
+    </unit>
+    <unit id="u45" name="Upgrade to unlock more capacity" its:locQualityRatingScore="0.767300009727478" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Upgrade to unlock more capacity</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Upgrade to unlock more capacity</source>
+        <target>Passez à la version supérieure pour débloquer une plus grande capacité.</target>
+      </segment>
+    </unit>
+    <unit id="u46" name="Your plan renews soon" its:locQualityRatingScore="0.6499500274658203" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Your plan renews soon</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Your plan renews soon</source>
+        <target>Votre forfait sera bientôt renouvelé.</target>
+      </segment>
+    </unit>
+    <unit id="u47" name="Cancel subscription at period end" its:locQualityRatingScore="0.9042699933052063" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Cancel subscription at period end</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Cancel subscription at period end</source>
+        <target>Annuler l’abonnement à la fin de la période</target>
+      </segment>
+    </unit>
+    <unit id="u48" name="Recent workspace activity" its:locQualityRatingScore="0.8431299924850464" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Recent workspace activity</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Recent workspace activity</source>
+        <target>Activité récente de l’espace de travail</target>
+      </segment>
+    </unit>
+    <unit id="u49" name="Earlier this week" its:locQualityRatingScore="0.816290020942688" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Earlier this week</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Earlier this week</source>
+        <target>Plus tôt cette semaine</target>
+      </segment>
+    </unit>
+    <unit id="u50" name="No activity yet" its:locQualityRatingScore="0.9354000091552734" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">No activity yet</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>No activity yet</source>
+        <target>Aucune activité pour le moment</target>
+      </segment>
+    </unit>
+    <unit id="u51" name="Invite someone by email" its:locQualityRatingScore="0.8941699862480164" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Invite someone by email</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Invite someone by email</source>
+        <target>Inviter quelqu’un par courriel</target>
+      </segment>
+    </unit>
+    <unit id="u52" name="Invitation pending" its:locQualityRatingScore="0.3248699903488159" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Invitation pending</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Invitation pending</source>
+        <target>Invitation en attente</target>
+      </segment>
+    </unit>
+    <unit id="u53" name="Manage API keys" its:locQualityRatingScore="0.9071199893951416" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Manage API keys</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Manage API keys</source>
+        <target>Gérer les clés API</target>
+      </segment>
+    </unit>
+    <unit id="u54" name="Copy this key now" its:locQualityRatingScore="0.8590499758720398" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Copy this key now</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Copy this key now</source>
+        <target>Copiez cette clé maintenant</target>
+      </segment>
+    </unit>
+    <unit id="u55" name="Rotate API key" its:locQualityRatingScore="0.7295100092887878" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Rotate API key</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Rotate API key</source>
+        <target>Faire pivoter la clé API</target>
+      </segment>
+    </unit>
+    <unit id="u56" name="Search the help center" its:locQualityRatingScore="0.8701300024986267" its:locQualityRatingScoreThreshold="0.949999988079071" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate" its:tool="Intento translation">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Search the help center</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="TAUS QE">
+              <mda:meta type="value">0</mda:meta>
+              <mda:meta type="unit">characters</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Search the help center</source>
+        <target>Rechercher dans le centre d’aide</target>
+      </segment>
+    </unit>
+  </file>
+</xliff>

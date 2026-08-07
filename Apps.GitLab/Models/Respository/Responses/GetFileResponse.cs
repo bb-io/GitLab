@@ -1,7 +1,9 @@
 ﻿using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Files;
 
-namespace Apps.Gitlab.Models.Respository.Responses;
+using Apps.GitLab.Models.Responses;
+
+namespace Apps.GitLab.Models.Respository.Responses;
 
 public class GetFileResponse
 {
@@ -13,4 +15,10 @@ public class GetFileResponse
 
     [Display("File extension (e.g \".txt\")")]
     public string FileExtension { get; set; }
+
+    [Display("Number of units")]
+    public int NumberOfUnits { get; set; }
+
+    [Display("Metadata")]
+    public MetadataResponse? Metadata { get; set; }
 }

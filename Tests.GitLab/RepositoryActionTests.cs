@@ -44,9 +44,9 @@ public class RepositoryActionTests : TestBaseWithContext
     {
         // Arrange
         var action = new RepositoryActions(context, FileManagementClient);
-        var repoRequest = new GetRepositoryRequest { RepositoryId = "84026361" };
+        var repoRequest = new GetRepositoryRequest { RepositoryId = "83929674" };
         var branchRequest = new GetOptionalBranchRequest { };
-        var fileRequest = new GetFileRequest { FilePath = "uk-UA.test.html" };
+        var fileRequest = new GetFileRequest { FilePath = "locales/en-US/messages.po" };
 
         // Act
         var result = await action.GetFile(repoRequest, branchRequest, fileRequest);
@@ -54,6 +54,74 @@ public class RepositoryActionTests : TestBaseWithContext
         // Assert
         PrintResult(result);
         Assert.IsNotNull(result);
+        Assert.IsNotNull(result.Metadata);
+        Assert.AreEqual("en-US", result.Metadata.SourceLanguage);
+        Assert.IsTrue(result.Metadata.DateChanged > DateTimeOffset.MinValue);
+        Assert.AreEqual("Gitlab", result.Metadata.SystemReference.SystemName);
+        Assert.AreEqual(
+            "localizationblackbird/collecting-references-demo:locales/en-US/messages.po",
+            result.Metadata.SystemReference.ContentId);
+        Assert.AreEqual("Gitlab", result.Metadata.SourceSystemReference.SystemName);
+        Assert.IsNotNull(result.Metadata.Provenance.Translation);
+        Assert.IsNotNull(result.Metadata.Provenance.Review);
+
+        var commitActions = new CommitActions(context, FileManagementClient);
+        var commits = await commitActions.ListRepositoryCommits(
+            repoRequest,
+            branchRequest,
+            new Apps.GitLab.Models.Commit.Requests.ListCommitsRequest
+            {
+                FilePath = fileRequest.FilePath,
+                MaximumResults = 1
+            });
+        var latestCommit = commits.Commits.Single();
+
+        Assert.AreEqual(latestCommit.AuthorName, result.Metadata.Provenance.Review.Person);
+        Assert.AreEqual(latestCommit.AuthorEmail, result.Metadata.Provenance.Review.PersonReference);
+        Assert.AreEqual("GitLab", result.Metadata.Provenance.Review.Tool);
+        Assert.AreEqual(latestCommit.WebUrl, result.Metadata.Provenance.Review.ToolReference);
+    }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
+    public async Task GetAllFilesInFolder_WithInteroperableFiles_AddsReviewProvenance(InvocationContext context)
+    {
+        var action = new RepositoryActions(context, FileManagementClient);
+
+        var result = await action.GetAllFilesInFolder(
+            new GetRepositoryRequest { RepositoryId = "83929674" },
+            new GetOptionalBranchRequest(),
+            new FolderContentRequest
+            {
+                Path = "locales/en-US",
+                IncludeSubfolders = true
+            });
+
+        Assert.IsTrue(result.Metadata.Any());
+        Assert.IsTrue(result.Metadata.All(metadata => metadata.Provenance.Review.Tool == "GitLab"));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.Person)));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.PersonReference)));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.ToolReference)));
+    }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
+    public async Task GetAllFilesInFolder_WithoutSubfolders_RetainsFilesInRequestedFolder(InvocationContext context)
+    {
+        var action = new RepositoryActions(context, FileManagementClient);
+
+        var result = await action.GetAllFilesInFolder(
+            new GetRepositoryRequest { RepositoryId = "83929674" },
+            new GetOptionalBranchRequest(),
+            new FolderContentRequest
+            {
+                Path = "locales/en-US",
+                IncludeSubfolders = false
+            });
+
+        Assert.IsTrue(result.Files.Any());
+        Assert.IsTrue(result.Files.All(file =>
+            Path.GetDirectoryName(file.FilePath)?.Replace('\\', '/') == "locales/en-US"));
+        Assert.IsTrue(result.Metadata.Any());
+        Assert.IsTrue(result.Metadata.All(metadata => metadata.Provenance.Review.Tool == "GitLab"));
     }
 }
 
