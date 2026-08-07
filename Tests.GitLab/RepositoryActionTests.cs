@@ -44,9 +44,9 @@ public class RepositoryActionTests : TestBaseWithContext
     {
         // Arrange
         var action = new RepositoryActions(context, FileManagementClient);
-        var repoRequest = new GetRepositoryRequest { RepositoryId = "84026361" };
+        var repoRequest = new GetRepositoryRequest { RepositoryId = "83929674" };
         var branchRequest = new GetOptionalBranchRequest { };
-        var fileRequest = new GetFileRequest { FilePath = "uk-UA.test.html" };
+        var fileRequest = new GetFileRequest { FilePath = "locales/en-US/messages.po" };
 
         // Act
         var result = await action.GetFile(repoRequest, branchRequest, fileRequest);

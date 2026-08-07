@@ -19,8 +19,7 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using GitLabApiClient.Models.Projects.Responses;
 using GitLabApiClient.Models.Trees.Responses;
 using RestSharp;
-using System.Net.Mime;
-using Apps.GitLab.Utils.File;
+using Apps.GitLab.Utils;
 
 namespace Apps.Gitlab.Actions;
 
@@ -54,19 +53,25 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
         var fileInfo = await RestClient.GetFileInfo(projectId, getFileRequest.FilePath, branch);
-        var fileToProcess = new DownloadedFile(
-            fileInfo.Content,
-            getFileRequest.FilePath,
-            repository.WebUrl,
-            branch,
-            RestClient.BaseUrl);
-        var fileData = FileHelper.ProcessDownloadedFile(fileToProcess, InvocationContext.Logger, getFileRequest.LanguageCode, getFileRequest.ContentId);
+
+        var fileWithMetadata = InteroperableFileHelper.AddMetadataToDownloadedFile(
+            content: fileInfo.Content,
+            path: getFileRequest.FilePath,
+            repoWebUrl: repository.WebUrl,
+            branchName: branch,
+            repoNameWithNamespace: repository.NameWithNamespace,
+            baseUrl: RestClient.BaseUrl,
+            logger: InvocationContext.Logger);
         
-        var fileReference = await fileManagementClient.UploadAsync(fileData.FileStream, fileData.MimeType, fileData.FileName);
+        var fileReference = await fileManagementClient.UploadAsync(
+            fileWithMetadata.FileStream,
+            fileWithMetadata.MimeType,
+            fileWithMetadata.FileName);
+
         return new GetFileResponse
         {
-            FilePath = getFileRequest.FilePath,
             File = fileReference,
+            FilePath = getFileRequest.FilePath,
             FileExtension = Path.GetExtension(getFileRequest.FilePath)
         };
     }
@@ -78,8 +83,10 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         [ActionParameter] FolderContentRequest folderContentRequest)
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var repository = await RestClient.GetProject(projectId);
+        var branch = branchRequest.Name ?? repository.DefaultBranch;
         var resultFiles = new List<GitLabFile>();
-        var content = await RestClient.GetArchive(projectId, branchRequest.Name);
+        var content = await RestClient.GetArchive(projectId, branch);
         if (content.Length == 0)
             throw new PluginMisconfigurationException("Repository is empty!");
 
@@ -101,27 +108,34 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
                 var normalizedFolderPath = folderContentRequest.Path.Trim('/');
                 var normalizedDirectory = Path.GetDirectoryName(file.Path)?.TrimStart('\\').Replace('\\', '/');
 
-                if ((includeSubFolders && !file.Path.StartsWith(folderContentRequest.Path)) ||
-                    (!includeSubFolders && normalizedDirectory != normalizedFolderPath))
-                {
+                var shouldBeSkipped = (includeSubFolders && !file.Path.StartsWith(folderContentRequest.Path))
+                    || (!includeSubFolders && normalizedDirectory != normalizedFolderPath);
+
+                if (shouldBeSkipped)
                     continue;
-                }
             }
-            else if (!includeSubFolders && !string.IsNullOrEmpty(Path.GetDirectoryName(file.Path)))
-            {
+            
+            if (!includeSubFolders && !string.IsNullOrEmpty(Path.GetDirectoryName(file.Path)))
                 continue;
-            }
 
-            var filename = Path.GetFileName(file.Path);
-            if (!MimeTypes.TryGetMimeType(filename, out var mimeType))
-                mimeType = MediaTypeNames.Application.Octet;
+            using var fileStream = new MemoryStream();
+            await file.FileStream.CopyToAsync(fileStream);
 
-            var uploadedFile = await fileManagementClient.UploadAsync(file.FileStream, mimeType, filename);
-            resultFiles.Add(new GitLabFile
-            {
-                File = uploadedFile,
-                FilePath = file.Path
-            });
+            var fileWithMetadata = InteroperableFileHelper.AddMetadataToDownloadedFile(
+                content: Convert.ToBase64String(fileStream.ToArray()),
+                path: file.Path,
+                repoWebUrl: repository.WebUrl,
+                branchName: branch,
+                repoNameWithNamespace: repository.NameWithNamespace,
+                baseUrl: RestClient.BaseUrl,
+                logger: InvocationContext.Logger);
+
+            var uploadedFile = await fileManagementClient.UploadAsync(
+                fileWithMetadata.FileStream,
+                fileWithMetadata.MimeType,
+                fileWithMetadata.FileName);
+
+            resultFiles.Add(new GitLabFile { File = uploadedFile, FilePath = file.Path });
         }
 
         return new GetRepositoryFilesFromFilepathsResponse { Files = resultFiles };

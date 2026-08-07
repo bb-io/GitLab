@@ -1,5 +1,4 @@
 using Apps.Gitlab.Actions.Base;
-using Apps.Gitlab.Extensions;
 using Apps.Gitlab.Models.Branch.Requests;
 using Apps.Gitlab.Models.Commit.Requests;
 using Apps.Gitlab.Models.Respository.Requests;
@@ -8,16 +7,12 @@ using Apps.GitLab.Constants;
 using Apps.GitLab.Dtos;
 using Apps.GitLab.Models.Commit.Requests;
 using Apps.GitLab.Models.Commit.Responses;
-using Apps.GitLab.Utils.File;
+using Apps.GitLab.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using Blackbird.Filters.Constants;
-using Blackbird.Filters.Enums;
-using Blackbird.Filters.Extensions;
-using Blackbird.Filters.Transformations;
 using GitLabApiClient.Models.Commits.Responses;
 using GitLabApiClient.Models.Projects.Responses;
 using RestSharp;
@@ -244,64 +239,37 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
     {
         int projectId = repository.Id;
         var fileStream = await fileManagementClient.DownloadAsync(input.File);
-        var transformationResult = Transformation.Load(fileStream, input.File.Name, input.File.ContentType);
 
-        string? content = null;
-        var contentResult = transformationResult.Target();
-        if (contentResult.Success)
-        {
-            content = contentResult.Value.ToStream(MetadataHandling.Exclude).ReadString();
-        }
-        else
-        {
-            InvocationContext.Logger?.LogInformation($"Not a Blackbird interoperable file: {transformationResult.Error}", []);
-            content = fileStream.ReadString();
-        }
+        var processedFile = InteroperableFileHelper.ExtractMetadataForUploadedFile(
+            fileStream: fileStream,
+            fileName: input.File.Name,
+            contentType: input.File.ContentType,
+            destinationFilePath: input.DestinationFilePath,
+            branchName: branch,
+            repoWebUrl: RestClient.BaseUrl,
+            repoNameWithNamespace: repository.PathWithNamespace,
+            baseUrl: RestClient.BaseUrl,
+            logger: InvocationContext.Logger);
 
         var pushResult = await RestClient.PushChanges(
             projectId, 
             branch, 
             input.CommitMessage,
             input.DestinationFilePath,
-            System.Text.Encoding.UTF8.GetBytes(content), 
+            processedFile.Content,
             action);
         
         var commitDto = new CommitDto(pushResult);
 
-        if (!transformationResult.Success)
+        if (processedFile.FileStream is null)
             return new(commitDto, input.File);
 
-        var (blobUrl, editUrl) = TransformationExtensions.BuildUrls(input.DestinationFilePath, branch, RestClient.BaseUrl);
-
-        var transformation = transformationResult.Value;
-        transformation.TargetSystemReference.ContentName = input.File.Name;
-        transformation.TargetSystemReference.AdminUrl = editUrl;
-        transformation.TargetSystemReference.SystemName = "Gitlab";
-        transformation.TargetSystemReference.SystemRef = "https://gitlab.com/";
-
-        if (transformationResult.WasBilingual)
-        {
-            var transformedFile = await fileManagementClient.UploadAsync(
-                transformation.ToStream(),
-                MediaTypes.Xliff2,
-                transformation.BilingualFileName);
-
-            return new(commitDto, transformedFile);
-        }
-
-        var targetResult = transformation.Target();
-        if (!targetResult.Success) throw new PluginMisconfigurationException(targetResult.Error);
-
-        var target = targetResult.Value;
-        target.SystemReference = transformation.TargetSystemReference;
-
         var targetFile = await fileManagementClient.UploadAsync(
-            target.ToStream(),
-            target.OriginalMediaType,
-            target.OriginalName);
+            processedFile.FileStream,
+            processedFile.MimeType!,
+            processedFile.FileName!);
 
         return new(commitDto, targetFile);
-
     }
     
     public async Task<bool> CheckFileExists(int projectId, string filePath, string branch)
