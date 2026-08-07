@@ -260,7 +260,7 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
         var commitDto = new CommitDto(pushResult);
 
         if (processedFile.MetadataType is null)
-            return new(commitDto, input.File, null);
+            return new(commitDto, input.File, 0, null);
 
         fileStream.Position = 0;
         var metadataFile = InteroperableFileHelper.AddMetadata(
@@ -281,7 +281,7 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
             metadataFile.MimeType,
             metadataFile.FileName);
 
-        return new(commitDto, targetFile, metadataFile.Metadata);
+        return new(commitDto, targetFile, metadataFile.NumberOfUnits, metadataFile.Metadata);
     }
     
     public async Task<bool> CheckFileExists(int projectId, string filePath, string branch)

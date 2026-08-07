@@ -82,6 +82,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
             File = fileReference,
             FilePath = getFileRequest.FilePath,
             FileExtension = Path.GetExtension(getFileRequest.FilePath),
+            NumberOfUnits = fileWithMetadata.NumberOfUnits,
             Metadata = fileWithMetadata.Metadata
         };
     }
@@ -97,6 +98,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var branch = branchRequest.Name ?? repository.DefaultBranch;
         var resultFiles = new List<GitLabFile>();
         var metadata = new List<Apps.GitLab.Models.Responses.MetadataResponse>();
+        var numberOfUnits = 0;
         var content = await RestClient.GetArchive(projectId, branch);
         if (content.Length == 0)
             throw new PluginMisconfigurationException("Repository is empty!");
@@ -155,11 +157,17 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
                 fileWithMetadata.FileName);
 
             resultFiles.Add(new GitLabFile { File = uploadedFile, FilePath = file.Path });
+            numberOfUnits += fileWithMetadata.NumberOfUnits;
             if (fileWithMetadata.Metadata is not null)
                 metadata.Add(fileWithMetadata.Metadata);
         }
 
-        return new GetRepositoryFilesFromFilepathsResponse { Files = resultFiles, Metadata = metadata };
+        return new GetRepositoryFilesFromFilepathsResponse
+        {
+            Files = resultFiles,
+            NumberOfUnits = numberOfUnits,
+            Metadata = metadata
+        };
     }
 
     [Action("Get repository", Description = "Get repository details")]
@@ -237,6 +245,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
     {
         var files = new List<GitLabFile>();
         var metadata = new List<Apps.GitLab.Models.Responses.MetadataResponse>();
+        var numberOfUnits = 0;
         foreach (var filePath in input.FilePaths)
         {
             var fileData = await GetFile(
@@ -249,6 +258,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
                 FilePath = fileData.FilePath,
                 File = fileData.File
             });
+            numberOfUnits += fileData.NumberOfUnits;
 
             if (fileData.Metadata is not null)
                 metadata.Add(fileData.Metadata);
@@ -257,6 +267,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         return new()
         {
             Files = files,
+            NumberOfUnits = numberOfUnits,
             Metadata = metadata
         };
     }

@@ -14,5 +14,8 @@ public class GetFileResponse
     [Display("File extension (e.g \".txt\")")]
     public string FileExtension { get; set; }
 
+    [Display("Number of units")]
+    public int NumberOfUnits { get; set; }
+
     public Apps.GitLab.Models.Responses.MetadataResponse? Metadata { get; set; }
 }

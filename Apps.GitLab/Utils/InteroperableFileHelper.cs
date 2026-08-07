@@ -57,7 +57,7 @@ public static class InteroperableFileHelper
         return (contentWithoutMetadata, metadataType);
     }
 
-    public static (Stream FileStream, string MimeType, string FileName, MetadataResponse? Metadata) AddMetadata(
+    public static (Stream FileStream, string MimeType, string FileName, MetadataResponse? Metadata, int NumberOfUnits) AddMetadata(
         Stream fileStream,
         string fileName,
         string contentType,
@@ -81,8 +81,10 @@ public static class InteroperableFileHelper
 
             fileStream.Position = 0;
             logger?.LogInformation($"Not a Blackbird interoperable file: {transformationResult.Error}", []);
-            return (fileStream, contentType, fileName, null);
+            return (fileStream, contentType, fileName, null, 0);
         }
+
+        var numberOfUnits = transformation.GetUnits().Count();
 
         var (_, editUrl) = BuildUrls(path, branchName, repoWebUrl);
         var contentId = GetContentId(path, repoPathWithNamespace);
@@ -116,7 +118,7 @@ public static class InteroperableFileHelper
             if (!transformationResult.WasBilingual)
                 throw new PluginMisconfigurationException("The file is not a bilingual Blackbird interoperable file.");
 
-            return (transformation.ToStream(), MediaTypes.Xliff2, transformation.BilingualFileName, metadata);
+            return (transformation.ToStream(), MediaTypes.Xliff2, transformation.BilingualFileName, metadata, numberOfUnits);
         }
 
         var contentResult = metadataType == BlackbirdMetadataType.Source
@@ -130,7 +132,7 @@ public static class InteroperableFileHelper
 
             fileStream.Position = 0;
             logger?.LogInformation($"Not a Blackbird interoperable file: {contentResult.Error}", []);
-            return (fileStream, contentType, fileName, null);
+            return (fileStream, contentType, fileName, null, 0);
         }
 
         var content = contentResult.Value;
@@ -140,7 +142,8 @@ public static class InteroperableFileHelper
             content.ToStream(),
             content.OriginalMediaType ?? contentType,
             content.OriginalName ?? fileName,
-            metadata);
+            metadata,
+            numberOfUnits);
     }
 
     private static byte[] ReadAllBytes(Stream stream)
