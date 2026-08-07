@@ -69,7 +69,7 @@ public static class InteroperableFileHelper
         string repoPathWithNamespace,
         string baseUrl,
         DateTimeOffset dateChanged,
-        ProvenanceRecord reviewProvenance,
+        ProvenanceRecord? reviewProvenance,
         BlackbirdMetadataType metadataType,
         Logger? logger)
     {
@@ -106,7 +106,8 @@ public static class InteroperableFileHelper
             metadata.Category.Contains(Meta.Categories.Blackbird) &&
             metadata.Type == Meta.Types.DateChanged);
         transformation.DateChanged = dateChanged;
-        transformation.Provenance.Review = reviewProvenance;
+        if (reviewProvenance is not null)
+            transformation.Provenance.Review = reviewProvenance;
 
         var language = metadataType == BlackbirdMetadataType.Source
             ? transformation.SourceLanguage

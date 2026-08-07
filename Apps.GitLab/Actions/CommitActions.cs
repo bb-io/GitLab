@@ -17,7 +17,6 @@ using GitLabApiClient.Models.Commits.Responses;
 using GitLabApiClient.Models.Projects.Responses;
 using RestSharp;
 using System.Net;
-using Blackbird.Filters.Shared;
 
 namespace Apps.Gitlab.Actions;
 
@@ -259,11 +258,6 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
             action);
         
         var commitDto = new CommitDto(pushResult);
-        var provenanceRecord = new ProvenanceRecord
-        {
-            Tool = "Blackbird.io",
-            ToolReference = InvocationContext.Flight?.Url ?? "https://www.blackbird.io/"
-        };
 
         if (processedFile.MetadataType is null)
             return new(commitDto, input.File, 0, null);
@@ -279,7 +273,7 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
             repoPathWithNamespace: repository.PathWithNamespace,
             baseUrl: RestClient.BaseUrl,
             dateChanged: new DateTimeOffset(pushResult.CommittedDate),
-            reviewProvenance: provenanceRecord,
+            reviewProvenance: null,
             metadataType: processedFile.MetadataType.Value,
             logger: InvocationContext.Logger);
 

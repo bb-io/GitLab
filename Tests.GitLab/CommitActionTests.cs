@@ -237,8 +237,6 @@ public class CommitActionTests : TestBaseWithContext
             result.Metadata.TargetSystemReference.ContentId);
         Assert.IsNotNull(result.Metadata.Provenance.Translation);
         Assert.IsNotNull(result.Metadata.Provenance.Review);
-        Assert.AreEqual("Blackbird.io", result.Metadata.Provenance.Review.Tool);
-        Assert.AreEqual(context.Flight?.Url, result.Metadata.Provenance.Review.ToolReference);
         Assert.AreEqual(2, result.NumberOfUnits);
 
         var commit = await actions.GetCommit(repoRequest, new GetCommitRequest { CommitId = result.Commit.Id });
@@ -289,8 +287,6 @@ public class CommitActionTests : TestBaseWithContext
             result.Metadata.TargetSystemReference.ContentId);
         Assert.IsNotNull(result.Metadata.Provenance.Translation);
         Assert.IsNotNull(result.Metadata.Provenance.Review);
-        Assert.AreEqual("Blackbird.io", result.Metadata.Provenance.Review.Tool);
-        Assert.AreEqual("https://www.blackbird.io/", result.Metadata.Provenance.Review.ToolReference);
         Assert.AreEqual(56, result.NumberOfUnits);
 
         var commit = await actions.GetCommit(repoRequest, new GetCommitRequest { CommitId = result.Commit.Id });
