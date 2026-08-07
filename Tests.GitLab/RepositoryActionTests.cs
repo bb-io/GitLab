@@ -64,6 +64,43 @@ public class RepositoryActionTests : TestBaseWithContext
         Assert.AreEqual("Gitlab", result.Metadata.SourceSystemReference.SystemName);
         Assert.IsNotNull(result.Metadata.Provenance.Translation);
         Assert.IsNotNull(result.Metadata.Provenance.Review);
+
+        var commitActions = new CommitActions(context, FileManagementClient);
+        var commits = await commitActions.ListRepositoryCommits(
+            repoRequest,
+            branchRequest,
+            new Apps.GitLab.Models.Commit.Requests.ListCommitsRequest
+            {
+                FilePath = fileRequest.FilePath,
+                MaximumResults = 1
+            });
+        var latestCommit = commits.Commits.Single();
+
+        Assert.AreEqual(latestCommit.AuthorName, result.Metadata.Provenance.Review.Person);
+        Assert.AreEqual(latestCommit.AuthorEmail, result.Metadata.Provenance.Review.PersonReference);
+        Assert.AreEqual("GitLab", result.Metadata.Provenance.Review.Tool);
+        Assert.AreEqual(latestCommit.WebUrl, result.Metadata.Provenance.Review.ToolReference);
+    }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
+    public async Task GetAllFilesInFolder_WithInteroperableFiles_AddsReviewProvenance(InvocationContext context)
+    {
+        var action = new RepositoryActions(context, FileManagementClient);
+
+        var result = await action.GetAllFilesInFolder(
+            new GetRepositoryRequest { RepositoryId = "83929674" },
+            new GetOptionalBranchRequest(),
+            new FolderContentRequest
+            {
+                Path = "locales/en-US",
+                IncludeSubfolders = true
+            });
+
+        Assert.IsTrue(result.Metadata.Any());
+        Assert.IsTrue(result.Metadata.All(metadata => metadata.Provenance.Review.Tool == "GitLab"));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.Person)));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.PersonReference)));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.ToolReference)));
     }
 }
 

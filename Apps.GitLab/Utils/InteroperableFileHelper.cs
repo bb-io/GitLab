@@ -3,6 +3,7 @@ using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Filters.Constants;
 using Blackbird.Filters.Enums;
 using Blackbird.Filters.Extensions;
+using Blackbird.Filters.Shared;
 using Blackbird.Filters.Transformations;
 using Apps.GitLab.Models.Responses;
 
@@ -67,6 +68,7 @@ public static class InteroperableFileHelper
         string repoPathWithNamespace,
         string baseUrl,
         DateTimeOffset dateChanged,
+        ProvenanceRecord reviewProvenance,
         BlackbirdMetadataType metadataType,
         Logger? logger)
     {
@@ -99,10 +101,11 @@ public static class InteroperableFileHelper
         systemReference.SystemName = "Gitlab";
         systemReference.SystemRef = baseUrl;
 
-        transformation.MetaData.RemoveAll(x =>
-            x.Category.Contains(Meta.Categories.Blackbird) &&
-            x.Type == Meta.Types.DateChanged);
+        transformation.MetaData.RemoveAll(metadata =>
+            metadata.Category.Contains(Meta.Categories.Blackbird) &&
+            metadata.Type == Meta.Types.DateChanged);
         transformation.DateChanged = dateChanged;
+        transformation.Provenance.Review = reviewProvenance;
 
         var language = metadataType == BlackbirdMetadataType.Source
             ? transformation.SourceLanguage

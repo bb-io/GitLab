@@ -21,6 +21,7 @@ using GitLabApiClient.Models.Trees.Responses;
 using RestSharp;
 using Apps.GitLab.Utils;
 using GitLabApiClient.Models.Commits.Responses;
+using Blackbird.Filters.Shared;
 
 namespace Apps.Gitlab.Actions;
 
@@ -54,7 +55,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
         var fileInfo = await RestClient.GetFileInfo(projectId, getFileRequest.FilePath, branch);
-        var dateChanged = await GetLatestFileCommitDate(projectId, getFileRequest.FilePath, branch);
+        var latestCommit = await GetLatestFileCommit(projectId, getFileRequest.FilePath, branch);
 
         var fileName = Path.GetFileName(getFileRequest.FilePath);
         var mimeType = MimeTypes.GetMimeType(fileName);
@@ -68,7 +69,8 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
             branchName: branch,
             repoPathWithNamespace: repository.PathWithNamespace,
             baseUrl: RestClient.BaseUrl,
-            dateChanged: dateChanged,
+            dateChanged: new DateTimeOffset(latestCommit.CommittedDate),
+            reviewProvenance: CreateReviewProvenance(latestCommit),
             metadataType: BlackbirdMetadataType.Source,
             logger: InvocationContext.Logger);
         
@@ -133,7 +135,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
 
             using var fileStream = new MemoryStream();
             await file.FileStream.CopyToAsync(fileStream);
-            var dateChanged = await GetLatestFileCommitDate(projectId, file.Path, branch);
+            var latestCommit = await GetLatestFileCommit(projectId, file.Path, branch);
 
             var fileName = Path.GetFileName(file.Path);
             var mimeType = MimeTypes.GetMimeType(fileName);
@@ -147,7 +149,8 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
                 branchName: branch,
                 repoPathWithNamespace: repository.PathWithNamespace,
                 baseUrl: RestClient.BaseUrl,
-                dateChanged: dateChanged,
+                dateChanged: new DateTimeOffset(latestCommit.CommittedDate),
+                reviewProvenance: CreateReviewProvenance(latestCommit),
                 metadataType: BlackbirdMetadataType.Source,
                 logger: InvocationContext.Logger);
 
@@ -272,7 +275,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         };
     }
 
-    private async Task<DateTimeOffset> GetLatestFileCommitDate(int projectId, string filePath, string branch)
+    private async Task<Commit> GetLatestFileCommit(int projectId, string filePath, string branch)
     {
         var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
         request.AddQueryParameter("ref_name", branch);
@@ -280,11 +283,18 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         request.AddQueryParameter("per_page", "1");
 
         var commits = await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
-        var latestCommit = commits.FirstOrDefault()
+        return commits.FirstOrDefault()
             ?? throw new PluginApplicationException($"No commit was found for file '{filePath}' on branch '{branch}'.");
-
-        return new DateTimeOffset(latestCommit.CommittedDate);
     }
+
+    private static ProvenanceRecord CreateReviewProvenance(Commit commit)
+        => new()
+        {
+            Person = commit.AuthorName,
+            PersonReference = commit.AuthorEmail,
+            Tool = "GitLab",
+            ToolReference = commit.WebUrl
+        };
 
     [Action("Check if branch exists", Description = "Check whether branch exists in a repository")]
     public async Task<bool> BranchExists(

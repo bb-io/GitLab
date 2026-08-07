@@ -237,6 +237,8 @@ public class CommitActionTests : TestBaseWithContext
             result.Metadata.TargetSystemReference.ContentId);
         Assert.IsNotNull(result.Metadata.Provenance.Translation);
         Assert.IsNotNull(result.Metadata.Provenance.Review);
+        Assert.AreEqual("Blackbird.io", result.Metadata.Provenance.Review.Tool);
+        Assert.AreEqual(context.Flight?.Url, result.Metadata.Provenance.Review.ToolReference);
 
         var commit = await actions.GetCommit(repoRequest, new GetCommitRequest { CommitId = result.Commit.Id });
         Assert.AreEqual(
@@ -248,15 +250,19 @@ public class CommitActionTests : TestBaseWithContext
     public async Task PushFile_WithBilingualInteroperableFile_ReturnsUploadResponse(InvocationContext context)
     {
         // Arrange
-        const string destinationFilePath = "locales/zz/messages-bilingual.po";
-        var actions = new CommitActions(context, FileManagementClient);
+        const string destinationFilePath = "locales/fr-ca/messages-bilingual.po";
+        var contextWithoutFlight = new InvocationContext
+        {
+            AuthenticationCredentialsProviders = context.AuthenticationCredentialsProviders
+        };
+        var actions = new CommitActions(contextWithoutFlight, FileManagementClient);
         var repoRequest = new GetRepositoryRequest { RepositoryId = "83929674" };
         var branchRequest = new GetOptionalBranchRequest { };
         var pushFileInput = new PushFileRequest
         {
-            CommitMessage = "Upload bilingual zz PO file from tests",
+            CommitMessage = "Upload bilingual fr-ca PO file from tests",
             DestinationFilePath = destinationFilePath,
-            File = new FileReference { Name = "source.messages.po.xlf", ContentType = MediaTypes.Xliff2 }
+            File = new FileReference { Name = "messages-translated-reviewed.xliff", ContentType = MediaTypes.Xliff2 }
         };
 
         // Act
@@ -267,21 +273,23 @@ public class CommitActionTests : TestBaseWithContext
         Assert.IsNotNull(result);
 
         Assert.IsNotNull(result.Metadata);
-        Assert.AreEqual("zz", result.Metadata.Language);
+        Assert.AreEqual("fr-ca", result.Metadata.Language);
         Assert.AreEqual("en-US", result.Metadata.SourceLanguage);
-        Assert.AreEqual("zz", result.Metadata.TargetLanguage);
+        Assert.AreEqual("fr-ca", result.Metadata.TargetLanguage);
         Assert.AreEqual("Gitlab", result.Metadata.SystemReference.SystemName);
-        Assert.AreEqual("localizationblackbird/collecting-references-demo:locales/zz/messages-bilingual.po", result.Metadata.SystemReference.ContentId);
+        Assert.AreEqual("localizationblackbird/collecting-references-demo:locales/fr-ca/messages-bilingual.po", result.Metadata.SystemReference.ContentId);
         Assert.AreEqual(
             "localizationblackbird/collecting-references-demo:locales/en-US/messages.po",
             result.Metadata.SourceSystemReference.ContentId);
         Assert.AreEqual("Gitlab", result.Metadata.SourceSystemReference.SystemName);
         Assert.AreEqual("Gitlab", result.Metadata.TargetSystemReference.SystemName);
         Assert.AreEqual(
-            "localizationblackbird/collecting-references-demo:locales/zz/messages-bilingual.po",
+            "localizationblackbird/collecting-references-demo:locales/fr-ca/messages-bilingual.po",
             result.Metadata.TargetSystemReference.ContentId);
         Assert.IsNotNull(result.Metadata.Provenance.Translation);
         Assert.IsNotNull(result.Metadata.Provenance.Review);
+        Assert.AreEqual("Blackbird.io", result.Metadata.Provenance.Review.Tool);
+        Assert.AreEqual("https://www.blackbird.io/", result.Metadata.Provenance.Review.ToolReference);
 
         var commit = await actions.GetCommit(repoRequest, new GetCommitRequest { CommitId = result.Commit.Id });
         Assert.AreEqual(
