@@ -1,0 +1,62 @@
+<xliff srcLang="en-US" trgLang="zz" version="2.2" xmlns:mda="urn:oasis:names:tc:xliff:metadata:2.0" xmlns="urn:oasis:names:tc:xliff:document:2.2">
+  <file id="f1">
+    <skeleton>msgid ""
+msgstr ""
+"Project-Id-Version: gitlab-interoperability-tests 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en-US\n"
+
+msgctxt "greeting"
+msgid "Hello from GitLab"
+msgstr "Hello from GitLab"
+
+msgctxt "farewell"
+msgid "Goodbye from GitLab"
+msgstr "Goodbye from GitLab"
+</skeleton>
+    <mda:metadata>
+      <mda:metaGroup category="blackbird">
+        <mda:meta type="original-name">source.messages.po</mda:meta>
+        <mda:meta type="original-media-type">text/x-gettext-translation</mda:meta>
+        <mda:meta type="changed-date">2026-08-07T07:02:46.0000000-02:30</mda:meta>
+        <mda:meta type="source-ucid">localizationblackbird/collecting-references-demo:locales/en-US/messages.po</mda:meta>
+        <mda:meta type="source-content-name">localizationblackbird/collecting-references-demo:locales/en-US/messages.po</mda:meta>
+        <mda:meta type="source-admin-url">https://gitlab.com/localizationblackbird/collecting-references-demo/-/edit/main/locales/en-US/messages.po</mda:meta>
+        <mda:meta type="source-system-name">Gitlab</mda:meta>
+        <mda:meta type="source-system-ref">https://gitlab.com</mda:meta>
+        <mda:meta type="target-ucid">localizationblackbird/collecting-references-demo:locales/zz/messages-bilingual.po</mda:meta>
+        <mda:meta type="target-content-name">localizationblackbird/collecting-references-demo:locales/zz/messages-bilingual.po</mda:meta>
+        <mda:meta type="target-admin-url">https://gitlab.com/localizationblackbird/collecting-references-demo/-/edit/main/locales/zz/messages-bilingual.po</mda:meta>
+        <mda:meta type="target-system-name">Gitlab</mda:meta>
+        <mda:meta type="target-system-ref">https://gitlab.com</mda:meta>
+      </mda:metaGroup>
+      <mda:meta type="Project-Id-Version">gitlab-interoperability-tests 1.0</mda:meta>
+      <mda:meta type="Content-Type">text/plain; charset=UTF-8</mda:meta>
+      <mda:meta type="Content-Transfer-Encoding">8bit</mda:meta>
+      <mda:meta type="Language">en-US</mda:meta>
+    </mda:metadata>
+    <unit id="u1" name="Hello from GitLab">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Hello from GitLab</mda:meta>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Hello from GitLab</source>
+        <target>Hello from GitLab [zz]</target>
+      </segment>
+    </unit>
+    <unit id="u2" name="Goodbye from GitLab">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Goodbye from GitLab</mda:meta>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Goodbye from GitLab</source>
+        <target>Goodbye from GitLab [zz]</target>
+      </segment>
+    </unit>
+  </file>
+</xliff>

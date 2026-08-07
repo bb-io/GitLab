@@ -13,4 +13,6 @@ public class GetFileResponse
 
     [Display("File extension (e.g \".txt\")")]
     public string FileExtension { get; set; }
+
+    public Apps.GitLab.Models.Responses.MetadataResponse? Metadata { get; set; }
 }

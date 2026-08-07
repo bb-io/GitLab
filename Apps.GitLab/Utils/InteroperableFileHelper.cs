@@ -4,69 +4,38 @@ using Blackbird.Filters.Constants;
 using Blackbird.Filters.Enums;
 using Blackbird.Filters.Extensions;
 using Blackbird.Filters.Transformations;
+using Apps.GitLab.Models.Responses;
 
 namespace Apps.GitLab.Utils;
 
+public enum BlackbirdMetadataType
+{
+    Source,
+    Target,
+    Bilingual
+}
+
 public static class InteroperableFileHelper
 {
-    public static string GetContentId(string path, string repoNameWithNamespace)
+    public static string GetContentId(string path, string repoPathWithNamespace)
     {
-        return string.IsNullOrEmpty(repoNameWithNamespace)
+        return string.IsNullOrEmpty(repoPathWithNamespace)
             ? path
-            : $"{repoNameWithNamespace}:{path}";
+            : $"{repoPathWithNamespace}:{path}";
     }
 
     public static (string blobUrl, string editUrl) BuildUrls(string filePath, string branchName, string repoWebUrl)
     {
         var encodedPath = string.Join("/", filePath.Split('/').Select(Uri.EscapeDataString));
-        return ($"{repoWebUrl}/-/blob/{branchName}/{encodedPath}", $"{repoWebUrl}/-/edit/{branchName}/{encodedPath}");
+        var blobUrl = $"{repoWebUrl}/-/blob/{branchName}/{encodedPath}";
+        var editUrl = $"{repoWebUrl}/-/edit/{branchName}/{encodedPath}";
+        return (blobUrl, editUrl);
     }
 
-    public static (Stream FileStream, string MimeType, string FileName) AddMetadataToDownloadedFile(
-        string content,
-        string path,
-        string repoWebUrl,
-        string branchName,
-        string repoNameWithNamespace,
-        string baseUrl,
-        Logger? logger)
-    {
-        var filename = Path.GetFileName(path);
-        var mimeType = MimeTypes.GetMimeType(filename);
-        var stream = new MemoryStream(Convert.FromBase64String(content));
-
-        var transformationLoadResult = Transformation.Load(stream, filename, mimeType).Source();
-        
-        if (!transformationLoadResult.Success)
-        {
-            stream.Position = 0;
-            logger?.LogInformation($"Not a Blackbird interoperable file: {transformationLoadResult.Error}", []);
-            return new(stream, mimeType, filename);
-        }
-
-        var fileContent = transformationLoadResult.Value;
-        var (_, editUrl) = BuildUrls(path, branchName, repoWebUrl);
-        var contentId = GetContentId(path, repoNameWithNamespace);
-
-        var systemReference = fileContent.SystemReference!;
-        systemReference.ContentId = contentId;
-        systemReference.ContentName = contentId;
-        systemReference.AdminUrl = editUrl;
-        systemReference.SystemName = "Gitlab";
-        systemReference.SystemRef = baseUrl;
-        
-        return new(fileContent.ToStream(), mimeType, filename);
-    }
-
-    public static (byte[] Content, Stream? FileStream, string? MimeType, string? FileName) ExtractMetadataForUploadedFile(
+    public static (byte[] Content, BlackbirdMetadataType? MetadataType) StripMetadata(
         Stream fileStream,
         string fileName,
         string contentType,
-        string destinationFilePath,
-        string branchName,
-        string repoWebUrl,
-        string repoNameWithNamespace,
-        string baseUrl,
         Logger? logger)
     {
         var transformationResult = Transformation.Load(fileStream, fileName, contentType);
@@ -75,39 +44,113 @@ public static class InteroperableFileHelper
         if (!contentResult.Success)
         {
             logger?.LogInformation($"Not a Blackbird interoperable file: {transformationResult.Error}", []);
-            return (System.Text.Encoding.UTF8.GetBytes(fileStream.ReadString()), null, null, null);
+            return (ReadAllBytes(fileStream), null);
         }
 
         var contentWithoutMetadata = System.Text.Encoding.UTF8.GetBytes(
             contentResult.Value.ToStream(MetadataHandling.Exclude).ReadString());
 
-        var (_, editUrl) = BuildUrls(destinationFilePath, branchName, repoWebUrl);
-        var contentId = GetContentId(destinationFilePath, repoNameWithNamespace);
+        var metadataType = transformationResult.WasBilingual
+            ? BlackbirdMetadataType.Bilingual
+            : BlackbirdMetadataType.Target;
 
-        var transformation = transformationResult.Value!;
-        var targetSystemReference = transformation.TargetSystemReference!;
-        targetSystemReference.ContentId = contentId;
-        targetSystemReference.ContentName = contentId;
-        targetSystemReference.AdminUrl = editUrl;
-        targetSystemReference.SystemName = "Gitlab";
-        targetSystemReference.SystemRef = baseUrl;
+        return (contentWithoutMetadata, metadataType);
+    }
 
-        if (transformationResult.WasBilingual)
+    public static (Stream FileStream, string MimeType, string FileName, MetadataResponse? Metadata) AddMetadata(
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        string path,
+        string repoWebUrl,
+        string branchName,
+        string repoPathWithNamespace,
+        string baseUrl,
+        DateTimeOffset dateChanged,
+        BlackbirdMetadataType metadataType,
+        Logger? logger)
+    {
+        var transformationResult = Transformation.Load(fileStream, fileName, contentType);
+        var transformation = transformationResult.Value;
+
+        if (transformation is null)
         {
-            return (
-                contentWithoutMetadata,
-                transformation.ToStream(),
-                MediaTypes.Xliff2,
-                transformation.BilingualFileName);
+            if (metadataType != BlackbirdMetadataType.Source)
+                throw new PluginMisconfigurationException(
+                    transformationResult.Error ?? "Unable to load the Blackbird interoperable file.");
+
+            fileStream.Position = 0;
+            logger?.LogInformation($"Not a Blackbird interoperable file: {transformationResult.Error}", []);
+            return (fileStream, contentType, fileName, null);
         }
 
-        var targetResult = transformation.Target();
-        if (!targetResult.Success)
-            throw new PluginMisconfigurationException(targetResult.Error);
+        var (_, editUrl) = BuildUrls(path, branchName, repoWebUrl);
+        var contentId = GetContentId(path, repoPathWithNamespace);
 
-        var target = targetResult.Value;
-        target.SystemReference = targetSystemReference;
+        var systemReference = metadataType == BlackbirdMetadataType.Source
+            ? transformation.SourceSystemReference
+            : transformation.TargetSystemReference;
 
-        return (contentWithoutMetadata, target.ToStream(), target.OriginalMediaType, target.OriginalName);
+        systemReference.ContentId = contentId;
+        systemReference.ContentName = contentId;
+        systemReference.AdminUrl = editUrl;
+        systemReference.SystemName = "Gitlab";
+        systemReference.SystemRef = baseUrl;
+
+        transformation.MetaData.RemoveAll(x =>
+            x.Category.Contains(Meta.Categories.Blackbird) &&
+            x.Type == Meta.Types.DateChanged);
+        transformation.DateChanged = dateChanged;
+
+        var language = metadataType == BlackbirdMetadataType.Source
+            ? transformation.SourceLanguage
+            : transformation.TargetLanguage ?? transformation.SourceLanguage;
+        var metadata = MetadataResponse.FromTransformation(
+            language,
+            dateChanged,
+            systemReference,
+            transformation);
+
+        if (metadataType == BlackbirdMetadataType.Bilingual)
+        {
+            if (!transformationResult.WasBilingual)
+                throw new PluginMisconfigurationException("The file is not a bilingual Blackbird interoperable file.");
+
+            return (transformation.ToStream(), MediaTypes.Xliff2, transformation.BilingualFileName, metadata);
+        }
+
+        var contentResult = metadataType == BlackbirdMetadataType.Source
+            ? transformation.Source()
+            : transformation.Target();
+
+        if (!contentResult.Success)
+        {
+            if (metadataType != BlackbirdMetadataType.Source)
+                throw new PluginMisconfigurationException(contentResult.Error);
+
+            fileStream.Position = 0;
+            logger?.LogInformation($"Not a Blackbird interoperable file: {contentResult.Error}", []);
+            return (fileStream, contentType, fileName, null);
+        }
+
+        var content = contentResult.Value;
+        content.SystemReference = systemReference;
+
+        return (
+            content.ToStream(),
+            content.OriginalMediaType ?? contentType,
+            content.OriginalName ?? fileName,
+            metadata);
+    }
+
+    private static byte[] ReadAllBytes(Stream stream)
+    {
+        if (stream.CanSeek)
+            stream.Position = 0;
+
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+
+        return buffer.ToArray();
     }
 }

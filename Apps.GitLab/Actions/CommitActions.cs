@@ -238,17 +238,15 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
         string action)
     {
         int projectId = repository.Id;
-        var fileStream = await fileManagementClient.DownloadAsync(input.File);
+        await using var downloadedFileStream = await fileManagementClient.DownloadAsync(input.File);
+        using var fileStream = new MemoryStream();
+        await downloadedFileStream.CopyToAsync(fileStream);
+        fileStream.Position = 0;
 
-        var processedFile = InteroperableFileHelper.ExtractMetadataForUploadedFile(
+        var processedFile = InteroperableFileHelper.StripMetadata(
             fileStream: fileStream,
             fileName: input.File.Name,
             contentType: input.File.ContentType,
-            destinationFilePath: input.DestinationFilePath,
-            branchName: branch,
-            repoWebUrl: RestClient.BaseUrl,
-            repoNameWithNamespace: repository.PathWithNamespace,
-            baseUrl: RestClient.BaseUrl,
             logger: InvocationContext.Logger);
 
         var pushResult = await RestClient.PushChanges(
@@ -261,15 +259,29 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
         
         var commitDto = new CommitDto(pushResult);
 
-        if (processedFile.FileStream is null)
-            return new(commitDto, input.File);
+        if (processedFile.MetadataType is null)
+            return new(commitDto, input.File, null);
+
+        fileStream.Position = 0;
+        var metadataFile = InteroperableFileHelper.AddMetadata(
+            fileStream: fileStream,
+            fileName: input.File.Name,
+            contentType: input.File.ContentType,
+            path: input.DestinationFilePath,
+            branchName: branch,
+            repoWebUrl: repository.WebUrl,
+            repoPathWithNamespace: repository.PathWithNamespace,
+            baseUrl: RestClient.BaseUrl,
+            dateChanged: new DateTimeOffset(pushResult.CommittedDate),
+            metadataType: processedFile.MetadataType.Value,
+            logger: InvocationContext.Logger);
 
         var targetFile = await fileManagementClient.UploadAsync(
-            processedFile.FileStream,
-            processedFile.MimeType!,
-            processedFile.FileName!);
+            metadataFile.FileStream,
+            metadataFile.MimeType,
+            metadataFile.FileName);
 
-        return new(commitDto, targetFile);
+        return new(commitDto, targetFile, metadataFile.Metadata);
     }
     
     public async Task<bool> CheckFileExists(int projectId, string filePath, string branch)

@@ -6,6 +6,7 @@ using Apps.Gitlab.Models.Commit.Requests;
 using Apps.GitLab.Models.Commit.Requests;
 using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Blackbird.Filters.Constants;
 using Tests.GitLab.Base;
 
 namespace Tests.GitLab;
@@ -199,18 +200,18 @@ public class CommitActionTests : TestBaseWithContext
     }
 
     [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
-    public async Task PushFile_WithValidFile_ReturnsUploadResponse(InvocationContext context)
+    public async Task PushFile_WithMetadata_ReturnsUploadResponse(InvocationContext context)
     {
         // Arrange
-        string fileName = "ja-JP.test.html";
+        const string destinationFilePath = "locales/zz/messages.po";
         var actions = new CommitActions(context, FileManagementClient);
-        var repoRequest = new GetRepositoryRequest { RepositoryId = "84026361" };
+        var repoRequest = new GetRepositoryRequest { RepositoryId = "83929674" };
         var branchRequest = new GetOptionalBranchRequest { };
         var pushFileInput = new PushFileRequest
         {
-            CommitMessage = "test from tests",
-            DestinationFilePath = fileName,
-            File = new FileReference { Name = fileName }
+            CommitMessage = "Upload zz PO file from tests",
+            DestinationFilePath = destinationFilePath,
+            File = new FileReference { Name = "zz.messages.po", ContentType = MediaTypes.Po }
         };
 
         // Act
@@ -219,5 +220,73 @@ public class CommitActionTests : TestBaseWithContext
         // Assert
         PrintResult(result);
         Assert.IsNotNull(result);
+
+        Assert.IsNotNull(result.Metadata);
+        Assert.AreEqual("zz", result.Metadata.Language);
+        Assert.AreEqual("zz", result.Metadata.SourceLanguage);
+        Assert.IsNull(result.Metadata.TargetLanguage);
+        Assert.AreEqual("Gitlab", result.Metadata.SystemReference.SystemName);
+        Assert.AreEqual("localizationblackbird/collecting-references-demo:locales/zz/messages.po", result.Metadata.SystemReference.ContentId);
+        Assert.AreEqual(
+            "localizationblackbird/collecting-references-demo:locales/en-US/messages.po",
+            result.Metadata.SourceSystemReference.ContentId);
+        Assert.AreEqual("Gitlab", result.Metadata.SourceSystemReference.SystemName);
+        Assert.AreEqual("Gitlab", result.Metadata.TargetSystemReference.SystemName);
+        Assert.AreEqual(
+            "localizationblackbird/collecting-references-demo:locales/zz/messages.po",
+            result.Metadata.TargetSystemReference.ContentId);
+        Assert.IsNotNull(result.Metadata.Provenance.Translation);
+        Assert.IsNotNull(result.Metadata.Provenance.Review);
+
+        var commit = await actions.GetCommit(repoRequest, new GetCommitRequest { CommitId = result.Commit.Id });
+        Assert.AreEqual(
+            commit.CommittedDate.ToUniversalTime(),
+            result.Metadata.DateChanged.UtcDateTime);
     }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
+    public async Task PushFile_WithBilingualInteroperableFile_ReturnsUploadResponse(InvocationContext context)
+    {
+        // Arrange
+        const string destinationFilePath = "locales/zz/messages-bilingual.po";
+        var actions = new CommitActions(context, FileManagementClient);
+        var repoRequest = new GetRepositoryRequest { RepositoryId = "83929674" };
+        var branchRequest = new GetOptionalBranchRequest { };
+        var pushFileInput = new PushFileRequest
+        {
+            CommitMessage = "Upload bilingual zz PO file from tests",
+            DestinationFilePath = destinationFilePath,
+            File = new FileReference { Name = "source.messages.po.xlf", ContentType = MediaTypes.Xliff2 }
+        };
+
+        // Act
+        var result = await actions.PushFile(repoRequest, branchRequest, pushFileInput);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result);
+
+        Assert.IsNotNull(result.Metadata);
+        Assert.AreEqual("zz", result.Metadata.Language);
+        Assert.AreEqual("en-US", result.Metadata.SourceLanguage);
+        Assert.AreEqual("zz", result.Metadata.TargetLanguage);
+        Assert.AreEqual("Gitlab", result.Metadata.SystemReference.SystemName);
+        Assert.AreEqual("localizationblackbird/collecting-references-demo:locales/zz/messages-bilingual.po", result.Metadata.SystemReference.ContentId);
+        Assert.AreEqual(
+            "localizationblackbird/collecting-references-demo:locales/en-US/messages.po",
+            result.Metadata.SourceSystemReference.ContentId);
+        Assert.AreEqual("Gitlab", result.Metadata.SourceSystemReference.SystemName);
+        Assert.AreEqual("Gitlab", result.Metadata.TargetSystemReference.SystemName);
+        Assert.AreEqual(
+            "localizationblackbird/collecting-references-demo:locales/zz/messages-bilingual.po",
+            result.Metadata.TargetSystemReference.ContentId);
+        Assert.IsNotNull(result.Metadata.Provenance.Translation);
+        Assert.IsNotNull(result.Metadata.Provenance.Review);
+
+        var commit = await actions.GetCommit(repoRequest, new GetCommitRequest { CommitId = result.Commit.Id });
+        Assert.AreEqual(
+            commit.CommittedDate.ToUniversalTime(),
+            result.Metadata.DateChanged.UtcDateTime);
+    }
+
 }

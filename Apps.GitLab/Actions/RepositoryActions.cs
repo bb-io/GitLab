@@ -20,6 +20,7 @@ using GitLabApiClient.Models.Projects.Responses;
 using GitLabApiClient.Models.Trees.Responses;
 using RestSharp;
 using Apps.GitLab.Utils;
+using GitLabApiClient.Models.Commits.Responses;
 
 namespace Apps.Gitlab.Actions;
 
@@ -53,14 +54,22 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
         var fileInfo = await RestClient.GetFileInfo(projectId, getFileRequest.FilePath, branch);
+        var dateChanged = await GetLatestFileCommitDate(projectId, getFileRequest.FilePath, branch);
 
-        var fileWithMetadata = InteroperableFileHelper.AddMetadataToDownloadedFile(
-            content: fileInfo.Content,
+        var fileName = Path.GetFileName(getFileRequest.FilePath);
+        var mimeType = MimeTypes.GetMimeType(fileName);
+        var fileStream = new MemoryStream(Convert.FromBase64String(fileInfo.Content));
+        var fileWithMetadata = InteroperableFileHelper.AddMetadata(
+            fileStream: fileStream,
+            fileName: fileName,
+            contentType: mimeType,
             path: getFileRequest.FilePath,
             repoWebUrl: repository.WebUrl,
             branchName: branch,
-            repoNameWithNamespace: repository.NameWithNamespace,
+            repoPathWithNamespace: repository.PathWithNamespace,
             baseUrl: RestClient.BaseUrl,
+            dateChanged: dateChanged,
+            metadataType: BlackbirdMetadataType.Source,
             logger: InvocationContext.Logger);
         
         var fileReference = await fileManagementClient.UploadAsync(
@@ -72,7 +81,8 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         {
             File = fileReference,
             FilePath = getFileRequest.FilePath,
-            FileExtension = Path.GetExtension(getFileRequest.FilePath)
+            FileExtension = Path.GetExtension(getFileRequest.FilePath),
+            Metadata = fileWithMetadata.Metadata
         };
     }
 
@@ -86,6 +96,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var repository = await RestClient.GetProject(projectId);
         var branch = branchRequest.Name ?? repository.DefaultBranch;
         var resultFiles = new List<GitLabFile>();
+        var metadata = new List<Apps.GitLab.Models.Responses.MetadataResponse>();
         var content = await RestClient.GetArchive(projectId, branch);
         if (content.Length == 0)
             throw new PluginMisconfigurationException("Repository is empty!");
@@ -120,14 +131,22 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
 
             using var fileStream = new MemoryStream();
             await file.FileStream.CopyToAsync(fileStream);
+            var dateChanged = await GetLatestFileCommitDate(projectId, file.Path, branch);
 
-            var fileWithMetadata = InteroperableFileHelper.AddMetadataToDownloadedFile(
-                content: Convert.ToBase64String(fileStream.ToArray()),
+            var fileName = Path.GetFileName(file.Path);
+            var mimeType = MimeTypes.GetMimeType(fileName);
+            fileStream.Position = 0;
+            var fileWithMetadata = InteroperableFileHelper.AddMetadata(
+                fileStream: fileStream,
+                fileName: fileName,
+                contentType: mimeType,
                 path: file.Path,
                 repoWebUrl: repository.WebUrl,
                 branchName: branch,
-                repoNameWithNamespace: repository.NameWithNamespace,
+                repoPathWithNamespace: repository.PathWithNamespace,
                 baseUrl: RestClient.BaseUrl,
+                dateChanged: dateChanged,
+                metadataType: BlackbirdMetadataType.Source,
                 logger: InvocationContext.Logger);
 
             var uploadedFile = await fileManagementClient.UploadAsync(
@@ -136,9 +155,11 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
                 fileWithMetadata.FileName);
 
             resultFiles.Add(new GitLabFile { File = uploadedFile, FilePath = file.Path });
+            if (fileWithMetadata.Metadata is not null)
+                metadata.Add(fileWithMetadata.Metadata);
         }
 
-        return new GetRepositoryFilesFromFilepathsResponse { Files = resultFiles };
+        return new GetRepositoryFilesFromFilepathsResponse { Files = resultFiles, Metadata = metadata };
     }
 
     [Action("Get repository", Description = "Get repository details")]
@@ -215,6 +236,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         [ActionParameter] GetRepositoryFilesFromFilepathsRequest input)
     {
         var files = new List<GitLabFile>();
+        var metadata = new List<Apps.GitLab.Models.Responses.MetadataResponse>();
         foreach (var filePath in input.FilePaths)
         {
             var fileData = await GetFile(
@@ -227,12 +249,30 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
                 FilePath = fileData.FilePath,
                 File = fileData.File
             });
+
+            if (fileData.Metadata is not null)
+                metadata.Add(fileData.Metadata);
         }
 
         return new()
         {
-            Files = files
+            Files = files,
+            Metadata = metadata
         };
+    }
+
+    private async Task<DateTimeOffset> GetLatestFileCommitDate(int projectId, string filePath, string branch)
+    {
+        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/commits", Method.Get);
+        request.AddQueryParameter("ref_name", branch);
+        request.AddQueryParameter("path", filePath);
+        request.AddQueryParameter("per_page", "1");
+
+        var commits = await RestClient.ExecuteWithErrorHandling<List<Commit>>(request);
+        var latestCommit = commits.FirstOrDefault()
+            ?? throw new PluginApplicationException($"No commit was found for file '{filePath}' on branch '{branch}'.");
+
+        return new DateTimeOffset(latestCommit.CommittedDate);
     }
 
     [Action("Check if branch exists", Description = "Check whether branch exists in a repository")]

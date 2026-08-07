@@ -54,6 +54,16 @@ public class RepositoryActionTests : TestBaseWithContext
         // Assert
         PrintResult(result);
         Assert.IsNotNull(result);
+        Assert.IsNotNull(result.Metadata);
+        Assert.AreEqual("en-US", result.Metadata.SourceLanguage);
+        Assert.IsTrue(result.Metadata.DateChanged > DateTimeOffset.MinValue);
+        Assert.AreEqual("Gitlab", result.Metadata.SystemReference.SystemName);
+        Assert.AreEqual(
+            "localizationblackbird/collecting-references-demo:locales/en-US/messages.po",
+            result.Metadata.SystemReference.ContentId);
+        Assert.AreEqual("Gitlab", result.Metadata.SourceSystemReference.SystemName);
+        Assert.IsNotNull(result.Metadata.Provenance.Translation);
+        Assert.IsNotNull(result.Metadata.Provenance.Review);
     }
 }
 

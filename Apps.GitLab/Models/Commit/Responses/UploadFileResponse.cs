@@ -1,6 +1,10 @@
 using Apps.GitLab.Dtos;
+using Apps.GitLab.Models.Responses;
 using Blackbird.Applications.Sdk.Common.Files;
 
 namespace Apps.GitLab.Models.Commit.Responses;
 
-public record UploadFileResponse(CommitDto Commit, FileReference File);
+public record UploadFileResponse(
+    CommitDto Commit,
+    FileReference File,
+    MetadataResponse? Metadata);
