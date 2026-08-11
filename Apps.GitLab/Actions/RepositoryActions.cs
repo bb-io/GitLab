@@ -54,21 +54,48 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var repository = await RestClient.GetProject(projectId);
         var branch = branchRequest.Name ?? repository.DefaultBranch;
 
-        return await GetFile(projectId, repository, branch, getFileRequest.FilePath);
+        return await GetFile(
+            projectId,
+            repository,
+            branch,
+            getFileRequest.FilePath,
+            getFileRequest.ContentId);
     }
 
     private async Task<GetFileResponse> GetFile(
         int projectId,
         Project repository,
         string branch,
-        string filePath)
+        string filePath,
+        string? contentId = null)
     {
         var fileInfo = await RestClient.GetFileInfo(projectId, filePath, branch);
-        var latestCommit = await GetLatestFileCommit(projectId, filePath, branch);
-
         var fileName = Path.GetFileName(filePath);
         var mimeType = MimeTypes.GetMimeType(fileName);
         var fileStream = new MemoryStream(Convert.FromBase64String(fileInfo.Content));
+
+        return await AddMetadataAndUpload(
+            projectId,
+            repository,
+            branch,
+            filePath,
+            fileStream,
+            fileName,
+            mimeType,
+            contentId);
+    }
+
+    private async Task<GetFileResponse> AddMetadataAndUpload(
+        int projectId,
+        Project repository,
+        string branch,
+        string filePath,
+        Stream fileStream,
+        string fileName,
+        string mimeType,
+        string? contentId)
+    {
+        var latestCommit = await GetLatestFileCommit(projectId, filePath, branch);
         var fileWithMetadata = InteroperableFileHelper.AddMetadata(
             fileStream: fileStream,
             fileName: fileName,
@@ -77,6 +104,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
             repoWebUrl: repository.WebUrl,
             branchName: branch,
             repoPathWithNamespace: repository.PathWithNamespace,
+            contentId: contentId,
             baseUrl: RestClient.BaseUrl,
             dateChanged: new DateTimeOffset(latestCommit.CommittedDate),
             reviewProvenance: CreateReviewProvenance(latestCommit),
@@ -152,34 +180,23 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         {
             using var fileStream = new MemoryStream();
             await file.FileStream.CopyToAsync(fileStream);
-            var latestCommit = await GetLatestFileCommit(projectId, file.Path, branch);
-
             var fileName = Path.GetFileName(file.Path);
             var mimeType = MimeTypes.GetMimeType(fileName);
             fileStream.Position = 0;
-            var fileWithMetadata = InteroperableFileHelper.AddMetadata(
-                fileStream: fileStream,
-                fileName: fileName,
-                contentType: mimeType,
-                path: file.Path,
-                repoWebUrl: repository.WebUrl,
-                branchName: branch,
-                repoPathWithNamespace: repository.PathWithNamespace,
-                baseUrl: RestClient.BaseUrl,
-                dateChanged: new DateTimeOffset(latestCommit.CommittedDate),
-                reviewProvenance: CreateReviewProvenance(latestCommit),
-                metadataType: BlackbirdMetadataType.Source,
-                logger: InvocationContext.Logger);
+            var fileData = await AddMetadataAndUpload(
+                projectId,
+                repository,
+                branch,
+                file.Path,
+                fileStream,
+                fileName,
+                mimeType,
+                folderContentRequest.ContentId);
 
-            var uploadedFile = await fileManagementClient.UploadAsync(
-                fileWithMetadata.FileStream,
-                fileWithMetadata.MimeType,
-                fileWithMetadata.FileName);
-
-            resultFiles.Add(new GitLabFile { File = uploadedFile, FilePath = file.Path });
-            numberOfUnits += fileWithMetadata.NumberOfUnits;
-            if (fileWithMetadata.Metadata is not null)
-                metadata.Add(fileWithMetadata.Metadata);
+            resultFiles.Add(new GitLabFile { File = fileData.File, FilePath = file.Path });
+            numberOfUnits += fileData.NumberOfUnits;
+            if (fileData.Metadata is not null)
+                metadata.Add(fileData.Metadata);
         }
 
         return new GetRepositoryFilesFromFilepathsResponse

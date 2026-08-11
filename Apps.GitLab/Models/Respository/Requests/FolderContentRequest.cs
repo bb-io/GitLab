@@ -22,4 +22,7 @@ public class FolderContentRequest
 
     [Display("Include subfolders")]
     public bool? IncludeSubfolders { get; set; }
+
+    [Display("Content ID")]
+    public string? ContentId { get; set; }
 }
