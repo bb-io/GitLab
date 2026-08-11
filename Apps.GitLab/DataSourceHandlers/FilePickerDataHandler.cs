@@ -26,13 +26,30 @@ public class FilePickerDataHandler(
     {
         var projectId = GetProjectId(repositoryRequest.RepositoryId);
         var folderPath = GitLabPathHelper.NormalizeFolderId(context?.FolderId);
-        var request = RestClient.CreateRequest($"/projects/{projectId}/repository/tree", Method.Get);
-        request.AddQueryParameter("path", string.IsNullOrEmpty(folderPath) ? "/" : folderPath);
+        const int pageSize = 100;
+        var tree = new List<Tree>();
+        var page = 1;
 
-        if (!string.IsNullOrWhiteSpace(branchRequest.Name))
-            request.AddQueryParameter("ref", branchRequest.Name);
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
 
-        var tree = await RestClient.ExecuteWithErrorHandling<List<Tree>>(request);
+            var request = RestClient.CreateRequest($"/projects/{projectId}/repository/tree", Method.Get);
+            request.AddQueryParameter("path", string.IsNullOrEmpty(folderPath) ? "/" : folderPath);
+            request.AddQueryParameter("per_page", pageSize);
+            request.AddQueryParameter("page", page);
+
+            if (!string.IsNullOrWhiteSpace(branchRequest.Name))
+                request.AddQueryParameter("ref", branchRequest.Name);
+
+            var currentPage = await RestClient.ExecuteWithErrorHandling<List<Tree>>(request);
+            tree.AddRange(currentPage);
+
+            if (currentPage.Count < pageSize)
+                break;
+
+            page++;
+        }
 
         return tree
             .OrderBy(x => x.Type == "blob")
