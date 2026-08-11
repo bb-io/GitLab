@@ -71,7 +71,8 @@ public static class InteroperableFileHelper
         DateTimeOffset dateChanged,
         ProvenanceRecord? reviewProvenance,
         BlackbirdMetadataType metadataType,
-        Logger? logger)
+        Logger? logger,
+        string? contentId = null)
     {
         var transformationResult = Transformation.Load(fileStream, fileName, contentType);
         var transformation = transformationResult.Value;
@@ -90,14 +91,14 @@ public static class InteroperableFileHelper
         var numberOfUnits = transformation.GetUnits().Count();
 
         var (_, editUrl) = BuildUrls(path, branchName, repoWebUrl);
-        var contentId = GetContentId(path, repoPathWithNamespace);
+        var defaultContentId = GetContentId(path, repoPathWithNamespace);
 
         var systemReference = metadataType == BlackbirdMetadataType.Source
             ? transformation.SourceSystemReference
             : transformation.TargetSystemReference;
 
-        systemReference.ContentId = contentId;
-        systemReference.ContentName = contentId;
+        systemReference.ContentId = string.IsNullOrWhiteSpace(contentId) ? defaultContentId : contentId;
+        systemReference.ContentName = defaultContentId;
         systemReference.AdminUrl = editUrl;
         systemReference.SystemName = "Gitlab";
         systemReference.SystemRef = baseUrl;

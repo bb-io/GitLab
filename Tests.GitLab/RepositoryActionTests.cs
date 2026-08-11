@@ -11,6 +11,9 @@ namespace Tests.GitLab;
 [TestClass]
 public class RepositoryActionTests : TestBaseWithContext
 {
+    private const string LiveTestRepositoryId = "83929674";
+    private const string LiveTestBranch = "codex/content-id-metadata-live-tests-20260811";
+
     [TestMethod, ContextDataSource(ConnectionTypes.PersonalAccessToken)]
     public async Task GetRepository_WithExistingRepository_ReturnsRepository(InvocationContext context)
     {
@@ -83,6 +86,35 @@ public class RepositoryActionTests : TestBaseWithContext
     }
 
     [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
+    public async Task GetFile_WithContentIdOverride_UsesProvidedContentId(InvocationContext context)
+    {
+        await EnsureLiveTestBranchExists(context);
+        var action = new RepositoryActions(context, FileManagementClient);
+        const string contentId = "gitlab-live-test-download-file";
+
+        var result = await action.GetFile(
+            new GetRepositoryRequest { RepositoryId = LiveTestRepositoryId },
+            new GetOptionalBranchRequest { Name = LiveTestBranch },
+            new GetFileRequest
+            {
+                FilePath = "locales/en-US/messages.po",
+                ContentId = contentId
+            });
+
+        Assert.IsNotNull(result.Metadata);
+        Assert.AreEqual(contentId, result.Metadata.SystemReference.ContentId);
+        Assert.AreEqual(contentId, result.Metadata.SourceSystemReference.ContentId);
+        Assert.AreEqual(
+            "localizationblackbird/collecting-references-demo:locales/en-US/messages.po",
+            result.Metadata.SystemReference.ContentName);
+        Assert.AreEqual("Gitlab", result.Metadata.SystemReference.SystemName);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(result.Metadata.SystemReference.AdminUrl));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(result.Metadata.SystemReference.SystemRef));
+        Assert.IsTrue(result.Metadata.DateChanged > DateTimeOffset.MinValue);
+        Assert.AreEqual("GitLab", result.Metadata.Provenance.Review.Tool);
+    }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
     public async Task GetAllFilesInFolder_WithInteroperableFiles_AddsReviewProvenance(InvocationContext context)
     {
         var action = new RepositoryActions(context, FileManagementClient);
@@ -97,6 +129,41 @@ public class RepositoryActionTests : TestBaseWithContext
             });
 
         Assert.IsTrue(result.Metadata.Any());
+        Assert.IsTrue(result.Metadata.All(metadata => metadata.Provenance.Review.Tool == "GitLab"));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.Person)));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.PersonReference)));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.ToolReference)));
+    }
+
+    [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
+    public async Task GetAllFilesInFolder_WithContentIdOverride_AppliesDownloadFileMetadata(InvocationContext context)
+    {
+        await EnsureLiveTestBranchExists(context);
+        var action = new RepositoryActions(context, FileManagementClient);
+        const string contentId = "gitlab-live-test-folder-files";
+
+        var result = await action.GetAllFilesInFolder(
+            new GetRepositoryRequest { RepositoryId = LiveTestRepositoryId },
+            new GetOptionalBranchRequest { Name = LiveTestBranch },
+            new FolderContentRequest
+            {
+                Path = "locales/en-US",
+                IncludeSubfolders = true,
+                ContentId = contentId
+            });
+
+        Assert.IsTrue(result.Files.Any());
+        Assert.IsTrue(result.Files.All(file => file.FilePath.StartsWith("locales/en-US/")));
+        Assert.IsTrue(result.Metadata.Any());
+        Assert.IsTrue(result.Metadata.All(metadata => metadata.SystemReference.ContentId == contentId));
+        Assert.IsTrue(result.Metadata.All(metadata => metadata.SourceSystemReference.ContentId == contentId));
+        Assert.IsTrue(result.Metadata.All(metadata =>
+            metadata.SystemReference.ContentName?.StartsWith(
+                "localizationblackbird/collecting-references-demo:locales/en-US/") == true));
+        Assert.IsTrue(result.Metadata.All(metadata => metadata.SystemReference.SystemName == "Gitlab"));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.SystemReference.AdminUrl)));
+        Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.SystemReference.SystemRef)));
+        Assert.IsTrue(result.Metadata.All(metadata => metadata.DateChanged > DateTimeOffset.MinValue));
         Assert.IsTrue(result.Metadata.All(metadata => metadata.Provenance.Review.Tool == "GitLab"));
         Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.Person)));
         Assert.IsTrue(result.Metadata.All(metadata => !string.IsNullOrWhiteSpace(metadata.Provenance.Review.PersonReference)));
@@ -122,6 +189,24 @@ public class RepositoryActionTests : TestBaseWithContext
             Path.GetDirectoryName(file.FilePath)?.Replace('\\', '/') == "locales/en-US"));
         Assert.IsTrue(result.Metadata.Any());
         Assert.IsTrue(result.Metadata.All(metadata => metadata.Provenance.Review.Tool == "GitLab"));
+    }
+
+    private async Task EnsureLiveTestBranchExists(InvocationContext context)
+    {
+        var repositoryRequest = new GetRepositoryRequest { RepositoryId = LiveTestRepositoryId };
+        var repositoryActions = new RepositoryActions(context, FileManagementClient);
+        if (await repositoryActions.BranchExists(repositoryRequest, LiveTestBranch))
+            return;
+
+        var repository = await repositoryActions.GetRepositoryById(repositoryRequest);
+        var branchActions = new BranchActions(context);
+        await branchActions.CreateBranch(
+            repositoryRequest,
+            new CreateBranchRequest
+            {
+                BaseBranchName = repository.DefaultBranch!,
+                NewBranchName = LiveTestBranch
+            });
     }
 }
 

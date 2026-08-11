@@ -9,4 +9,7 @@ public class GetFileRequest
     [Display("File path")]
     [FileDataSource(typeof(FilePickerDataHandler))]
     public string FilePath { get; set; } = string.Empty;
+
+    [Display("Content ID")]
+    public string? ContentId { get; set; }
 }
