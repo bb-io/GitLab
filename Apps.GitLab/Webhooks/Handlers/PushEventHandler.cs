@@ -6,7 +6,6 @@ using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Webhooks;
 using Apps.GitLab.Utils;
-using Newtonsoft.Json;
 using RestSharp;
 using Apps.GitLab.Webhooks.Payloads;
 
@@ -45,10 +44,10 @@ public class PushEventHandler : BaseInvocable, IWebhookEventHandler
     {
         var client = new BlackbirdGitlabClient(authenticationCredentialsProviders);
         var listRequest = client.CreateRequest($"/projects/{RepositoryId}/hooks", Method.Get);
-        var projectWebhooks = await client.ExecuteWithErrorHandling<List<WebhookResponse>>(listRequest);
-        var webhook = projectWebhooks.FirstOrDefault(x => x.PushEvents);
+        var projectWebhooks = await client.ExecutePaginatedWithErrorHandling<WebhookResponse>(listRequest);
+        var webhooks = projectWebhooks.Where(x => x.Url == values["payloadUrl"]).ToList();
 
-        if (webhook != null)
+        foreach (var webhook in webhooks)
         {
             var deleteRequest = client.CreateRequest($"/projects/{RepositoryId}/hooks/{webhook.Id}", Method.Delete);
             await client.ExecuteWithErrorHandling(deleteRequest);

@@ -27,7 +27,10 @@ public class UsersDataHandler : BaseInvocable, IAsyncDataSourceHandler
         var request = client.CreateRequest("/users", Method.Get);
         request.AddQueryParameter("search", context.SearchString);
 
-        var content = await client.ExecuteWithErrorHandling<List<UserResponse>>(request);
-        return content.ToDictionary(x => x.Id.ToString(), x => x.Username);
+        var content = await client.ExecutePaginatedWithErrorHandling<UserResponse>(request, cancellationToken);
+        return content
+            .Where(x => x.State.Equals("active", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.Username, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Id.ToString(), x => $"{x.Username} ({x.Name})");
     }
 }

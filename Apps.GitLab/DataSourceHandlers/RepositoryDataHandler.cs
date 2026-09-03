@@ -23,13 +23,13 @@ public class RepositoryDataHandler : BaseInvocable, IAsyncDataSourceHandler
         var client = new BlackbirdGitlabClient(Creds);
         var request = client.CreateRequest("/projects", Method.Get);
         request.AddQueryParameter("membership", "true");
+        request.AddQueryParameter("simple", "true");
+        if (!string.IsNullOrWhiteSpace(context.SearchString))
+            request.AddQueryParameter("search", context.SearchString);
 
-        var content = await client.ExecuteWithErrorHandling<List<Project>>(request);
+        var content = await client.ExecutePaginatedWithErrorHandling<Project>(request, cancellationToken);
         return content
-            .Where(x => context.SearchString == null ||
-                        x.Name.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(x => x.CreatedAt)
-            .Take(20)
-            .ToDictionary(x => x.Id.ToString(), x => x.Name);
+            .OrderBy(x => x.PathWithNamespace, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Id.ToString(), x => x.PathWithNamespace);
     }
 }

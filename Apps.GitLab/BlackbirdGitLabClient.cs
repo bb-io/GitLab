@@ -43,6 +43,32 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         throw ConfigureErrorException(response);
     }
 
+    public async Task<List<T>> ExecutePaginatedWithErrorHandling<T>(RestRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var items = new List<T>();
+        var page = 1;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            request.AddOrUpdateParameter("per_page", 100);
+            request.AddOrUpdateParameter("page", page);
+
+            var response = await ExecuteWithErrorHandling(request);
+            var pageItems = JsonConvert.DeserializeObject<List<T>>(response.Content ?? "[]", JsonSettings) ?? [];
+            items.AddRange(pageItems);
+
+            var nextPage = response.Headers?
+                .FirstOrDefault(x => x.Name.Equals("X-Next-Page", StringComparison.OrdinalIgnoreCase))
+                ?.Value?.ToString();
+            if (!int.TryParse(nextPage, out page))
+                break;
+        }
+
+        return items;
+    }
+
     public static string GetBaseUrl(IEnumerable<AuthenticationCredentialsProvider> creds)
     {
         var connectionType = creds.Get(CredNames.ConnectionType).Value;
