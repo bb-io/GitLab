@@ -6,7 +6,7 @@ namespace Apps.GitLab.Polling.Models;
 
 public class FilesModifiedPollingInput
 {
-    [Display("Repositories to include", Description = "Repositories whose push activity should be checked")]
+    [Display("Repository IDs to include", Description = "Repositories whose push activity should be checked")]
     [DataSource(typeof(RepositoryDataHandler))]
     public IEnumerable<string> RepositoryIds { get; set; } = [];
 
@@ -25,11 +25,11 @@ public class FilesModifiedPollingInput
     [Display("Commit messages to exclude", Description = "Case-sensitive regular expressions; exclusion takes precedence")]
     public IEnumerable<string>? ExcludedCommitMessagePatterns { get; set; }
 
-    [Display("Pushers to watch", Description = "GitLab users whose pushes should be checked")]
+    [Display("Pusher user IDs to watch", Description = "GitLab users whose pushes should be checked")]
     [DataSource(typeof(UsersDataHandler))]
     public IEnumerable<string>? PusherUserIds { get; set; }
 
-    [Display("Pushers to ignore", Description = "GitLab users whose pushes should be ignored; ignore rules take precedence")]
+    [Display("Pusher user IDs to ignore", Description = "GitLab users whose pushes should be ignored; ignore rules take precedence")]
     [DataSource(typeof(UsersDataHandler))]
     public IEnumerable<string>? IgnoredPusherUserIds { get; set; }
 }

@@ -89,6 +89,55 @@ public class BlackbirdGitlabClientTests
     }
 
     [TestMethod]
+    public async Task Pagination_MalformedJsonThrowsPluginApplicationException()
+    {
+        var handler = new StubHttpMessageHandler((_, _) =>
+            Task.FromResult(GitLabTestData.Json("{")));
+        var client = GitLabTestData.CreateClient(handler);
+
+        var exception = await Assert.ThrowsExactlyAsync<PluginApplicationException>(() =>
+            client.ExecutePaginatedWithErrorHandling<GitLabPushEvent>(
+                client.CreateRequest("/events", Method.Get)));
+
+        StringAssert.Contains(exception.Message, "invalid JSON");
+    }
+
+    [TestMethod]
+    public async Task GetProject_MalformedJsonThrowsPluginApplicationException()
+    {
+        var handler = new StubHttpMessageHandler((_, _) =>
+            Task.FromResult(GitLabTestData.Json("{")));
+        var client = GitLabTestData.CreateClient(handler);
+
+        var exception = await Assert.ThrowsExactlyAsync<PluginApplicationException>(() =>
+            client.GetProject(101));
+
+        StringAssert.Contains(exception.Message, "invalid JSON for project 101");
+    }
+
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(-1)]
+    public async Task Pagination_NonPositiveMaximumPagesThrowsWithoutRequest(int maximumPages)
+    {
+        var calls = 0;
+        var handler = new StubHttpMessageHandler((_, _) =>
+        {
+            Interlocked.Increment(ref calls);
+            return Task.FromResult(GitLabTestData.Json("[]"));
+        });
+        var client = GitLabTestData.CreateClient(handler);
+
+        var exception = await Assert.ThrowsExactlyAsync<PluginApplicationException>(() =>
+            client.ExecutePaginatedWithErrorHandling<GitLabPushEvent>(
+                client.CreateRequest("/events", Method.Get), maximumPages: maximumPages));
+
+        StringAssert.Contains(exception.Message, nameof(maximumPages));
+        StringAssert.Contains(exception.Message, maximumPages.ToString());
+        Assert.AreEqual(0, calls);
+    }
+
+    [TestMethod]
     public async Task Pagination_TimeLimitCancelsRetryAfterWait()
     {
         var calls = 0;

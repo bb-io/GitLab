@@ -26,6 +26,7 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
     private const int RetryCount = 8;
     private const int BaseBackoffSeconds = 1;
     private const int MaxBackoffSeconds = 16;
+    private const int MaxRetryAfterSeconds = 60;
     private const int DefaultMaximumPages = 100;
     private static readonly TimeSpan DefaultMaximumPaginationDuration = TimeSpan.FromMinutes(5);
 
@@ -67,7 +68,7 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
 
                     if (int.TryParse(retryAfter?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) &&
                         seconds >= 0)
-                        return TimeSpan.FromSeconds(seconds);
+                        return TimeSpan.FromSeconds(Math.Min(seconds, MaxRetryAfterSeconds));
 
                     if (DateTimeOffset.TryParse(
                             retryAfter,
@@ -78,7 +79,9 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
                         var serverDelay = retryAt - DateTimeOffset.UtcNow;
                         if (serverDelay <= TimeSpan.Zero)
                             return TimeSpan.Zero;
-                        return serverDelay;
+                        return serverDelay > TimeSpan.FromSeconds(MaxRetryAfterSeconds)
+                            ? TimeSpan.FromSeconds(MaxRetryAfterSeconds)
+                            : serverDelay;
                     }
 
                     var backoffSeconds = Math.Min(
@@ -119,7 +122,8 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         TimeSpan? maximumDuration = null)
     {
         if (maximumPages <= 0)
-            throw new ArgumentOutOfRangeException(nameof(maximumPages));
+            throw new PluginApplicationException(
+                $"{nameof(maximumPages)} must be greater than zero; received {maximumPages}.");
 
         var items = new List<T>();
         var visitedNextLinks = new HashSet<string>(StringComparer.Ordinal);
@@ -155,8 +159,18 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
             }
             if (string.IsNullOrWhiteSpace(response.Content))
                 throw new PluginApplicationException("GitLab returned an empty paginated response.");
-            var pageItems = JsonConvert.DeserializeObject<List<T>>(response.Content, JsonSettings)
-                            ?? throw new PluginApplicationException("GitLab returned a null paginated response.");
+            List<T>? pageItems;
+            try
+            {
+                pageItems = JsonConvert.DeserializeObject<List<T>>(response.Content, JsonSettings);
+            }
+            catch (JsonException exception)
+            {
+                throw new PluginApplicationException(
+                    $"GitLab returned invalid JSON for a paginated response: {exception.Message}");
+            }
+            if (pageItems is null)
+                throw new PluginApplicationException("GitLab returned a null paginated response.");
             items.AddRange(pageItems);
             if (stopwatch.Elapsed > durationLimit)
                 throw new PluginApplicationException(timeLimitMessage);
@@ -233,7 +247,18 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
     {
         var request = CreateRequest($"/projects/{projectId}", Method.Get);
         var response = await ExecuteWithErrorHandling(request, cancellationToken);
-        return JsonConvert.DeserializeObject<Project>(response.Content ?? string.Empty, JsonSettings)
+        Project? project;
+        try
+        {
+            project = JsonConvert.DeserializeObject<Project>(response.Content ?? string.Empty, JsonSettings);
+        }
+        catch (JsonException exception)
+        {
+            throw new PluginApplicationException(
+                $"GitLab returned invalid JSON for project {projectId}: {exception.Message}");
+        }
+
+        return project
                ?? throw new PluginApplicationException($"GitLab returned an invalid project {projectId} response.");
     }
 

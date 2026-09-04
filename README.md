@@ -166,7 +166,7 @@ Connection user needs at least the Reporter role in every selected repository. F
 
 #### Inputs and matching
 
-**Repositories to include** is required. It is a multi-select field that displays each repository as `namespace/repository` while storing its stable numeric GitLab project ID.
+**Repository IDs to include** is required. It is a multi-select field that displays each repository as `namespace/repository` while storing its stable numeric GitLab project ID.
 
 All other inputs are optional:
 
@@ -175,8 +175,8 @@ All other inputs are optional:
 - **File patterns to watch**: glob patterns matched only against modified files. A bare filename such as `en.po` matches at any directory depth as `**/en.po`. Added, deleted, and renamed files do not qualify. Leaving this input empty accepts any modified file.
 - **Commit messages to include**: case-sensitive regular expressions. A commit must match at least one when configured.
 - **Commit messages to exclude**: case-sensitive regular expressions. Exclude matches take precedence over include matches.
-- **Pushers to watch**: GitLab user IDs. A push must come from one of these users when configured.
-- **Pushers to ignore**: GitLab user IDs. Ignore matches take precedence over watch matches.
+- **Pusher user IDs to watch**: GitLab user IDs. A push must come from one of these users when configured.
+- **Pusher user IDs to ignore**: GitLab user IDs. Ignore matches take precedence over watch matches.
 
 Commit-message and file-pattern matches must occur in the same commit. One qualifying commit makes the push qualify, but output includes every commit from that push. Matched file paths come only from qualifying commits.
 
@@ -188,7 +188,7 @@ First poll establishes a baseline and does not trigger. Changing any input also 
 
 #### API usage and safeguards
 
-A quiet poll reads one or more pages from the global GitLab Events API, then filters exact repository IDs before making repository-specific requests. A candidate push needs one compare request, one paginated diff request per message-qualified commit, and one project lookup per emitted repository. Enrichment runs with at most four concurrent requests. HTTP 429 responses are retried using `Retry-After` when supplied, otherwise bounded exponential backoff with jitter.
+A quiet poll reads one or more pages from the global GitLab Events API, then filters exact repository IDs before making repository-specific requests. A candidate push needs one compare request, one paginated diff request per message-qualified commit, and one project lookup per emitted repository. Enrichment runs with at most four concurrent requests. HTTP 429 responses are retried using `Retry-After` when supplied, capped at 60 seconds per retry; otherwise bounded exponential backoff with jitter is used.
 
 Polling has a 200-page event-feed limit, a 100-page limit per commit diff, and a five-minute total scan limit. Reaching a limit fails the poll instead of returning partial output or advancing memory.
 

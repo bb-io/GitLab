@@ -14,6 +14,7 @@ namespace Apps.GitLab.Webhooks.Handlers;
 
 public class PushEventHandler : BaseInvocable, IWebhookEventHandler
 {
+    private readonly BlackbirdGitlabClient? _client;
     private int RepositoryId { get; set; }
     private GetOptionalBranchRequest BranchRequest { get; set; }
 
@@ -25,10 +26,20 @@ public class PushEventHandler : BaseInvocable, IWebhookEventHandler
         BranchRequest = branchRequest;
     }
 
+    internal PushEventHandler(
+        InvocationContext invocationContext,
+        WebhookRepositoryInput repositoryRequest,
+        GetOptionalBranchRequest branchRequest,
+        BlackbirdGitlabClient client)
+        : this(invocationContext, repositoryRequest, branchRequest)
+    {
+        _client = client;
+    }
+
     public async Task SubscribeAsync(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
         Dictionary<string, string> values)
     {
-        var client = new BlackbirdGitlabClient(authenticationCredentialsProviders);
+        var client = _client ?? new BlackbirdGitlabClient(authenticationCredentialsProviders);
         var request = client.CreateRequest($"/projects/{RepositoryId}/hooks", Method.Post);
         request.AddJsonBody(new CreateWebhookRequest
         {
@@ -43,10 +54,11 @@ public class PushEventHandler : BaseInvocable, IWebhookEventHandler
     public async Task UnsubscribeAsync(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
         Dictionary<string, string> values)
     {
-        var client = new BlackbirdGitlabClient(authenticationCredentialsProviders);
+        var client = _client ?? new BlackbirdGitlabClient(authenticationCredentialsProviders);
         var listRequest = client.CreateRequest($"/projects/{RepositoryId}/hooks", Method.Get);
-        var projectWebhooks = await client.ExecuteWithErrorHandling<List<WebhookResponse>>(listRequest);
-        var webhook = projectWebhooks.FirstOrDefault(x => x.PushEvents);
+        var projectWebhooks = await client.ExecutePaginatedWithErrorHandling<WebhookResponse>(listRequest);
+        var webhook = projectWebhooks.FirstOrDefault(x =>
+            x.PushEvents && string.Equals(x.Url, values["payloadUrl"], StringComparison.Ordinal));
 
         if (webhook != null)
         {
