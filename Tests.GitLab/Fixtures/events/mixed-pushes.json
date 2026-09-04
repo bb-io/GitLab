@@ -1,0 +1,53 @@
+[
+  {
+    "id": 1001,
+    "project_id": 101,
+    "action_name": "pushed to",
+    "author_id": 42,
+    "created_at": "2026-09-04T15:45:00Z",
+    "push_data": {
+      "commit_count": 2,
+      "ref_count": 1,
+      "action": "pushed",
+      "ref_type": "branch",
+      "commit_from": "from-101",
+      "commit_to": "to-101",
+      "ref": "main",
+      "commit_title": "translate catalogs"
+    }
+  },
+  {
+    "id": 1002,
+    "project_id": 202,
+    "action_name": "pushed to",
+    "author_id": 84,
+    "created_at": "2026-09-04T15:30:00Z",
+    "push_data": {
+      "commit_count": 1,
+      "ref_count": 1,
+      "action": "pushed",
+      "ref_type": "branch",
+      "commit_from": "from-202",
+      "commit_to": "to-202",
+      "ref": "release/v2",
+      "commit_title": "release localization"
+    }
+  },
+  {
+    "id": 1003,
+    "project_id": 999,
+    "action_name": "pushed to",
+    "author_id": 42,
+    "created_at": "2026-09-04T15:20:00Z",
+    "push_data": {
+      "commit_count": 1,
+      "ref_count": 1,
+      "action": "pushed",
+      "ref_type": "branch",
+      "commit_from": "from-999",
+      "commit_to": "to-999",
+      "ref": "main",
+      "commit_title": "unrelated repository"
+    }
+  }
+]

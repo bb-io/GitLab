@@ -9,11 +9,19 @@ namespace Apps.Gitlab.DataSourceHandlers;
 
 public class UsersDataHandler : BaseInvocable, IAsyncDataSourceHandler
 {
+    private readonly BlackbirdGitlabClient? _client;
+
     private IEnumerable<AuthenticationCredentialsProvider> Creds =>
         InvocationContext.AuthenticationCredentialsProviders;
 
     public UsersDataHandler(InvocationContext invocationContext) : base(invocationContext)
     {
+    }
+
+    internal UsersDataHandler(InvocationContext invocationContext, BlackbirdGitlabClient client)
+        : base(invocationContext)
+    {
+        _client = client;
     }
 
     public async Task<Dictionary<string, string>> GetDataAsync(
@@ -23,13 +31,13 @@ public class UsersDataHandler : BaseInvocable, IAsyncDataSourceHandler
         if (string.IsNullOrWhiteSpace(context.SearchString))
             return new Dictionary<string, string>();
 
-        var client = new BlackbirdGitlabClient(Creds);
+        var client = _client ?? new BlackbirdGitlabClient(Creds);
         var request = client.CreateRequest("/users", Method.Get);
         request.AddQueryParameter("search", context.SearchString);
+        request.AddQueryParameter("per_page", 100);
 
         var content = await client.ExecutePaginatedWithErrorHandling<UserResponse>(request, cancellationToken);
         return content
-            .Where(x => x.State.Equals("active", StringComparison.OrdinalIgnoreCase))
             .OrderBy(x => x.Username, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(x => x.Id.ToString(), x => $"{x.Username} ({x.Name})");
     }

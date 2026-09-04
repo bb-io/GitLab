@@ -10,7 +10,12 @@ using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Blackbird.Applications.Sdk.Utils.RestSharp;
 using GitLabApiClient.Models.Projects.Responses;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
 using RestSharp;
+using System.Diagnostics;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Commit = GitLabApiClient.Models.Commits.Responses.Commit;
 
 namespace Apps.Gitlab;
@@ -18,55 +23,199 @@ namespace Apps.Gitlab;
 public class BlackbirdGitlabClient : BlackBirdRestClient
 {
     private const string ApiPrefix = "/api/v4";
+    private const int RetryCount = 8;
+    private const int BaseBackoffSeconds = 1;
+    private const int MaxBackoffSeconds = 16;
+    private const int MaxRetryAfterSeconds = 60;
+    private const int DefaultMaximumPages = 100;
+    private static readonly TimeSpan DefaultMaximumPaginationDuration = TimeSpan.FromMinutes(5);
+
     private readonly IEnumerable<AuthenticationCredentialsProvider> _authenticationCredentials;
+    private readonly AsyncRetryPolicy<RestResponse> _retryPolicy;
 
     protected override JsonSerializerSettings? JsonSettings => JsonConfig.JsonSettings;
 
     public string BaseUrl { get; }
 
     public BlackbirdGitlabClient(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders)
+        : this(authenticationCredentialsProviders, null)
+    {
+    }
+
+    internal BlackbirdGitlabClient(
+        IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
+        Func<HttpMessageHandler, HttpMessageHandler>? configureMessageHandler)
         : base(new()
         {
-            BaseUrl = GetBaseUrl(authenticationCredentialsProviders).ToUri()
+            BaseUrl = GetBaseUrl(authenticationCredentialsProviders).ToUri(),
+            ConfigureMessageHandler = configureMessageHandler
         })
     {
         _authenticationCredentials = authenticationCredentialsProviders;
         BaseUrl = GetBaseUrl(authenticationCredentialsProviders);
+        _retryPolicy = Policy
+            .HandleResult<RestResponse>(response => response.StatusCode == HttpStatusCode.TooManyRequests)
+            .WaitAndRetryAsync(
+                RetryCount,
+                (retryAttempt, result, _) =>
+                {
+                    var retryAfter = result.Result.Headers?
+                        .FirstOrDefault(header => string.Equals(
+                            header.Name,
+                            "Retry-After",
+                            StringComparison.OrdinalIgnoreCase))?
+                        .Value?.ToString();
+
+                    if (int.TryParse(retryAfter?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) &&
+                        seconds >= 0)
+                        return TimeSpan.FromSeconds(Math.Min(seconds, MaxRetryAfterSeconds));
+
+                    if (DateTimeOffset.TryParse(
+                            retryAfter,
+                            CultureInfo.InvariantCulture,
+                            DateTimeStyles.AssumeUniversal,
+                            out var retryAt))
+                    {
+                        var serverDelay = retryAt - DateTimeOffset.UtcNow;
+                        if (serverDelay <= TimeSpan.Zero)
+                            return TimeSpan.Zero;
+                        return serverDelay > TimeSpan.FromSeconds(MaxRetryAfterSeconds)
+                            ? TimeSpan.FromSeconds(MaxRetryAfterSeconds)
+                            : serverDelay;
+                    }
+
+                    var backoffSeconds = Math.Min(
+                        BaseBackoffSeconds * Math.Pow(2, retryAttempt - 1),
+                        MaxBackoffSeconds);
+                    return TimeSpan.FromSeconds(backoffSeconds) +
+                           TimeSpan.FromMilliseconds(Random.Shared.Next(0, 500));
+                },
+                (_, _, _, _) => Task.CompletedTask);
     }
-    
-    public async Task<RestResponse> ExecuteWithErrorHandling(RestRequest request, params HttpStatusCode[] allowedStatuses)
+
+    public override Task<RestResponse> ExecuteWithErrorHandling(RestRequest request)
+        => ExecuteWithErrorHandling(request, CancellationToken.None, []);
+
+    public Task<RestResponse> ExecuteWithErrorHandling(
+        RestRequest request,
+        params HttpStatusCode[] allowedStatuses)
+        => ExecuteWithErrorHandling(request, CancellationToken.None, allowedStatuses);
+
+    public async Task<RestResponse> ExecuteWithErrorHandling(
+        RestRequest request,
+        CancellationToken cancellationToken,
+        params HttpStatusCode[] allowedStatuses)
     {
-        var response = await ExecuteAsync(request);
+        var response = await _retryPolicy.ExecuteAsync(
+            token => ExecuteAsync(request, token),
+            cancellationToken);
         if (response.IsSuccessStatusCode || allowedStatuses.Contains(response.StatusCode))
             return response;
-        
+
         throw ConfigureErrorException(response);
     }
 
-    public async Task<List<T>> ExecutePaginatedWithErrorHandling<T>(RestRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<List<T>> ExecutePaginatedWithErrorHandling<T>(
+        RestRequest request,
+        CancellationToken cancellationToken = default,
+        int maximumPages = DefaultMaximumPages,
+        TimeSpan? maximumDuration = null)
     {
-        var items = new List<T>();
-        var page = 1;
+        if (maximumPages <= 0)
+            throw new PluginApplicationException(
+                $"{nameof(maximumPages)} must be greater than zero; received {maximumPages}.");
 
-        while (true)
+        var items = new List<T>();
+        var visitedNextLinks = new HashSet<string>(StringComparer.Ordinal);
+        var stopwatch = Stopwatch.StartNew();
+        var durationLimit = maximumDuration ?? DefaultMaximumPaginationDuration;
+        var timeLimitMessage =
+            $"GitLab pagination exceeded the safety time limit of {durationLimit.TotalMinutes:g} minutes.";
+        if (durationLimit <= TimeSpan.Zero)
+            throw new PluginApplicationException(timeLimitMessage);
+
+        using var paginationDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        paginationDeadline.CancelAfter(durationLimit);
+        var currentRequest = request;
+
+        for (var page = 1; ; page++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            request.AddOrUpdateParameter("per_page", 100);
-            request.AddOrUpdateParameter("page", page);
+            if (page > maximumPages)
+                throw new PluginApplicationException(
+                    $"GitLab pagination exceeded the safety limit of {maximumPages} pages.");
+            if (stopwatch.Elapsed > durationLimit)
+                throw new PluginApplicationException(timeLimitMessage);
 
-            var response = await ExecuteWithErrorHandling(request);
-            var pageItems = JsonConvert.DeserializeObject<List<T>>(response.Content ?? "[]", JsonSettings) ?? [];
+            RestResponse response;
+            try
+            {
+                response = await ExecuteWithErrorHandling(currentRequest, paginationDeadline.Token);
+            }
+            catch (OperationCanceledException) when (
+                !cancellationToken.IsCancellationRequested && paginationDeadline.IsCancellationRequested)
+            {
+                throw new PluginApplicationException(timeLimitMessage);
+            }
+            if (string.IsNullOrWhiteSpace(response.Content))
+                throw new PluginApplicationException("GitLab returned an empty paginated response.");
+            List<T>? pageItems;
+            try
+            {
+                pageItems = JsonConvert.DeserializeObject<List<T>>(response.Content, JsonSettings);
+            }
+            catch (JsonException exception)
+            {
+                throw new PluginApplicationException(
+                    $"GitLab returned invalid JSON for a paginated response: {exception.Message}");
+            }
+            if (pageItems is null)
+                throw new PluginApplicationException("GitLab returned a null paginated response.");
             items.AddRange(pageItems);
+            if (stopwatch.Elapsed > durationLimit)
+                throw new PluginApplicationException(timeLimitMessage);
 
-            var nextPage = response.Headers?
-                .FirstOrDefault(x => x.Name.Equals("X-Next-Page", StringComparison.OrdinalIgnoreCase))
-                ?.Value?.ToString();
-            if (!int.TryParse(nextPage, out page))
-                break;
+            var linkHeader = string.Join(",", response.Headers?
+                .Where(header => string.Equals(header.Name, "Link", StringComparison.OrdinalIgnoreCase))
+                .Select(header => header.Value?.ToString()) ?? []);
+            string? nextLink = null;
+            foreach (Match linkMatch in Regex.Matches(
+                         linkHeader,
+                         @"<(?<url>[^>]+)>(?<parameters>(?:\s*;\s*[^,]+)*)",
+                         RegexOptions.CultureInvariant,
+                         TimeSpan.FromMilliseconds(250)))
+            {
+                var relationMatch = Regex.Match(
+                    linkMatch.Groups["parameters"].Value,
+                    @"(?:^|;)\s*rel\s*=\s*\""?(?<relations>[^\"";,]+)\""?",
+                    RegexOptions.CultureInvariant | RegexOptions.IgnoreCase,
+                    TimeSpan.FromMilliseconds(250));
+                if (relationMatch.Success && relationMatch.Groups["relations"].Value
+                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Contains("next", StringComparer.OrdinalIgnoreCase))
+                {
+                    nextLink = linkMatch.Groups["url"].Value;
+                    break;
+                }
+            }
+
+            if (nextLink is null)
+                return items;
+
+            if (!visitedNextLinks.Add(nextLink))
+                throw new PluginApplicationException("GitLab pagination returned a repeated next-page link.");
+
+            var nextUri = Uri.TryCreate(nextLink, UriKind.Absolute, out var absoluteNextUri)
+                ? absoluteNextUri
+                : new Uri(response.ResponseUri ?? this.BuildUri(currentRequest), nextLink);
+            var baseUri = new Uri(BaseUrl);
+            if (!string.Equals(nextUri.Scheme, baseUri.Scheme, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(nextUri.Host, baseUri.Host, StringComparison.OrdinalIgnoreCase) ||
+                nextUri.Port != baseUri.Port)
+                throw new PluginApplicationException("GitLab pagination returned a next-page link for another host.");
+
+            currentRequest = CreateRequest(nextUri.PathAndQuery, Method.Get);
         }
-
-        return items;
     }
 
     public static string GetBaseUrl(IEnumerable<AuthenticationCredentialsProvider> creds)
@@ -91,13 +240,28 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
 
         return response.RawBytes ?? [];
     }
-    
-    public async Task<Project> GetProject(int projectId)
+
+    public Task<Project> GetProject(int projectId) => GetProject(projectId, CancellationToken.None);
+
+    internal async Task<Project> GetProject(int projectId, CancellationToken cancellationToken)
     {
         var request = CreateRequest($"/projects/{projectId}", Method.Get);
-        return await ExecuteWithErrorHandling<Project>(request);
+        var response = await ExecuteWithErrorHandling(request, cancellationToken);
+        Project? project;
+        try
+        {
+            project = JsonConvert.DeserializeObject<Project>(response.Content ?? string.Empty, JsonSettings);
+        }
+        catch (JsonException exception)
+        {
+            throw new PluginApplicationException(
+                $"GitLab returned invalid JSON for project {projectId}: {exception.Message}");
+        }
+
+        return project
+               ?? throw new PluginApplicationException($"GitLab returned an invalid project {projectId} response.");
     }
-    
+
     public async Task<RepositoryFileResponse> GetFileInfo(int projectId, string filePath, string branch)
     {
         string endpoint = $"/projects/{projectId}/repository/files/{Uri.EscapeDataString(filePath)}";

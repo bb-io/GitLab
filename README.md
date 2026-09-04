@@ -13,7 +13,7 @@ GitLab is a developer platform that allows developers to create, store, and mana
 Before you can connect you need to make sure that:
 
 - You have a GitLab account.
-- You have owner permissions on the repository you want to automate on.
+- You have the access level required by the feature: Reporter for cross-repository polling, or Maintainer/Owner for project webhook events.
 
 ## Connecting
 
@@ -149,23 +149,57 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 - **On files modified** On files modified by new commits. Outputs paths to modified files.
 - **On files added or modified** On files added or modified by new commits. Outputs paths to added or modified files.
 - **On files removed** On files removed by new commits. Outputs paths to removed files.
-- **On files modified in groups** On files modified in repositories owned by selected groups or their descendant groups.
-
-#### Group file modification event
-
-**On files modified in groups** uses one GitLab group webhook for each selected group hierarchy. GitLab Premium or Ultimate and Owner access are required. Selecting both a parent and its child creates only the parent hook. Projects created later are covered when they belong to a selected group hierarchy; republishing the bird is not required.
-
-Repositories in personal namespaces, outside selected hierarchies, or only shared into selected groups are not supported. GitLab's multi-ref push limitation also applies.
-
-All filters are optional except **Groups to watch**. Repository, branch, file, commit-message, and push-user include and ignore filters are available. Ignore filters take precedence. Push-user filters use the top-level push actor and apply to the whole push. Regular expressions are case-sensitive; use `(?i)` for case-insensitive matching. File filters are globs, use `/` as directory separator, and a bare filename such as `en.po` matches at any depth.
-
-Commit-message and file rules must match within the same commit. Only paths in GitLab's `modified` array qualify; additions, deletions, and renames do not. GitLab includes at most the newest 20 commits in a push webhook. Only those commits are inspected. If one qualifies, every received commit is returned, up to 20. Older commits cannot trigger the event and do not appear in output. `Total commits count` and `Commits truncated` indicate omitted older commits. Event output has no push-time field and delivery processing makes no GitLab API calls.
 
 For the file specific events, a path parameter can be specified in order to narrow down the event to only files in specific folders or files that have certain extensions. Use the forward slash '/' to represent directory separator. Use '\*' to represent wildcards in file and directory names. Use '\*\*' to represent arbitrary directory depth.
 
 For example: when you want to create an event that triggers only when .html files are modified in a folder called _locales_. Then the path pattern should be: _/locales/\*.html_
 
 ![1705407685118](image/README/1705407685118.png)
+
+### Polling for modified files across repositories
+
+- **On files modified across repositories** periodically checks push activity in multiple selected repositories. It uses read-only GitLab API requests and does not create project or group webhooks.
+
+#### Permissions
+
+Connection user needs at least the Reporter role in every selected repository. For a personal access token, grant `read_user` to read the global event feed and `read_api` to read projects, comparisons, and commit diffs. Existing tokens with the broader `api` scope also work.
+
+#### Inputs and matching
+
+**Repository IDs to include** is required. It is a multi-select field that displays each repository as `namespace/repository` while storing its stable numeric GitLab project ID.
+
+All other inputs are optional:
+
+- **Branches to watch**: case-sensitive regular expressions. A branch must match at least one when configured.
+- **Branches to ignore**: case-sensitive regular expressions. Ignore matches take precedence over watch matches.
+- **File patterns to watch**: glob patterns matched only against modified files. A bare filename such as `en.po` matches at any directory depth as `**/en.po`. Added, deleted, and renamed files do not qualify. Leaving this input empty accepts any modified file.
+- **Commit messages to include**: case-sensitive regular expressions. A commit must match at least one when configured.
+- **Commit messages to exclude**: case-sensitive regular expressions. Exclude matches take precedence over include matches.
+- **Pusher user IDs to watch**: GitLab user IDs. A push must come from one of these users when configured.
+- **Pusher user IDs to ignore**: GitLab user IDs. Ignore matches take precedence over watch matches.
+
+Commit-message and file-pattern matches must occur in the same commit. One qualifying commit makes the push qualify, but output includes every commit from that push. Matched file paths come only from qualifying commits.
+
+#### Output and polling behavior
+
+Each flight returns one `Pushes` batch containing every matching push found during that poll. Each push contains repository ID, repository name with namespace, branch name, push time, pusher user ID, matched file paths, and commits with hash, message, author name, and author email.
+
+First poll establishes a baseline and does not trigger. Changing any input also establishes a new baseline, preventing activity selected under the new configuration from being replayed. Later polls rescan a 24-hour overlap and de-duplicate processed GitLab event IDs. Memory advances only after the complete scan and all enrichment requests succeed, so an API failure or safety-limit failure does not lose events.
+
+#### API usage and safeguards
+
+A quiet poll reads one or more pages from the global GitLab Events API, then filters exact repository IDs before making repository-specific requests. A candidate push needs one compare request, one paginated diff request per message-qualified commit, and one project lookup per emitted repository. Enrichment runs with at most four concurrent requests. HTTP 429 responses are retried using `Retry-After` when supplied, capped at 60 seconds per retry; otherwise bounded exponential backoff with jitter is used.
+
+Polling has a 200-page event-feed limit, a 100-page limit per commit diff, and a five-minute total scan limit. Reaching a limit fails the poll instead of returning partial output or advancing memory.
+
+GitLab cannot provide a reliable comparison range for every push:
+
+- Bulk pushes above GitLab's multi-reference threshold, normally three refs, can omit branch and commit-range details. Incomplete events are recorded as processed and skipped.
+- New branches, deleted branches, and force pushes with an unrecoverable comparison range are skipped.
+- Diffs flagged by GitLab as collapsed or too large are skipped because matched paths may be incomplete.
+- GitLab can stop very large commit diffs at the instance file limit; older versions might not flag that truncation, so matching can be less complete for unusually large commits.
+- The 24-hour overlap handles ordinary delays and pagination movement, not events that become visible more than 24 hours late.
+- The global event feed can return metadata for every project visible to the connection before local repository filtering occurs.
 
 ## Example
 

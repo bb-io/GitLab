@@ -1,0 +1,22 @@
+[
+  { "id": 1, "name": "repo-01", "path_with_namespace": "alpha/repo-01" },
+  { "id": 2, "name": "repo-02", "path_with_namespace": "alpha/repo-02" },
+  { "id": 3, "name": "repo-03", "path_with_namespace": "alpha/repo-03" },
+  { "id": 4, "name": "repo-04", "path_with_namespace": "alpha/repo-04" },
+  { "id": 5, "name": "repo-05", "path_with_namespace": "alpha/repo-05" },
+  { "id": 6, "name": "repo-06", "path_with_namespace": "alpha/repo-06" },
+  { "id": 7, "name": "repo-07", "path_with_namespace": "alpha/repo-07" },
+  { "id": 8, "name": "repo-08", "path_with_namespace": "alpha/repo-08" },
+  { "id": 9, "name": "repo-09", "path_with_namespace": "alpha/repo-09" },
+  { "id": 10, "name": "repo-10", "path_with_namespace": "alpha/repo-10" },
+  { "id": 11, "name": "repo-11", "path_with_namespace": "alpha/repo-11" },
+  { "id": 12, "name": "repo-12", "path_with_namespace": "alpha/repo-12" },
+  { "id": 13, "name": "repo-13", "path_with_namespace": "alpha/repo-13" },
+  { "id": 14, "name": "repo-14", "path_with_namespace": "alpha/repo-14" },
+  { "id": 15, "name": "repo-15", "path_with_namespace": "alpha/repo-15" },
+  { "id": 16, "name": "repo-16", "path_with_namespace": "alpha/repo-16" },
+  { "id": 17, "name": "repo-17", "path_with_namespace": "alpha/repo-17" },
+  { "id": 18, "name": "repo-18", "path_with_namespace": "alpha/repo-18" },
+  { "id": 19, "name": "repo-19", "path_with_namespace": "alpha/repo-19" },
+  { "id": 20, "name": "repo-20", "path_with_namespace": "alpha/repo-20" }
+]
