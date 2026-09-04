@@ -1,0 +1,12 @@
+{
+  "commits": [
+    {
+      "id": "sha-401-large",
+      "message": "translate large catalog",
+      "author_name": "Large Diff User",
+      "author_email": "large@example.test"
+    }
+  ],
+  "compare_timeout": false,
+  "compare_same_ref": false
+}

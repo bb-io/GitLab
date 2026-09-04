@@ -1,0 +1,18 @@
+{
+  "commits": [
+    {
+      "id": "sha-101-translate",
+      "message": "translate catalogs",
+      "author_name": "Translator One",
+      "author_email": "translator@example.test"
+    },
+    {
+      "id": "sha-101-docs",
+      "message": "update generated output",
+      "author_name": "Writer Two",
+      "author_email": "writer@example.test"
+    }
+  ],
+  "compare_timeout": false,
+  "compare_same_ref": false
+}

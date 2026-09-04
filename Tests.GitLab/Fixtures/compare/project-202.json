@@ -1,0 +1,12 @@
+{
+  "commits": [
+    {
+      "id": "sha-202-release",
+      "message": "release localization",
+      "author_name": "Release User",
+      "author_email": "release@example.test"
+    }
+  ],
+  "compare_timeout": false,
+  "compare_same_ref": false
+}

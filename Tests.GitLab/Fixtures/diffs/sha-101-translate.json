@@ -1,0 +1,56 @@
+[
+  {
+    "old_path": "nested/deep/en.po",
+    "new_path": "nested/deep/en.po",
+    "new_file": false,
+    "deleted_file": false,
+    "renamed_file": false,
+    "collapsed": false,
+    "too_large": false
+  },
+  {
+    "old_path": "nested/deep/en.po",
+    "new_path": "nested/deep/en.po",
+    "new_file": false,
+    "deleted_file": false,
+    "renamed_file": false,
+    "collapsed": false,
+    "too_large": false
+  },
+  {
+    "old_path": "",
+    "new_path": "added/only.po",
+    "new_file": true,
+    "deleted_file": false,
+    "renamed_file": false,
+    "collapsed": false,
+    "too_large": false
+  },
+  {
+    "old_path": "deleted/only.po",
+    "new_path": "deleted/only.po",
+    "new_file": false,
+    "deleted_file": true,
+    "renamed_file": false,
+    "collapsed": false,
+    "too_large": false
+  },
+  {
+    "old_path": "previous/only.po",
+    "new_path": "renamed/only.po",
+    "new_file": false,
+    "deleted_file": false,
+    "renamed_file": true,
+    "collapsed": false,
+    "too_large": false
+  },
+  {
+    "old_path": "README.md",
+    "new_path": "README.md",
+    "new_file": false,
+    "deleted_file": false,
+    "renamed_file": false,
+    "collapsed": false,
+    "too_large": false
+  }
+]
