@@ -172,6 +172,19 @@ public class GroupPushWebhookTests
         }, [CreateCommit(new string('a', 100_000) + "!", "en.po")]));
     }
 
+    [TestMethod]
+    public async Task MalformedAndNullPayloads_ReturnPreflightWithHttp200()
+    {
+        var webhook = new GroupPushWebhooks(new InvocationContext());
+        foreach (var body in new[] { "{", "null" })
+        {
+            var response = await webhook.FilesModifiedInGroups(new WebhookRequest { Body = body },
+                new GroupWebhookInput { GroupIds = ["1"] }, new CrossRepositoryFileModifiedInput());
+
+            AssertPreflight(response);
+        }
+    }
+
     private static GitLabCommit CreateCommit(string message, params string[] modified)
     {
         return CreateCommit(message, modified, [], []);

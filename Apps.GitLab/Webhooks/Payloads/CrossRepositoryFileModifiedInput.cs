@@ -6,11 +6,11 @@ namespace Apps.GitLab.Webhooks.Payloads;
 
 public class CrossRepositoryFileModifiedInput
 {
-    [Display("Repositories to watch", Description = "Optional repositories inside selected groups")]
+    [Display("Repository IDs to watch", Description = "Optional repositories inside selected groups")]
     [DataSource(typeof(RepositoryDataHandler))]
     public IEnumerable<string>? RepositoryIds { get; set; }
 
-    [Display("Repositories to ignore", Description = "Ignored repositories take precedence")]
+    [Display("Repository IDs to ignore", Description = "Ignored repositories take precedence")]
     [DataSource(typeof(RepositoryDataHandler))]
     public IEnumerable<string>? IgnoredRepositoryIds { get; set; }
 
@@ -29,11 +29,11 @@ public class CrossRepositoryFileModifiedInput
     [Display("Commit messages to exclude", Description = "Case-sensitive regular expressions; exclusion wins for each commit")]
     public IEnumerable<string>? ExcludedCommitMessagePatterns { get; set; }
 
-    [Display("Push users to include", Description = "Filter whole push by GitLab push actor")]
+    [Display("Push user IDs to include", Description = "Filter whole push by GitLab push actor")]
     [DataSource(typeof(UsersDataHandler))]
     public IEnumerable<string>? UserIds { get; set; }
 
-    [Display("Push users to ignore", Description = "Ignored push users take precedence for whole push")]
+    [Display("Push user IDs to ignore", Description = "Ignored push users take precedence for whole push")]
     [DataSource(typeof(UsersDataHandler))]
     public IEnumerable<string>? IgnoredUserIds { get; set; }
 }

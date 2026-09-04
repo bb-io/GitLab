@@ -56,12 +56,18 @@ public class GroupWebhookHandlerIntegrationTests
         }
         finally
         {
-            await handler.UnsubscribeAsync(credentials, values);
-            if (controlHook is not null)
+            try
             {
-                await client.ExecuteWithErrorHandling(
-                    client.CreateRequest($"/groups/{groupId}/hooks/{controlHook.Id}", Method.Delete),
-                    System.Net.HttpStatusCode.NotFound);
+                await handler.UnsubscribeAsync(credentials, values);
+            }
+            finally
+            {
+                if (controlHook is not null)
+                {
+                    await client.ExecuteWithErrorHandling(
+                        client.CreateRequest($"/groups/{groupId}/hooks/{controlHook.Id}", Method.Delete),
+                        System.Net.HttpStatusCode.NotFound);
+                }
             }
         }
     }

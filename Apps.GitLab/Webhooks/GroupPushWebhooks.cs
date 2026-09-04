@@ -24,9 +24,19 @@ public class GroupPushWebhooks(InvocationContext invocationContext) : BaseInvoca
         [WebhookParameter(true)] GroupWebhookInput groupInput,
         [WebhookParameter] CrossRepositoryFileModifiedInput input)
     {
-        var payload = JsonConvert.DeserializeObject<PushPayload>(webhookRequest.Body?.ToString() ?? string.Empty);
+        PushPayload? payload;
+        try
+        {
+            payload = JsonConvert.DeserializeObject<PushPayload>(webhookRequest.Body?.ToString() ?? string.Empty);
+        }
+        catch (JsonException ex)
+        {
+            InvocationContext.Logger?.LogError($"Malformed group push webhook payload: {ex.Message}", []);
+            return Task.FromResult(Preflight());
+        }
+
         if (payload is null)
-            throw new InvalidCastException(nameof(webhookRequest.Body));
+            return Task.FromResult(Preflight());
 
         if (!string.Equals(payload.ObjectKind, "push", StringComparison.Ordinal) ||
             !string.Equals(payload.EventName, "push", StringComparison.Ordinal) ||
