@@ -149,17 +149,6 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 - **On files modified** On files modified by new commits. Outputs paths to modified files.
 - **On files added or modified** On files added or modified by new commits. Outputs paths to added or modified files.
 - **On files removed** On files removed by new commits. Outputs paths to removed files.
-- **On files modified in groups** On files modified in repositories owned by selected groups or their descendant groups.
-
-#### Group file modification event
-
-**On files modified in groups** uses one GitLab group webhook for each selected group hierarchy. GitLab Premium or Ultimate and Owner access are required. Selecting both a parent and its child creates only the parent hook. Projects created later are covered when they belong to a selected group hierarchy; republishing the bird is not required.
-
-Repositories in personal namespaces, outside selected hierarchies, or only shared into selected groups are not supported. GitLab's multi-ref push limitation also applies.
-
-All filters are optional except **Groups to watch**. Repository, branch, file, commit-message, and push-user include and ignore filters are available. Ignore filters take precedence. Push-user filters use the top-level push actor and apply to the whole push. Regular expressions are case-sensitive; use `(?i)` for case-insensitive matching. File filters are globs, use `/` as directory separator, and a bare filename such as `en.po` matches at any depth.
-
-Commit-message and file rules must match within the same commit. Only paths in GitLab's `modified` array qualify; additions, deletions, and renames do not. GitLab includes at most the newest 20 commits in a push webhook. Only those commits are inspected. If one qualifies, every received commit is returned, up to 20. Older commits cannot trigger the event and do not appear in output. `Total commits count` and `Commits truncated` indicate omitted older commits. Event output has no push-time field and delivery processing makes no GitLab API calls.
 
 For the file specific events, a path parameter can be specified in order to narrow down the event to only files in specific folders or files that have certain extensions. Use the forward slash '/' to represent directory separator. Use '\*' to represent wildcards in file and directory names. Use '\*\*' to represent arbitrary directory depth.
 
