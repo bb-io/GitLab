@@ -122,6 +122,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
   Advanced settings:
   - **Path pattern**: Use forward slash '/' to represent directory separator. Use '*' to represent wildcards in file and directory names. Use '**' to represent arbitrary directory depth.
 - **Upload file** Create file or update existing file in a repository.
+- **Upload multiple files** Create or update multiple files in a repository in one commit.
 - **Update file** Update existing file in a repository.
 - **Delete file** Delete file from a repository.
 

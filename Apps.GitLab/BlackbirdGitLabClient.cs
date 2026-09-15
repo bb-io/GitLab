@@ -280,18 +280,24 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
 
     public async Task<Commit> PushChanges(int projectId, string? branchName, string commitMessage,
         string filePath, byte[]? file, string action)
+        => await PushChanges(
+            projectId,
+            branchName,
+            commitMessage,
+            [new FileActionDto(action, filePath, file)]);
+
+    public async Task<Commit> PushChanges(int projectId, string? branchName, string commitMessage,
+        IEnumerable<FileActionDto> actions)
     {
         var branch = string.IsNullOrWhiteSpace(branchName) ? (await GetProject(projectId)).DefaultBranch : branchName;
+        var fileActions = actions.ToArray();
 
         var request = CreateRequest($"/projects/{projectId}/repository/commits", Method.Post);
         request.AddJsonBody(new
         {
             branch,
             commit_message = commitMessage,
-            actions = new[]
-            {
-                new FileActionDto(action, filePath, file)
-            }
+            actions = fileActions
         });
 
         return await ExecuteWithErrorHandling<Commit>(request);

@@ -4,13 +4,14 @@ namespace Apps.GitLab.Dtos;
 
 public class FileActionDto
 {
-    public FileActionDto(string action, string filePath, byte[] file)
+    public FileActionDto(string action, string filePath, byte[]? file)
     {
         Action = action;
         FilePath = filePath;
 
         if(action != "delete")
         {
+            ArgumentNullException.ThrowIfNull(file);
             Content = Convert.ToBase64String(file);
             Encoding = "base64";
         }
@@ -23,8 +24,10 @@ public class FileActionDto
     public string FilePath { get; set; }
 
     [JsonPropertyName("content")]
-    public string Content { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Content { get; set; }
 
     [JsonPropertyName("encoding")]
-    public string Encoding { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Encoding { get; set; }
 }

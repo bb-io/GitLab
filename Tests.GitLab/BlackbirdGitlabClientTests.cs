@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Net;
+using Apps.GitLab.Dtos;
 using Apps.GitLab.Polling.Models;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Newtonsoft.Json.Linq;
 using RestSharp;
 using Tests.GitLab.Base;
 
@@ -10,6 +12,58 @@ namespace Tests.GitLab;
 [TestClass]
 public class BlackbirdGitlabClientTests
 {
+    [TestMethod]
+    public async Task PushChanges_SendsAllFileActionsInOneCommitRequest()
+    {
+        string? requestBody = null;
+        var handler = new StubHttpMessageHandler(async (request, _) =>
+        {
+            Assert.AreEqual(HttpMethod.Post, request.Method);
+            Assert.AreEqual("/api/v4/projects/101/repository/commits", request.RequestUri!.AbsolutePath);
+            requestBody = await request.Content!.ReadAsStringAsync();
+
+            return GitLabTestData.Json("""
+                {
+                  "id": "commit-id",
+                  "short_id": "commit-id",
+                  "title": "Upload files",
+                  "message": "Upload files",
+                  "author_name": "Test User",
+                  "author_email": "test@example.com",
+                  "committer_name": "Test User",
+                  "committer_email": "test@example.com",
+                  "authored_date": "2026-09-14T10:00:00Z",
+                  "committed_date": "2026-09-14T10:00:00Z",
+                  "created_at": "2026-09-14T10:00:00Z",
+                  "parent_ids": [],
+                  "web_url": "https://gitlab.test/commit-id"
+                }
+                """);
+        });
+        var client = GitLabTestData.CreateClient(handler);
+
+        var result = await client.PushChanges(
+            101,
+            "main",
+            "Upload files",
+            [
+                new FileActionDto("create", "locales/en.json", [1, 2, 3]),
+                new FileActionDto("update", "locales/fr.json", [4, 5, 6])
+            ]);
+
+        Assert.AreEqual("commit-id", result.Id);
+        var payload = JObject.Parse(requestBody!);
+        Assert.AreEqual("main", payload["branch"]!.Value<string>());
+        Assert.AreEqual("Upload files", payload["commit_message"]!.Value<string>());
+        var actions = (JArray)payload["actions"]!;
+        Assert.AreEqual(2, actions.Count);
+        Assert.AreEqual("create", actions[0]!["action"]!.Value<string>());
+        Assert.AreEqual("locales/en.json", actions[0]!["file_path"]!.Value<string>());
+        Assert.AreEqual(Convert.ToBase64String([1, 2, 3]), actions[0]!["content"]!.Value<string>());
+        Assert.AreEqual("update", actions[1]!["action"]!.Value<string>());
+        Assert.AreEqual("locales/fr.json", actions[1]!["file_path"]!.Value<string>());
+    }
+
     [TestMethod]
     public async Task Pagination_FollowsLinkAcrossShortAndEmptyPages()
     {
