@@ -11,6 +11,7 @@ using Apps.GitLab.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using GitLabApiClient.Models.Commits.Responses;
@@ -214,6 +215,50 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
         return await CommitFile(repository, branch, input, action);
     }
 
+    [Action("Upload multiple files", Description = "Create or update multiple files in a repository in one commit")]
+    public async Task<UploadFilesResponse> PushFiles(
+        [ActionParameter] GetRepositoryRequest repositoryRequest,
+        [ActionParameter] GetOptionalBranchRequest branchRequest,
+        [ActionParameter] PushFilesRequest input)
+    {
+        var files = input.Files?.ToList() ?? [];
+        var destinationFilePaths = input.DestinationFilePaths?
+            .Select(path => path?.Trim().Trim('/') ?? string.Empty)
+            .ToList() ?? [];
+        ValidateMultipleFileInput(files, destinationFilePaths);
+
+        var projectId = ParseProjectId(repositoryRequest.RepositoryId);
+        var repository = await RestClient.GetProject(projectId);
+        var branch = branchRequest.Name ?? repository.DefaultBranch;
+        var preparedFiles = new List<PreparedFileUpload>(files.Count);
+
+        for (var index = 0; index < files.Count; index++)
+        {
+            var file = files[index];
+            var destinationFilePath = destinationFilePaths[index];
+            var action = await CheckFileExists(projectId, destinationFilePath, branch)
+                ? GitLabCommitActions.Update
+                : GitLabCommitActions.Create;
+
+            preparedFiles.Add(await PrepareFileUpload(file, destinationFilePath, action));
+        }
+
+        var pushResult = await RestClient.PushChanges(
+            projectId,
+            branch,
+            input.CommitMessage,
+            preparedFiles.Select(file => new FileActionDto(
+                file.Action,
+                file.DestinationFilePath,
+                file.Content)));
+
+        var uploadedFiles = new List<UploadedFileResponse>(preparedFiles.Count);
+        foreach (var preparedFile in preparedFiles)
+            uploadedFiles.Add(await CreateUploadedFileResponse(repository, branch, pushResult, preparedFile));
+
+        return new UploadFilesResponse(new CommitDto(pushResult), uploadedFiles);
+    }
+
     [Action("Update file", Description = "Update existing file in a repository")]
     public async Task<UploadFileResponse> UpdateFile(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
@@ -284,6 +329,97 @@ public class CommitActions(InvocationContext invocationContext, IFileManagementC
 
         return new(commitDto, targetFile, metadataFile.NumberOfUnits, metadataFile.Metadata);
     }
+
+    private async Task<PreparedFileUpload> PrepareFileUpload(
+        FileReference file,
+        string destinationFilePath,
+        string action)
+    {
+        await using var downloadedFileStream = await fileManagementClient.DownloadAsync(file);
+        using var fileStream = new MemoryStream();
+        await downloadedFileStream.CopyToAsync(fileStream);
+        var originalContent = fileStream.ToArray();
+        fileStream.Position = 0;
+
+        var processedFile = await InteroperableFileHelper.StripMetadata(
+            fileStream: fileStream,
+            fileName: file.Name,
+            contentType: file.ContentType,
+            logger: InvocationContext.Logger);
+
+        return new PreparedFileUpload(
+            file,
+            destinationFilePath,
+            action,
+            originalContent,
+            processedFile.Content,
+            processedFile.MetadataType);
+    }
+
+    private async Task<UploadedFileResponse> CreateUploadedFileResponse(
+        Project repository,
+        string branch,
+        Commit pushResult,
+        PreparedFileUpload preparedFile)
+    {
+        if (preparedFile.MetadataType is null)
+            return new UploadedFileResponse(preparedFile.File, preparedFile.DestinationFilePath, 0, null);
+
+        using var originalFileStream = new MemoryStream(preparedFile.OriginalContent);
+        var metadataFile = InteroperableFileHelper.AddMetadata(
+            fileStream: originalFileStream,
+            fileName: preparedFile.File.Name,
+            contentType: preparedFile.File.ContentType,
+            path: preparedFile.DestinationFilePath,
+            branchName: branch,
+            repoWebUrl: repository.WebUrl,
+            repoPathWithNamespace: repository.PathWithNamespace,
+            baseUrl: RestClient.BaseUrl,
+            dateChanged: new DateTimeOffset(pushResult.CommittedDate),
+            reviewProvenance: null,
+            metadataType: preparedFile.MetadataType.Value,
+            logger: InvocationContext.Logger);
+
+        using (metadataFile.FileStream)
+        {
+            var targetFile = await fileManagementClient.UploadAsync(
+                metadataFile.FileStream,
+                metadataFile.MimeType,
+                metadataFile.FileName);
+
+            return new UploadedFileResponse(
+                targetFile,
+                preparedFile.DestinationFilePath,
+                metadataFile.NumberOfUnits,
+                metadataFile.Metadata);
+        }
+    }
+
+    private static void ValidateMultipleFileInput(
+        IReadOnlyCollection<FileReference> files,
+        IReadOnlyCollection<string> destinationFilePaths)
+    {
+        if (files.Count == 0)
+            throw new PluginMisconfigurationException("At least one file must be provided.");
+
+        if (files.Count != destinationFilePaths.Count)
+            throw new PluginMisconfigurationException(
+                "The number of files must match the number of destination file paths.");
+
+        if (destinationFilePaths.Any(string.IsNullOrWhiteSpace))
+            throw new PluginMisconfigurationException("Destination file paths cannot be empty.");
+
+        if (destinationFilePaths.Distinct(StringComparer.Ordinal).Count() != destinationFilePaths.Count)
+            throw new PluginMisconfigurationException("Destination file paths must be unique.");
+    }
+
+    private sealed record PreparedFileUpload(
+        FileReference File,
+        string DestinationFilePath,
+        string Action,
+        byte[] OriginalContent,
+        byte[] Content,
+        BlackbirdMetadataType? MetadataType);
     
     public async Task<bool> CheckFileExists(int projectId, string filePath, string branch)
     {
