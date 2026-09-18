@@ -89,7 +89,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
   - **Enable printing merge request link**: Option to print merge request links.
   - **CI config path**: CI config file path.
   - **Initialize with README**: Option to create an initial README file.
-- **Download file** Download a file from a repository by file path.
+- **Download file** Download a file from a repository by file path. Optionally specify **Commit ID (SHA)** to download the file at a specific commit, overriding the branch selection. When omitted, the selected branch (or the repository's default branch) is used.
   Advanced settings:
   - **Branch name**: Branch to use instead of the default branch.
 - **Get all files in folder** Get files from a repository folder.

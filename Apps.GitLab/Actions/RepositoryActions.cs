@@ -52,12 +52,14 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
     {
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
         var repository = await RestClient.GetProject(projectId);
-        var branch = branchRequest.Name ?? repository.DefaultBranch;
+        var reference = string.IsNullOrWhiteSpace(getFileRequest.CommitId)
+            ? branchRequest.Name ?? repository.DefaultBranch
+            : getFileRequest.CommitId.Trim();
 
         return await GetFile(
             projectId,
             repository,
-            branch,
+            reference,
             getFileRequest.FilePath,
             getFileRequest.ContentId);
     }
