@@ -10,6 +10,9 @@ public class GetFileRequest
     [FileDataSource(typeof(FilePickerDataHandler))]
     public string FilePath { get; set; } = string.Empty;
 
+    [Display("Commit ID (SHA)", Description = "Download the file at this commit instead of the selected or default branch. Leave empty to use the branch.")]
+    public string? CommitId { get; set; }
+
     [Display("Content ID")]
     public string? ContentId { get; set; }
 }
