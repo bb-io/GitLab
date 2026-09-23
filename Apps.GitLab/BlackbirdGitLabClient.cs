@@ -54,7 +54,8 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         _authenticationCredentials = authenticationCredentialsProviders;
         BaseUrl = GetBaseUrl(authenticationCredentialsProviders);
         _retryPolicy = Policy
-            .HandleResult<RestResponse>(response => response.StatusCode == HttpStatusCode.TooManyRequests)
+            .HandleResult<RestResponse>(response =>
+                response.StatusCode == HttpStatusCode.TooManyRequests || IsRetryableTransportFailure(response))
             .WaitAndRetryAsync(
                 RetryCount,
                 (retryAttempt, result, _) =>
@@ -303,8 +304,21 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         return await ExecuteWithErrorHandling<Commit>(request);
     }
 
+    private static bool IsTransportFailure(RestResponse response)
+        => response.StatusCode == 0 && response.ResponseStatus is ResponseStatus.Error or ResponseStatus.TimedOut;
+
+    private static bool IsRetryableTransportFailure(RestResponse response)
+        => response.StatusCode == 0 &&
+           response.ResponseStatus == ResponseStatus.Error &&
+           response.Request.Method == Method.Get;
+
     protected override Exception ConfigureErrorException(RestResponse response)
     {
+        if (IsTransportFailure(response))
+            return new PluginApplicationException(
+                $"Could not reach GitLab for {response.Request.Method.ToString().ToUpperInvariant()} " +
+                $"{response.Request.Resource}: {response.ErrorException?.GetBaseException().Message ?? response.ErrorMessage}");
+
         var message = $"{(int)response.StatusCode}: {response.ErrorMessage ?? response.Content}";
 
         return response.StatusCode switch
