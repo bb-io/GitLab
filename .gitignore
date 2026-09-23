@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /Tests.GitLab/appsettings.json
 /Tests.GitLab/Output/
+.idea
