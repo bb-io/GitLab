@@ -303,15 +303,7 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
 
         return await ExecuteWithErrorHandling<Commit>(request);
     }
-
-    private static bool IsTransportFailure(RestResponse response)
-        => response.StatusCode == 0 && response.ResponseStatus is ResponseStatus.Error or ResponseStatus.TimedOut;
-
-    private static bool IsRetryableTransportFailure(RestResponse response)
-        => response.StatusCode == 0 &&
-           response.ResponseStatus == ResponseStatus.Error &&
-           response.Request.Method == Method.Get;
-
+    
     protected override Exception ConfigureErrorException(RestResponse response)
     {
         if (IsTransportFailure(response))
@@ -323,11 +315,19 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
 
         return response.StatusCode switch
         {
-            System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden =>
+            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden =>
                 new PluginMisconfigurationException(message),
             _ => new PluginApplicationException(message)
         };
     }
+
+    private static bool IsTransportFailure(RestResponse response)
+        => response.StatusCode == 0 && response.ResponseStatus is ResponseStatus.Error or ResponseStatus.TimedOut;
+
+    private static bool IsRetryableTransportFailure(RestResponse response)
+        => response.StatusCode == 0 &&
+           response.ResponseStatus == ResponseStatus.Error &&
+           response.Request.Method == Method.Get;
 
     private static string NormalizeApiResource(string resource)
     {
