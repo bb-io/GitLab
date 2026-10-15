@@ -311,6 +311,45 @@ public class BlackbirdGitlabClientTests
     }
 
     [TestMethod]
+    public async Task TransportFailure_GetIsRetriedAndSucceeds()
+    {
+        var calls = 0;
+        var handler = new StubHttpMessageHandler((_, _) =>
+        {
+            if (Interlocked.Increment(ref calls) == 1)
+                throw new HttpRequestException("Connection reset by peer");
+
+            return Task.FromResult(GitLabTestData.JsonFixture("events/page-one.json"));
+        });
+        var client = GitLabTestData.CreateClient(handler);
+
+        var events = await client.ExecuteWithErrorHandling<List<GitLabPushEvent>>(
+            client.CreateRequest("/events", Method.Get));
+
+        Assert.AreEqual(2, calls);
+        Assert.AreEqual(9001, events.Single().Id);
+    }
+
+    [TestMethod]
+    public async Task TransportFailure_PostIsNotRetriedAndSurfacesCause()
+    {
+        var calls = 0;
+        var handler = new StubHttpMessageHandler((_, _) =>
+        {
+            Interlocked.Increment(ref calls);
+            throw new HttpRequestException("Connection reset by peer");
+        });
+        var client = GitLabTestData.CreateClient(handler);
+
+        var exception = await Assert.ThrowsExactlyAsync<PluginApplicationException>(() =>
+            client.ExecuteWithErrorHandling(client.CreateRequest("/projects/101/repository/commits", Method.Post)));
+
+        Assert.AreEqual(1, calls);
+        StringAssert.Contains(exception.Message, "Could not reach GitLab for POST /api/v4/projects/101/repository/commits");
+        StringAssert.Contains(exception.Message, "Connection reset by peer");
+    }
+
+    [TestMethod]
     public async Task Non429Failure_IsNotRetried()
     {
         var calls = 0;

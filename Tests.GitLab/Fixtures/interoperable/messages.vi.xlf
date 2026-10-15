@@ -1,0 +1,79 @@
+<xliff srcLang="en" trgLang="vi" version="2.2" xmlns:mda="urn:oasis:names:tc:xliff:metadata:2.0" xmlns:pgs="urn:oasis:names:tc:xliff:pgs:1.0" xmlns="urn:oasis:names:tc:xliff:document:2.2">
+  <file id="f1">
+    <skeleton>msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Save"
+msgstr "Save"
+
+msgid "{0} file"
+msgid_plural "{0} files"
+msgstr[0] "{0} file"
+msgstr[1] "{0} files"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Delete"
+msgstr "Delete"
+</skeleton>
+    <mda:metadata>
+      <mda:metaGroup category="blackbird">
+        <mda:meta type="original-name">messages.po</mda:meta>
+        <mda:meta type="original-media-type">text/x-gettext-translation</mda:meta>
+      </mda:metaGroup>
+      <mda:metaGroup>
+        <mda:meta type="Language">en</mda:meta>
+        <mda:meta type="Content-Type">text/plain; charset=UTF-8</mda:meta>
+        <mda:meta type="Plural-Forms">nplurals=2; plural=(n != 1);</mda:meta>
+      </mda:metaGroup>
+    </mda:metadata>
+    <unit id="u1" name="Save">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Save</mda:meta>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Save</source>
+        <target>Lưu</target>
+      </segment>
+    </unit>
+    <unit id="u2" name="{0} file" pgs:switch="plural:n">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">{0} file</mda:meta>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated" pgs:case="other">
+        <source>{0} files</source>
+        <target>{0} tệp</target>
+      </segment>
+    </unit>
+    <unit id="u3" name="Cancel">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Cancel</mda:meta>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Cancel</source>
+        <target>Hủy</target>
+      </segment>
+    </unit>
+    <unit id="u4" name="Delete">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">Delete</mda:meta>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment state="translated">
+        <source>Delete</source>
+        <target>Xóa</target>
+      </segment>
+    </unit>
+  </file>
+</xliff>
