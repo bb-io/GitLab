@@ -43,6 +43,23 @@ public class RepositoryActionTests : TestBaseWithContext
     }
 
     [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
+    public async Task GetFile_ReturnsFile(InvocationContext context)
+    {
+        // Arrange
+        var action = new RepositoryActions(context, FileManagementClient);
+        var repoRequest = new GetRepositoryRequest { RepositoryId = "84026361" };
+        var branchRequest = new GetOptionalBranchRequest { };
+        var fileRequest = new GetFileRequest { FilePath = "boom.json" };
+
+        // Act
+        var result = await action.GetFile(repoRequest, branchRequest, fileRequest);
+
+        // Assert
+        PrintResult(result.File.Name);
+        Assert.IsNotNull(result.File);
+    }
+    
+    [TestMethod, ContextDataSource(ConnectionTypes.OAuth)]
     public async Task GetFile_WithExistingFile_ReturnsFile(InvocationContext context)
     {
         // Arrange
