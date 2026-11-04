@@ -24,9 +24,8 @@ internal sealed class FilesModifiedDiagnostics(BlackbirdGitlabClient client)
     private readonly Dictionary<string, JObject> _diffs = new(StringComparer.OrdinalIgnoreCase);
     private bool _complete = true;
 
-    internal async Task<DiagnoseEventStreamResponse> CollectEventStreamAsync(DateTimeOffset timestamp, int minutes)
+    internal async Task<DiagnoseEventStreamResponse> CollectEventStreamAsync(int repositoryId, DateTimeOffset timestamp, int minutes)
     {
-        const int maximumReportedEvents = 1000;
         var collectedAt = DateTimeOffset.UtcNow;
         var center = timestamp.ToUniversalTime();
         var from = center.AddMinutes(-minutes);
@@ -42,62 +41,111 @@ internal sealed class FilesModifiedDiagnostics(BlackbirdGitlabClient client)
             ["per_page"] = "100"
         };
         using var deadline = new CancellationTokenSource(MaximumDuration);
-        var scan = await PagesAsync("/events", query, MaximumEventPages, deadline.Token);
-        var evidence = scan.Items.OfType<JObject>().Select(item => StreamEventEvidence(item, from, to)).ToList();
-        var inWindow = evidence.Count(item => item["in_requested_window"]?.Value<bool?>() == true);
-        var unknownTime = evidence.Count(item => item["in_requested_window"]?.Type == JTokenType.Null);
-        if (unknownTime > 0) Warn($"{unknownTime} event(s) had missing or invalid timestamps; window membership is unknown.");
-        if (evidence.Count != scan.Items.Count) Warn("The event stream included non-object records which could not be inspected.");
-        if (evidence.Count > maximumReportedEvents)
-            Warn($"Only {maximumReportedEvents} of {evidence.Count} events are reported; events inside the requested window take priority.");
-        // Preserve feed order unless the report cap requires prioritizing records within the exact window.
-        var reported = evidence.Count <= maximumReportedEvents ? evidence : evidence
-            .OrderByDescending(item => item["in_requested_window"]?.Value<bool?>() == true)
-            .Take(maximumReportedEvents).ToList();
-        var summary = $"Found {inWindow} event(s) in the requested time window from {scan.Items.Count} returned event record(s).";
+        var global = await CollectStreamAsync("/events", query, repositoryId, from, to, deadline.Token);
+        var repositoryQuery = new Dictionary<string, string>(query);
+        repositoryQuery.Remove("scope");
+        var repository = await CollectStreamAsync($"/projects/{repositoryId}/events", repositoryQuery,
+            repositoryId, from, to, deadline.Token);
+        var comparison = CompareStreams(global, repository, repositoryId);
+        var summary = $"Selected repository events in the time window: global feed {global["repository_events_in_window_count"]}, " +
+                      $"repository feed {repository["repository_events_in_window_count"]}. " +
+                      $"{((JArray)comparison["repository_event_ids_missing_from_global"]!).Count} repository event(s) were absent from the collected global results.";
         if (!_complete) summary += " Evidence collection is partial.";
         var report = new JObject
         {
-            ["schema_version"] = 1,
+            ["schema_version"] = 2,
             ["collected_at_utc"] = collectedAt,
             ["collection_finished_at_utc"] = DateTimeOffset.UtcNow,
             ["app_version"] = typeof(FilesModifiedDiagnostics).Assembly.GetName().Version?.ToString(),
             ["base_url"] = client.BaseUrl,
+            ["repository_id"] = repositoryId.ToString(CultureInfo.InvariantCulture),
             ["timestamp_with_offset"] = timestamp.ToString("O", CultureInfo.InvariantCulture),
             ["timestamp_utc"] = center,
             ["minutes_before_and_after"] = minutes,
             ["window_from_utc"] = from,
             ["window_to_utc"] = to,
-            ["endpoint"] = "/events",
-            ["query"] = JObject.FromObject(query),
-            ["pages_scanned"] = scan.Pages,
-            ["pagination_complete"] = scan.Complete,
-            ["returned_event_count"] = scan.Items.Count,
-            ["events_in_window_count"] = inWindow,
-            ["events_with_unknown_timestamp_count"] = unknownTime,
-            ["reported_event_count"] = reported.Count,
-            ["events"] = new JArray(reported),
+            ["global_stream"] = global,
+            ["repository_stream"] = repository,
+            ["comparison"] = comparison,
             ["requests"] = _requests,
             ["collection_complete"] = _complete,
             ["warnings"] = _warnings,
             ["limits"] = JObject.FromObject(new
             {
-                maximum_pages = MaximumEventPages, maximum_reported_events = maximumReportedEvents,
+                maximum_pages_per_stream = MaximumEventPages, maximum_reported_events_per_stream = 1000,
                 maximum_request_operations = MaximumRequests, maximum_duration_seconds = MaximumDuration.TotalSeconds
             }),
             ["limitations"] = new JArray(
-                "The API request uses the same global endpoint, parameters and padded date bounds as the polling event for the supplied window.",
+                "The global request copies the polling event query. The repository request uses identical date bounds, action and sort against the selected project's events endpoint, without scope=all.",
                 "GitLab filters by date. Each returned record is additionally marked against the exact inclusive UTC timestamp window.",
                 "This queries currently visible and retained activity; it cannot reconstruct the original historical API response.",
-                "The supplied window replaces the poller's memory-derived scan window. Repository and other event filters, memory, deduplication and Flight creation are not simulated.",
+                "Comparison uses selected-repository event IDs inside the exact window. Missing IDs describe collected results; incomplete scans or reports can omit events.",
+                "The supplied window replaces the poller's memory-derived scan window. Branch/file filters, memory, deduplication and Flight creation are not simulated.",
+                "Collection completeness describes client retrieval, not a guarantee of exhaustive server-side history. Both streams share the three-minute deadline.",
                 "Request operations can include retries under the shared client policy; the deadline includes retries.")
         };
         return new DiagnoseEventStreamResponse
         {
-            Summary = summary, EventCount = inWindow, ReturnedEventCount = scan.Items.Count,
+            Summary = summary,
+            EventCount = global["events_in_window_count"]!.Value<int>(),
+            ReturnedEventCount = global["returned_event_count"]!.Value<int>(),
+            GlobalRepositoryEventCount = global["repository_events_in_window_count"]!.Value<int>(),
+            RepositoryEventCount = repository["repository_events_in_window_count"]!.Value<int>(),
+            RepositoryReturnedEventCount = repository["returned_event_count"]!.Value<int>(),
             CollectionComplete = _complete, ReportJson = report.ToString(Formatting.Indented)
         };
     }
+
+    private async Task<JObject> CollectStreamAsync(string endpoint, Dictionary<string, string> query,
+        int repositoryId, DateTimeOffset from, DateTimeOffset to, CancellationToken token)
+    {
+        const int maximumReportedEvents = 1000;
+        var scan = await PagesAsync(endpoint, query, MaximumEventPages, token);
+        var evidence = scan.Items.OfType<JObject>().Select(item => StreamEventEvidence(item, from, to)).ToList();
+        var inWindow = evidence.Count(item => item["in_requested_window"]?.Value<bool?>() == true);
+        var repositoryInWindow = evidence.Count(item => item["in_requested_window"]?.Value<bool?>() == true &&
+                                                       Number(item, "project_id") == repositoryId);
+        var unknownTime = evidence.Count(item => item["in_requested_window"]?.Type == JTokenType.Null);
+        var unknownId = evidence.Count(item => Number(item, "id") is not > 0 || Number(item, "project_id") is not > 0);
+        var complete = scan.Complete && unknownTime == 0 && unknownId == 0 &&
+                       evidence.Count == scan.Items.Count && evidence.Count <= maximumReportedEvents;
+        if (unknownTime > 0) Warn($"{endpoint}: {unknownTime} event(s) had missing or invalid timestamps; window membership is unknown.");
+        if (unknownId > 0) Warn($"{endpoint}: {unknownId} event(s) had missing or invalid event/repository IDs; comparison is incomplete.");
+        if (evidence.Count != scan.Items.Count) Warn($"{endpoint}: non-object records could not be inspected.");
+        if (evidence.Count > maximumReportedEvents)
+            Warn($"{endpoint}: only {maximumReportedEvents} of {evidence.Count} events are reported; selected-repository events inside the window take priority.");
+        var reported = evidence.Count <= maximumReportedEvents ? evidence : evidence
+            .OrderByDescending(item => item["in_requested_window"]?.Value<bool?>() == true && Number(item, "project_id") == repositoryId)
+            .ThenByDescending(item => item["in_requested_window"]?.Value<bool?>() == true)
+            .Take(maximumReportedEvents).ToList();
+        return new JObject
+        {
+            ["endpoint"] = endpoint, ["query"] = JObject.FromObject(query),
+            ["pages_scanned"] = scan.Pages, ["pagination_complete"] = scan.Complete,
+            ["returned_event_count"] = scan.Items.Count, ["events_in_window_count"] = inWindow,
+            ["repository_events_in_window_count"] = repositoryInWindow,
+            ["events_with_unknown_timestamp_count"] = unknownTime, ["reported_event_count"] = reported.Count,
+            ["collection_complete"] = complete, ["events"] = new JArray(reported)
+        };
+    }
+
+    internal static JObject CompareStreams(JObject global, JObject repository, int repositoryId)
+    {
+        var globalIds = WindowEvents(global, repositoryId).Select(item => Text(item, "id"))
+            .Where(id => id is not null).ToHashSet();
+        var missingIds = WindowEvents(repository, repositoryId).Select(item => Text(item, "id"))
+            .Where(id => id is not null && !globalIds.Contains(id)).Distinct().ToList();
+        return new JObject
+        {
+            ["repository_event_ids_missing_from_global"] = new JArray(missingIds),
+            ["complete"] = global["collection_complete"]?.Value<bool?>() == true &&
+                             repository["collection_complete"]?.Value<bool?>() == true
+        };
+    }
+
+    private static IEnumerable<JObject> WindowEvents(JObject stream, int repositoryId) =>
+        ((JArray)stream["events"]!).OfType<JObject>().Where(item =>
+            item["in_requested_window"]?.Value<bool?>() == true && Number(item, "project_id") == repositoryId);
 
     internal static JObject StreamEventEvidence(JObject item, DateTimeOffset from, DateTimeOffset to)
     {
@@ -241,6 +289,7 @@ internal sealed class FilesModifiedDiagnostics(BlackbirdGitlabClient client)
 
         var reportedEvents = candidates.Take(MaximumCandidates)
             .Concat(events.Values).Distinct().Take(MaximumReportedEvents).ToList();
+        var streamTimestamp = LatestRelatedPushTimestamp(candidates.Take(MaximumCandidates), branch);
         if (events.Count > MaximumReportedEvents)
             Warn($"Only {MaximumReportedEvents} of {events.Count} repository events are included in the report; enriched candidates take priority.");
         var summary = related > 0
@@ -256,6 +305,13 @@ internal sealed class FilesModifiedDiagnostics(BlackbirdGitlabClient client)
             ["base_url"] = client.BaseUrl,
             ["repository_id"] = repositoryId.ToString(CultureInfo.InvariantCulture),
             ["commit_sha"] = sha, ["expected_branch"] = branch,
+            ["event_stream_inputs"] = new JObject
+            {
+                ["repository_id"] = repositoryId.ToString(CultureInfo.InvariantCulture),
+                ["timestamp"] = streamTimestamp,
+                ["timestamp_source"] = streamTimestamp is null
+                    ? "no_confirmed_push_timestamp_on_expected_branch" : "latest_confirmed_push_on_expected_branch"
+            },
             ["repository"] = Pick(project, "id", "path_with_namespace", "default_branch"),
             ["commit"] = Pick(commit, "id", "parent_ids", "title", "message", "authored_date", "committed_date"),
             ["changed_files"] = targetDiff,
@@ -293,10 +349,19 @@ internal sealed class FilesModifiedDiagnostics(BlackbirdGitlabClient client)
         };
         return new DiagnoseFilesModifiedResponse
         {
+            RepositoryId = repositoryId.ToString(CultureInfo.InvariantCulture), Timestamp = streamTimestamp,
             Summary = summary, RelatedPushCount = related, CollectionComplete = _complete,
             ReportJson = report.ToString(Formatting.Indented)
         };
     }
+
+    internal static string? LatestRelatedPushTimestamp(IEnumerable<JObject> events, string branch) => events
+        .Where(item => Text(item, "target_commit_correlation") is "push_tip" or "push_comparison" &&
+                       Text(item["push_data"] as JObject, "ref") == branch)
+        .Select(item => Date(item, "created_at"))
+        .Where(timestamp => timestamp.HasValue)
+        .OrderByDescending(timestamp => timestamp)
+        .FirstOrDefault()?.ToString("O", CultureInfo.InvariantCulture);
 
     private async Task<JObject> DiffAsync(string root, string sha, CancellationToken token)
     {

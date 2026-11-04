@@ -15,9 +15,13 @@ namespace Apps.GitLab.Actions;
 public class PushDiagnosticActions(InvocationContext invocationContext) : BaseInvocable(invocationContext)
 {
     [Action("Diagnose event stream",
-        Description = "Inspect the polling event's global push feed around a specified timestamp")]
-    public Task<DiagnoseEventStreamResponse> DiagnoseEventStream([ActionParameter] DiagnoseEventStreamRequest input)
+        Description = "Compare global and repository push feeds around a specified timestamp")]
+    public Task<DiagnoseEventStreamResponse> DiagnoseEventStream(
+        [ActionParameter] GetRepositoryRequest repository,
+        [ActionParameter] DiagnoseEventStreamRequest input)
     {
+        if (!int.TryParse(repository.RepositoryId, NumberStyles.None, CultureInfo.InvariantCulture, out var id) || id <= 0)
+            throw new PluginMisconfigurationException("Enter a positive numeric Repository ID.");
         if (!Regex.IsMatch(input.Timestamp ?? string.Empty,
                 @"\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,7})?(?:Z|[+-]\d{2}:\d{2})\z") ||
             !DateTimeOffset.TryParse(input.Timestamp, CultureInfo.InvariantCulture, DateTimeStyles.None, out var timestamp))
@@ -30,7 +34,7 @@ public class PushDiagnosticActions(InvocationContext invocationContext) : BaseIn
 
         return new FilesModifiedDiagnostics(new BlackbirdGitlabClient(
                 InvocationContext.AuthenticationCredentialsProviders))
-            .CollectEventStreamAsync(timestamp, input.MinutesBeforeAndAfter);
+            .CollectEventStreamAsync(id, timestamp, input.MinutesBeforeAndAfter);
     }
 
     [Action("Diagnose files modified event",
