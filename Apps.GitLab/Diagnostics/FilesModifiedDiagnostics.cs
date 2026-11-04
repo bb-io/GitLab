@@ -24,6 +24,91 @@ internal sealed class FilesModifiedDiagnostics(BlackbirdGitlabClient client)
     private readonly Dictionary<string, JObject> _diffs = new(StringComparer.OrdinalIgnoreCase);
     private bool _complete = true;
 
+    internal async Task<DiagnoseEventStreamResponse> CollectEventStreamAsync(DateTimeOffset timestamp, int minutes)
+    {
+        const int maximumReportedEvents = 1000;
+        var collectedAt = DateTimeOffset.UtcNow;
+        var center = timestamp.ToUniversalTime();
+        var from = center.AddMinutes(-minutes);
+        var to = center.AddMinutes(minutes);
+        // Copy the polling event's query so diagnostics do not change its implementation.
+        var query = new Dictionary<string, string>
+        {
+            ["scope"] = "all",
+            ["action"] = "pushed",
+            ["after"] = from.UtcDateTime.Date.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            ["before"] = to.UtcDateTime.Date.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            ["sort"] = "desc",
+            ["per_page"] = "100"
+        };
+        using var deadline = new CancellationTokenSource(MaximumDuration);
+        var scan = await PagesAsync("/events", query, MaximumEventPages, deadline.Token);
+        var evidence = scan.Items.OfType<JObject>().Select(item => StreamEventEvidence(item, from, to)).ToList();
+        var inWindow = evidence.Count(item => item["in_requested_window"]?.Value<bool?>() == true);
+        var unknownTime = evidence.Count(item => item["in_requested_window"]?.Type == JTokenType.Null);
+        if (unknownTime > 0) Warn($"{unknownTime} event(s) had missing or invalid timestamps; window membership is unknown.");
+        if (evidence.Count != scan.Items.Count) Warn("The event stream included non-object records which could not be inspected.");
+        if (evidence.Count > maximumReportedEvents)
+            Warn($"Only {maximumReportedEvents} of {evidence.Count} events are reported; events inside the requested window take priority.");
+        // Preserve feed order unless the report cap requires prioritizing records within the exact window.
+        var reported = evidence.Count <= maximumReportedEvents ? evidence : evidence
+            .OrderByDescending(item => item["in_requested_window"]?.Value<bool?>() == true)
+            .Take(maximumReportedEvents).ToList();
+        var summary = $"Found {inWindow} event(s) in the requested time window from {scan.Items.Count} returned event record(s).";
+        if (!_complete) summary += " Evidence collection is partial.";
+        var report = new JObject
+        {
+            ["schema_version"] = 1,
+            ["collected_at_utc"] = collectedAt,
+            ["collection_finished_at_utc"] = DateTimeOffset.UtcNow,
+            ["app_version"] = typeof(FilesModifiedDiagnostics).Assembly.GetName().Version?.ToString(),
+            ["base_url"] = client.BaseUrl,
+            ["timestamp_with_offset"] = timestamp.ToString("O", CultureInfo.InvariantCulture),
+            ["timestamp_utc"] = center,
+            ["minutes_before_and_after"] = minutes,
+            ["window_from_utc"] = from,
+            ["window_to_utc"] = to,
+            ["endpoint"] = "/events",
+            ["query"] = JObject.FromObject(query),
+            ["pages_scanned"] = scan.Pages,
+            ["pagination_complete"] = scan.Complete,
+            ["returned_event_count"] = scan.Items.Count,
+            ["events_in_window_count"] = inWindow,
+            ["events_with_unknown_timestamp_count"] = unknownTime,
+            ["reported_event_count"] = reported.Count,
+            ["events"] = new JArray(reported),
+            ["requests"] = _requests,
+            ["collection_complete"] = _complete,
+            ["warnings"] = _warnings,
+            ["limits"] = JObject.FromObject(new
+            {
+                maximum_pages = MaximumEventPages, maximum_reported_events = maximumReportedEvents,
+                maximum_request_operations = MaximumRequests, maximum_duration_seconds = MaximumDuration.TotalSeconds
+            }),
+            ["limitations"] = new JArray(
+                "The API request uses the same global endpoint, parameters and padded date bounds as the polling event for the supplied window.",
+                "GitLab filters by date. Each returned record is additionally marked against the exact inclusive UTC timestamp window.",
+                "This queries currently visible and retained activity; it cannot reconstruct the original historical API response.",
+                "The supplied window replaces the poller's memory-derived scan window. Repository and other event filters, memory, deduplication and Flight creation are not simulated.",
+                "Request operations can include retries under the shared client policy; the deadline includes retries.")
+        };
+        return new DiagnoseEventStreamResponse
+        {
+            Summary = summary, EventCount = inWindow, ReturnedEventCount = scan.Items.Count,
+            CollectionComplete = _complete, ReportJson = report.ToString(Formatting.Indented)
+        };
+    }
+
+    internal static JObject StreamEventEvidence(JObject item, DateTimeOffset from, DateTimeOffset to)
+    {
+        var evidence = Pick(item, "id", "project_id", "action_name", "author_id", "created_at", "push_data");
+        var createdAt = Date(item, "created_at");
+        evidence["in_requested_window"] = createdAt.HasValue
+            ? JToken.FromObject(createdAt.Value >= from && createdAt.Value <= to) : JValue.CreateNull();
+        evidence["poller_payload_issues"] = SkipReasons(item, item["push_data"] as JObject);
+        return evidence;
+    }
+
     internal async Task<DiagnoseFilesModifiedResponse> CollectAsync(
         int repositoryId, string sha, string branch, DateTimeOffset? collectionTime = null)
     {
@@ -360,7 +445,15 @@ internal sealed class FilesModifiedDiagnostics(BlackbirdGitlabClient client)
     private static long? Number(JObject? source, string field) =>
         long.TryParse(Text(source, field), NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? number : null;
 
-    private static DateTimeOffset? Date(JObject? source, string field) =>
-        DateTimeOffset.TryParse(Text(source, field), CultureInfo.InvariantCulture,
+    private static DateTimeOffset? Date(JObject? source, string field)
+    {
+        // Preserve fractional seconds when Newtonsoft has already parsed an ISO timestamp as a date value.
+        var value = (source?[field] as JValue)?.Value;
+        if (value is DateTimeOffset offset) return offset.ToUniversalTime();
+        if (value is DateTime time)
+            return new DateTimeOffset(time.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(time, DateTimeKind.Utc) : time).ToUniversalTime();
+        return DateTimeOffset.TryParse(value as string, CultureInfo.InvariantCulture,
             DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var date) ? date : null;
+    }
 }
