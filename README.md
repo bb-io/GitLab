@@ -126,6 +126,13 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 - **Update file** Update existing file in a repository.
 - **Delete file** Delete file from a repository.
 
+### Diagnostics
+
+- **Diagnose files modified event** Collect read-only evidence for investigating why a commit did not trigger **On files modified across repositories**. Run it with the same connection as the event. Required inputs are **Repository ID**, the full **Commit SHA**, and **Expected branch**.
+  Outputs include a summary, confirmed related push count, collection completeness, and a JSON **Diagnostic report** for offline analysis. The report contains repository and commit metadata, changed file paths and change flags, current branch head and commit reachability, project/global push-feed visibility, push payload completeness checks, and comparison commits with their changed files for confirmed pushes. It includes request statuses and request IDs; credentials, error response bodies, file contents and diff patches are omitted.
+  The action searches the previous seven days and, for older commits, an additional range two days before and after the committed timestamp. Searches are bounded to 20 pages per feed per range, 10 pages per diff/reference lookup, 30 enriched candidate pushes, 50 commits per push, 200 reported repository events, 150 request operations and three minutes including retries. Collected evidence is preserved when an API request fails or a limit is reached; **Collection complete** then returns false. Each operation can include retries under the shared client policy.
+  Commit time can differ from push time, and GitLab may no longer retain an event. A missing related push only means none was confirmed within the reported ranges and limits. Current branch reachability does not prove historical branch membership. The action does not evaluate event filters, historical polling memory, baseline resets, deduplication or platform Flight creation. Compare the report with the event's inputs and polling logs. Newly added, deleted and renamed files do not qualify as modified files in this polling event.
+
 ### Merge request
 
 - **Search merge requests** Search merge requests in a repository.
