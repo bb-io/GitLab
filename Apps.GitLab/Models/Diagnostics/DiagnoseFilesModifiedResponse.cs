@@ -4,6 +4,12 @@ namespace Apps.GitLab.Models.Diagnostics;
 
 public class DiagnoseFilesModifiedResponse
 {
+    [Display("Repository ID", Description = "Map directly to Repository ID in Diagnose event stream")]
+    public string RepositoryId { get; set; } = string.Empty;
+
+    [Display("Timestamp", Description = "UTC timestamp of the latest confirmed push on the expected branch; map directly to Timestamp in Diagnose event stream. Empty when no such push was found.")]
+    public string? Timestamp { get; set; }
+
     [Display("Summary")]
     public string Summary { get; set; } = string.Empty;
 
