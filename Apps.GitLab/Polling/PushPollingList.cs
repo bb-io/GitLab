@@ -144,48 +144,50 @@ public class PushPollingList : BaseInvocable
             ? scanUpperUtc - Overlap
             : request.Memory!.LastCompletedScanUtc!.Value.ToUniversalTime() - Overlap;
 
-        var eventsRequest = _client.CreateRequest("/events", Method.Get);
-        eventsRequest.AddQueryParameter("scope", "all");
-        eventsRequest.AddQueryParameter("action", "pushed");
-        eventsRequest.AddQueryParameter(
-            "after",
-            scanLowerUtc.UtcDateTime.Date.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        eventsRequest.AddQueryParameter(
-            "before",
-            scanUpperUtc.UtcDateTime.Date.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        eventsRequest.AddQueryParameter("sort", "desc");
-        eventsRequest.AddQueryParameter("per_page", 100);
-
-        var events = await _client.ExecutePaginatedWithErrorHandling<GitLabPushEvent>(
-            eventsRequest,
-            scanDeadline.Token,
-            maximumPages: EventPageSafetyLimit,
-            maximumDuration: MaximumScanDuration);
-        EnsureWithinScanLimit(scanStopwatch);
-
         var selectedEvents = new List<(ProcessedPushEventKey Key, GitLabPushEvent Event)>();
         var selectedEventKeys = new HashSet<ProcessedPushEventKey>();
-        foreach (var pushEvent in events)
+        foreach (var repositoryId in repositoryIds.Order())
         {
-            if (!repositoryIds.Contains(pushEvent.ProjectId))
-                continue;
-            if (pushEvent.Id <= 0 || pushEvent.CreatedAt is null)
-                throw new PluginApplicationException(
-                    $"GitLab returned an incomplete event for selected repository {pushEvent.ProjectId}.");
+            EnsureWithinScanLimit(scanStopwatch);
+            var eventsRequest = _client.CreateRequest($"/projects/{repositoryId}/events", Method.Get);
+            eventsRequest.AddQueryParameter("action", "pushed");
+            eventsRequest.AddQueryParameter(
+                "after",
+                scanLowerUtc.UtcDateTime.Date.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            eventsRequest.AddQueryParameter(
+                "before",
+                scanUpperUtc.UtcDateTime.Date.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            eventsRequest.AddQueryParameter("sort", "desc");
+            eventsRequest.AddQueryParameter("per_page", 100);
 
-            var createdAt = pushEvent.CreatedAt.Value.ToUniversalTime();
-            if (createdAt < scanLowerUtc || createdAt > scanUpperUtc)
-                continue;
-
-            var key = new ProcessedPushEventKey
+            var repositoryEvents = await _client.ExecutePaginatedWithErrorHandling<GitLabPushEvent>(
+                eventsRequest,
+                scanDeadline.Token,
+                maximumPages: EventPageSafetyLimit,
+                maximumDuration: MaximumScanDuration - scanStopwatch.Elapsed);
+            foreach (var pushEvent in repositoryEvents)
             {
-                ProjectId = pushEvent.ProjectId,
-                EventId = pushEvent.Id,
-                CreatedAt = createdAt
-            };
-            if (selectedEventKeys.Add(key))
-                selectedEvents.Add((key, pushEvent));
+                if (pushEvent.ProjectId != repositoryId)
+                    continue;
+                if (pushEvent.Id <= 0 || pushEvent.CreatedAt is null)
+                    throw new PluginApplicationException(
+                        $"GitLab returned an incomplete event for selected repository {pushEvent.ProjectId}.");
+
+                var createdAt = pushEvent.CreatedAt.Value.ToUniversalTime();
+                if (createdAt < scanLowerUtc || createdAt > scanUpperUtc)
+                    continue;
+
+                var key = new ProcessedPushEventKey
+                {
+                    ProjectId = pushEvent.ProjectId,
+                    EventId = pushEvent.Id,
+                    CreatedAt = createdAt
+                };
+                if (selectedEventKeys.Add(key))
+                    selectedEvents.Add((key, pushEvent));
+            }
         }
+        EnsureWithinScanLimit(scanStopwatch);
 
         if (isBaseline)
         {
@@ -213,6 +215,8 @@ public class PushPollingList : BaseInvocable
             .ToHashSet();
         var unseenEvents = selectedEvents
             .Where(item => !previousKeys.Contains(item.Key))
+            .OrderByDescending(item => item.Key.CreatedAt)
+            .ThenByDescending(item => item.Key.EventId)
             .Select((item, index) => (item.Event, Index: index))
             .ToList();
         var matchingPushes = new ConcurrentBag<(int Index, PushPollingOutput Push)>();

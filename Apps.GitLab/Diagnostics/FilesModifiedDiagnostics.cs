@@ -30,7 +30,7 @@ internal sealed class FilesModifiedDiagnostics(BlackbirdGitlabClient client)
         var center = timestamp.ToUniversalTime();
         var from = center.AddMinutes(-minutes);
         var to = center.AddMinutes(minutes);
-        // Copy the polling event's query so diagnostics do not change its implementation.
+        // Keep a copy of the former global query for comparison with repository polling.
         var query = new Dictionary<string, string>
         {
             ["scope"] = "all",
@@ -76,7 +76,7 @@ internal sealed class FilesModifiedDiagnostics(BlackbirdGitlabClient client)
                 maximum_request_operations = MaximumRequests, maximum_duration_seconds = MaximumDuration.TotalSeconds
             }),
             ["limitations"] = new JArray(
-                "The global request copies the polling event query. The repository request uses identical date bounds, action and sort against the selected project's events endpoint, without scope=all.",
+                "The global request reproduces the former polling query. The repository request matches the current polling endpoint and parameters for the supplied window, without scope=all.",
                 "GitLab filters by date. Each returned record is additionally marked against the exact inclusive UTC timestamp window.",
                 "This queries currently visible and retained activity; it cannot reconstruct the original historical API response.",
                 "Comparison uses selected-repository event IDs inside the exact window. Missing IDs describe collected results; incomplete scans or reports can omit events.",

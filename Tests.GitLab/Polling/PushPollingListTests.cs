@@ -4,6 +4,7 @@ using Apps.GitLab.Polling.Models;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Polling;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Tests.GitLab.Base;
 
 namespace Tests.GitLab.Polling;
@@ -29,7 +30,8 @@ public class PushPollingListTests
         Assert.AreEqual(1001, response.Memory.RecentProcessedKeys[0].EventId);
         Assert.HasCount(1, handler.RequestUris);
         var query = handler.RequestUris.Single().Query;
-        StringAssert.Contains(query, "scope=all");
+        Assert.AreEqual("/api/v4/projects/101/events", handler.RequestUris.Single().AbsolutePath);
+        Assert.IsFalse(query.Contains("scope=", StringComparison.Ordinal));
         StringAssert.Contains(query, "action=pushed");
         StringAssert.Contains(query, "sort=desc");
         StringAssert.Contains(query, "per_page=100");
@@ -389,7 +391,7 @@ public class PushPollingListTests
     [TestMethod]
     public async Task InputChange_EstablishesFreshBaselineWithoutReplayingExistingActivity()
     {
-        var handler = CreateScenarioHandler("events/mixed-pushes.json");
+        var handler = CreateScenarioHandler("events/mixed-pushes.json", emptyBaseline: false);
         var polling = CreatePollingList(handler);
         var firstInput = CreateInput("101");
         var baseline = await polling.OnFilesModifiedAcrossRepositories(
@@ -419,14 +421,14 @@ public class PushPollingListTests
         var eventCalls = 0;
         var handler = new StubHttpMessageHandler((request, _) =>
         {
-            if (request.RequestUri!.AbsolutePath != "/api/v4/events")
+            if (request.RequestUri!.AbsolutePath != "/api/v4/projects/101/events")
                 throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
 
             var call = Interlocked.Increment(ref eventCalls);
             var response = GitLabTestData.JsonFixture("events/empty.json");
             if (call > 1)
                 GitLabTestData.WithHeader(response, "Link",
-                    $"<https://gitlab.test/api/v4/events?page={call}>; rel=\"next\"");
+                    $"<https://gitlab.test/api/v4/projects/101/events?page={call}>; rel=\"next\"");
             return Task.FromResult(response);
         });
         var polling = CreatePollingList(handler);
@@ -480,16 +482,20 @@ public class PushPollingListTests
         string project101CompareFixture = "compare/project-101.json",
         string project101DiffFixture = "diffs/sha-101-translate.json")
     {
-        var eventCalls = 0;
+        var eventCalls = new Dictionary<int, int>();
         return new StubHttpMessageHandler((request, _) =>
         {
             var path = request.RequestUri!.AbsolutePath;
             HttpResponseMessage response;
-            if (path == "/api/v4/events")
+            if (path.StartsWith("/api/v4/projects/", StringComparison.Ordinal) &&
+                path.EndsWith("/events", StringComparison.Ordinal))
             {
-                var call = Interlocked.Increment(ref eventCalls);
-                response = GitLabTestData.JsonFixture(
-                    emptyBaseline && call == 1 ? "events/empty.json" : eventsFixture);
+                var repositoryId = int.Parse(path.Split('/')[4]);
+                var call = eventCalls.GetValueOrDefault(repositoryId) + 1;
+                eventCalls[repositoryId] = call;
+                var events = JArray.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", eventsFixture)));
+                response = GitLabTestData.Json(emptyBaseline && call == 1 ? "[]" :
+                    new JArray(events.Where(item => item["project_id"]!.Value<int>() == repositoryId)).ToString());
             }
             else
             {

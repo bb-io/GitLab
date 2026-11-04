@@ -15,6 +15,10 @@ Before you can connect you need to make sure that:
 - You have a GitLab account.
 - You have the access level required by the feature: Reporter for cross-repository polling, or Maintainer/Owner for project webhook events.
 
+### Permissions
+
+Connection user needs at least the Reporter role in every selected repository. For a personal access token, grant `read_api` to read repository events, projects, comparisons, and commit diffs. Existing tokens with the broader `api` scope also work.
+
 ## Connecting
 
 GitLab supports the following connection types in Blackbird:
@@ -128,7 +132,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 
 ### Diagnostics
 
-- **Diagnose event stream** Compare the global push feed used by **On files modified across repositories** with the selected repository's push feed. Inputs are **Repository ID**, **Timestamp** (ISO 8601 with `Z` or an explicit timezone offset) and **Minutes before and after** (1–1440, applied on each side). For the November 4 push, use repository `156239` and timestamp `2026-11-04T02:57:34.718-03:30` or `2026-11-04T06:27:34.718Z`; entering 10 minutes inspects 10 minutes before through 10 minutes after that instant.
+- **Diagnose event stream** Compare the former global push feed with the repository push feed now used by **On files modified across repositories**. Inputs are **Repository ID**, **Timestamp** (ISO 8601 with `Z` or an explicit timezone offset) and **Minutes before and after** (1–1440, applied on each side). For the November 4 push, use repository `156239` and timestamp `2026-11-04T02:57:34.718-03:30` or `2026-11-04T06:27:34.718Z`; entering 10 minutes inspects 10 minutes before through 10 minutes after that instant.
   The action queries `/events` with `scope=all` and `/projects/{repositoryId}/events` without that scope, using the same `action=pushed`, descending order and padded date bounds. The JSON report contains separate `global_stream` and `repository_stream` sections with queries, counts, event payload evidence, pagination and collection status, plus a comparison of selected-repository event IDs absent from the collected global results. Counts distinguish all global events from events for the selected repository. Events are marked inside, outside or unknown relative to the exact inclusive UTC window. Each stream is bounded to 20 pages and 1000 reported events; both share a three-minute deadline including retries, and partial results are preserved. This shows currently visible activity and does not replay historical responses, polling memory, branch/file filters or Flight creation. Collection completeness describes client retrieval, not exhaustive server-side history.
 - **Diagnose files modified event** Collect read-only evidence for investigating why a commit did not trigger **On files modified across repositories**. Run it with the same connection as the event. Required inputs are **Repository ID**, the full **Commit SHA**, and **Expected branch**.
   Outputs include a summary, confirmed related push count, collection completeness, and a JSON **Diagnostic report** for offline analysis. The report contains repository and commit metadata, changed file paths and change flags, current branch head and commit reachability, project/global push-feed visibility, push payload completeness checks, and comparison commits with their changed files for confirmed pushes. It includes request statuses and request IDs; credentials, error response bodies, file contents and diff patches are omitted.
@@ -171,10 +175,6 @@ For example: when you want to create an event that triggers only when .html file
 
 - **On files modified across repositories** periodically checks push activity in multiple selected repositories. It uses read-only GitLab API requests and does not create project or group webhooks.
 
-#### Permissions
-
-Connection user needs at least the Reporter role in every selected repository. For a personal access token, grant `read_user` to read the global event feed and `read_api` to read projects, comparisons, and commit diffs. Existing tokens with the broader `api` scope also work.
-
 #### Inputs and matching
 
 **Repository IDs to include** is required. It is a multi-select field that displays each repository as `namespace/repository` while storing its stable numeric GitLab project ID.
@@ -197,11 +197,7 @@ Each flight returns one `Pushes` batch containing every matching push found duri
 
 First poll establishes a baseline and does not trigger. Changing any input also establishes a new baseline, preventing activity selected under the new configuration from being replayed. Later polls rescan a 24-hour overlap and de-duplicate processed GitLab event IDs. Memory advances only after the complete scan and all enrichment requests succeed, so an API failure or safety-limit failure does not lose events.
 
-#### API usage and safeguards
-
-A quiet poll reads one or more pages from the global GitLab Events API, then filters exact repository IDs before making repository-specific requests. A candidate push needs one compare request, one paginated diff request per message-qualified commit, and one project lookup per emitted repository. Enrichment runs with at most four concurrent requests. HTTP 429 responses are retried using `Retry-After` when supplied, capped at 60 seconds per retry; otherwise bounded exponential backoff with jitter is used.
-
-Polling has a 200-page event-feed limit, a 100-page limit per commit diff, and a five-minute total scan limit. Reaching a limit fails the poll instead of returning partial output or advancing memory.
+#### Limitation of polling
 
 GitLab cannot provide a reliable comparison range for every push:
 
@@ -210,7 +206,7 @@ GitLab cannot provide a reliable comparison range for every push:
 - Diffs flagged by GitLab as collapsed or too large are skipped because matched paths may be incomplete.
 - GitLab can stop very large commit diffs at the instance file limit; older versions might not flag that truncation, so matching can be less complete for unusually large commits.
 - The 24-hour overlap handles ordinary delays and pagination movement, not events that become visible more than 24 hours late.
-- The global event feed can return metadata for every project visible to the connection before local repository filtering occurs.
+- Existing polling memory remains compatible. Previously unseen pushes still inside the scan overlap can trigger after upgrading; events already recorded as processed remain deduplicated.
 
 ## Example
 
