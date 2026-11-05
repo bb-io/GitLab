@@ -13,6 +13,32 @@ namespace Tests.GitLab;
 public class BlackbirdGitlabClientTests
 {
     [TestMethod]
+    public async Task FindFileInfo_ReturnsNullForMissingFileAndReadsExistingFile()
+    {
+        var handler = new StubHttpMessageHandler((request, _) => Task.FromResult(
+            request.RequestUri!.AbsolutePath.Contains("missing.po")
+                ? GitLabTestData.Json("{\"message\":\"404 File Not Found\"}", HttpStatusCode.NotFound)
+                : GitLabTestData.Json("{\"file_name\":\"id.po\",\"content\":\"dGVzdA==\"}")));
+        var client = GitLabTestData.CreateClient(handler);
+
+        Assert.IsNull(await client.FindFileInfo(101, "src/missing.po", "main"));
+        var found = await client.FindFileInfo(101, "src/id.po", "main");
+        Assert.IsNotNull(found);
+        Assert.AreEqual("dGVzdA==", found.Content);
+    }
+
+    [TestMethod]
+    public async Task FindFileInfo_PropagatesOtherErrors()
+    {
+        var handler = new StubHttpMessageHandler((_, _) => Task.FromResult(
+            GitLabTestData.Json("{\"message\":\"403 Forbidden\"}", HttpStatusCode.Forbidden)));
+        var client = GitLabTestData.CreateClient(handler);
+
+        await Assert.ThrowsExactlyAsync<PluginMisconfigurationException>(
+            () => client.FindFileInfo(101, "src/id.po", "main"));
+    }
+
+    [TestMethod]
     public async Task PushChanges_SendsAllFileActionsInOneCommitRequest()
     {
         string? requestBody = null;

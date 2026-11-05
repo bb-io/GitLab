@@ -271,6 +271,18 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         return await ExecuteWithErrorHandling<RepositoryFileResponse>(request);
     }
 
+    public async Task<RepositoryFileResponse?> FindFileInfo(int projectId, string filePath, string branch)
+    {
+        var endpoint = $"/projects/{projectId}/repository/files/{Uri.EscapeDataString(filePath)}";
+        var request = CreateRequest(endpoint, Method.Get).AddQueryParameter("ref", branch);
+        var response = await ExecuteWithErrorHandling(request, HttpStatusCode.NotFound);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        return JsonConvert.DeserializeObject<RepositoryFileResponse>(response.Content ?? string.Empty, JsonSettings)
+               ?? throw new PluginApplicationException($"GitLab returned an invalid response for file '{filePath}'.");
+    }
+
     public async Task<byte[]> GetArchive(int projectId, string? branchName)
     {
         var branchCommit = !string.IsNullOrWhiteSpace(branchName) ? $"?sha={Uri.EscapeDataString(branchName)}" : "";
