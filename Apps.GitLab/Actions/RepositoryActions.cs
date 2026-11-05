@@ -69,9 +69,10 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         Project repository,
         string branch,
         string filePath,
-        string? contentId = null)
+        string? contentId = null,
+        RepositoryFileResponse? fileInfo = null)
     {
-        var fileInfo = await RestClient.GetFileInfo(projectId, filePath, branch);
+        fileInfo ??= await RestClient.GetFileInfo(projectId, filePath, branch);
         var fileName = Path.GetFileName(filePath);
         var mimeType = MimeTypes.GetMimeType(fileName);
         var fileStream = new MemoryStream(Convert.FromBase64String(fileInfo.Content));
@@ -204,6 +205,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         return new GetRepositoryFilesFromFilepathsResponse
         {
             Files = resultFiles,
+            FilePaths = resultFiles.Select(file => file.FilePath).ToArray(),
             NumberOfUnits = numberOfUnits,
             Metadata = metadata
         };
@@ -276,7 +278,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         return new(projects.ToArray());
     }
 
-    [Action("Search files by filepaths", Description = "Get files from a repository by file paths")]
+    [Action("Search files by filepaths", Description = "Get existing files from a repository by file paths; missing files are skipped")]
     public async Task<GetRepositoryFilesFromFilepathsResponse> GetRepositoryFilesFromFilepaths(
         [ActionParameter] GetRepositoryRequest repositoryRequest,
         [ActionParameter] GetOptionalBranchRequest branchRequest,
@@ -285,12 +287,19 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
         var repository = await RestClient.GetProject(projectId);
         var branch = branchRequest.Name ?? repository.DefaultBranch;
+        var branchRequestToGitLab = RestClient.CreateRequest(
+            $"/projects/{projectId}/repository/branches/{Uri.EscapeDataString(branch)}", Method.Get);
+        await RestClient.ExecuteWithErrorHandling(branchRequestToGitLab);
         var files = new List<GitLabFile>();
         var metadata = new List<Apps.GitLab.Models.Responses.MetadataResponse>();
         var numberOfUnits = 0;
         foreach (var filePath in input.FilePaths)
         {
-            var fileData = await GetFile(projectId, repository, branch, filePath);
+            var fileInfo = await RestClient.FindFileInfo(projectId, filePath, branch);
+            if (fileInfo is null)
+                continue;
+
+            var fileData = await GetFile(projectId, repository, branch, filePath, fileInfo: fileInfo);
 
             files.Add(new GitLabFile
             {
@@ -306,6 +315,7 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         return new()
         {
             Files = files,
+            FilePaths = files.Select(file => file.FilePath).ToArray(),
             NumberOfUnits = numberOfUnits,
             Metadata = metadata
         };

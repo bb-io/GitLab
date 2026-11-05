@@ -10,6 +10,9 @@ public class GetRepositoryFilesFromFilepathsResponse
 {
     public IEnumerable<GitLabFile> Files { get; set; }
 
+    [Display("File paths")]
+    public IEnumerable<string> FilePaths { get; set; } = [];
+
     [Display("Number of units")]
     public int NumberOfUnits { get; set; }
 

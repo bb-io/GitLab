@@ -107,7 +107,7 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
   Advanced settings:
   - **Content type**: Content type to include.
 - **Search repositories** Search repositories available to connection.
-- **Search files by filepaths** Get files from a repository by file paths.
+- **Search files by filepaths** Get existing files from a repository by their exact paths. Missing files are skipped; if none exist, the action returns an empty list. The file paths output lists the paths of the files found.
 - **Check if branch exists** Check whether branch exists in a repository.
 
 ### Commit
