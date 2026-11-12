@@ -287,9 +287,6 @@ public class RepositoryActions(InvocationContext invocationContext, IFileManagem
         var projectId = ParseProjectId(repositoryRequest.RepositoryId);
         var repository = await RestClient.GetProject(projectId);
         var branch = branchRequest.Name ?? repository.DefaultBranch;
-        var branchRequestToGitLab = RestClient.CreateRequest(
-            $"/projects/{projectId}/repository/branches/{Uri.EscapeDataString(branch)}", Method.Get);
-        await RestClient.ExecuteWithErrorHandling(branchRequestToGitLab);
         var files = new List<GitLabFile>();
         var metadata = new List<Apps.GitLab.Models.Responses.MetadataResponse>();
         var numberOfUnits = 0;
