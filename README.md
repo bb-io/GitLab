@@ -25,7 +25,8 @@ GitLab supports the following connection types in Blackbird:
 
 - **OAuth**: use this option for GitLab-hosted accounts.
 - **OAuth Self-managed**: use this option for self-managed GitLab instances hosted on a custom domain.
-- **Personal Access Token**: use this option when you want to connect with a personal token instead of OAuth.
+- **Personal Access Token (GitLab.com)**: use this option with a token issued by GitLab.com.
+- **Personal Access Token (Self-managed)**: use this option with a token issued by your self-managed GitLab instance.
 
 1. Navigate to apps and search for GitLab. If you cannot find GitLab then click _Add App_ in the top right corner, select GitLab and add the app to your Blackbird environment.
 2. Click _Add Connection_.
@@ -46,7 +47,7 @@ GitLab supports the following connection types in Blackbird:
 
 ### Connecting to self-managed GitLab
 
-If your GitLab instance is hosted on a custom domain, use the **OAuth Self-managed** connection type in Blackbird.
+To connect to your self-managed GitLab instance with OAuth, use the **OAuth Self-managed** connection type in Blackbird.
 
 1. In your self-managed GitLab instance, navigate to **Admin area** -> **Applications** and click **Add new application**.
 2. Enter an application name, for example _Blackbird Self-Managed Test_.
@@ -60,10 +61,11 @@ If your GitLab instance is hosted on a custom domain, use the **OAuth Self-manag
 
 ### Connecting with a personal access token
 
-1. Create a personal access token with the scopes required for the actions you want to use.
-2. In Blackbird, create a new GitLab connection and choose **Personal Access Token** as the connection type.
-3. Paste the token into the **API key** field.
-4. Save the connection and confirm that the status is _Connected_.
+1. Create a personal access token for your user or service account with the scopes required for the actions you want to use.
+2. In Blackbird, create a new GitLab connection and choose **Personal Access Token (GitLab.com)** or **Personal Access Token (Self-managed)** based on where you created the token.
+3. For a self-managed connection, enter the URL of the GitLab instance that issued the token in **Base URL**, for example `https://gitlab.example.com`.
+4. Paste the token into the **API key** field.
+5. Save the connection and confirm that the status is _Connected_.
 
 ## Actions
 
