@@ -225,9 +225,8 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
 
         return connectionType switch
         {
-            ConnectionTypes.OAuth => "https://gitlab.com",
-            ConnectionTypes.OAuthSelfManaged => creds.Get(CredNames.BaseUrl).Value.TrimEnd('/'),
-            ConnectionTypes.PersonalAccessToken => "https://gitlab.com",
+            ConnectionTypes.OAuth or ConnectionTypes.PersonalAccessToken => "https://gitlab.com",
+            ConnectionTypes.OAuthSelfManaged or ConnectionTypes.PersonalAccessTokenSelfManaged => creds.Get(CredNames.BaseUrl).Value.Trim().TrimEnd('/'),
             _ => throw new Exception($"Unsupported connection type: {connectionType}")
         };
     }

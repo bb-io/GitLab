@@ -29,11 +29,26 @@ public class ConnectionDefinition : IConnectionDefinition
         },
         new ConnectionPropertyGroup
         {
-            DisplayName = "Personal Access Token",
+            DisplayName = "Personal Access Token (GitLab.com)",
             Name = ConnectionTypes.PersonalAccessToken,
             AuthenticationType = ConnectionAuthenticationType.Undefined,
             ConnectionProperties = new List<ConnectionProperty>
             {
+                new(CredNames.ApiKey) { Sensitive = true, DisplayName = "API key" }
+            }
+        },
+        new ConnectionPropertyGroup
+        {
+            DisplayName = "Personal Access Token (Self-managed)",
+            Name = ConnectionTypes.PersonalAccessTokenSelfManaged,
+            AuthenticationType = ConnectionAuthenticationType.Undefined,
+            ConnectionProperties = new List<ConnectionProperty>
+            {
+                new(CredNames.BaseUrl)
+                {
+                    DisplayName = "Base URL",
+                    Description = "Enter the full URL of the self-managed GitLab instance that issued the token."
+                },
                 new(CredNames.ApiKey) { Sensitive = true, DisplayName = "API key" }
             }
         }
