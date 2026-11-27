@@ -71,8 +71,8 @@ To connect to your self-managed GitLab instance with OAuth, use the **OAuth Self
 
 ### Repository
 
-- **Get repository configuration** Get the entry for a target repository ID, branch, and file mask.
-- **Search repository configurations** Find entries by repository ID, branch, mask, locales, or metadata text. All selected target locales must be present. Metadata text matches field names and values, including nested values.
+- **Get repository configuration** Get the single entry that matches the selected filters.
+- **Search repository configurations** Find entries by repository ID, branch, file mask, source locale, target locale, or metadata text. **Contains target locale** checks for one exact locale in the target list. **Contains metadata** matches text in field names and values, including nested values. Both actions support the same filters.
 - **Create new repository** Create repository with selected settings.
   Advanced settings:
   - **User ID**: User ID that owns the created repository.

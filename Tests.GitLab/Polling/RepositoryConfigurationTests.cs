@@ -74,13 +74,13 @@ public class RepositoryConfigurationTests
         filters.Branch = "release";
         filters.FileMask = Mask;
         filters.SourceLocale = "en";
-        filters.TargetLocales = ["fr", "pt_BR"];
+        filters.ContainsTargetLocale = "pt_BR";
         filters.ContainsMetadata = "PARTmen";
         var found = await actions.Search(ActionRepository, ActionBranch, ActionPath, filters);
         Assert.AreEqual("release", found.Configurations.Single().Branch);
         filters.ContainsMetadata = "tion team";
         Assert.AreEqual(1, (await actions.Search(ActionRepository, ActionBranch, ActionPath, filters)).Configurations.Count);
-        filters.TargetLocales = ["fr", "de"];
+        filters.ContainsTargetLocale = "de";
         Assert.AreEqual(0, (await actions.Search(ActionRepository, ActionBranch, ActionPath, filters)).Configurations.Count);
 
         await Assert.ThrowsExactlyAsync<PluginMisconfigurationException>(() =>
@@ -88,6 +88,30 @@ public class RepositoryConfigurationTests
             {
                 SearchRepositoryId = "202", Branch = "release", FileMask = Mask
             }));
+    }
+
+    [TestMethod]
+    public async Task BothConfigurationActionsFilterBySourceLocaleTargetLocaleAndMetadata()
+    {
+        var differentSource = Entry(101);
+        differentSource["sourceLocale"] = "de";
+        var differentTarget = Entry(202);
+        differentTarget["targetLocales"] = new JsonArray("fr-CA", "pt_BR");
+        var differentMetadata = Entry(303);
+        differentMetadata["metadata"] = new JsonObject { ["department"] = "Content" };
+        var fixture = new Fixture(differentSource, differentTarget, differentMetadata, Entry(404));
+        var filters = new GetRepositoryConfigurationRequest
+        {
+            SourceLocale = "en",
+            ContainsTargetLocale = "fr",
+            ContainsMetadata = "IZATION TEAM"
+        };
+
+        var get = await fixture.Actions.Get(ActionRepository, ActionBranch, ActionPath, filters);
+        var search = await fixture.Actions.Search(ActionRepository, ActionBranch, ActionPath, filters);
+
+        Assert.AreEqual(404, get.RepositoryId);
+        Assert.AreEqual(404, search.Configurations.Single().RepositoryId);
     }
 
     [TestMethod]
@@ -105,14 +129,14 @@ public class RepositoryConfigurationTests
         var searchInputs = fields[3..];
         var nullability = new NullabilityInfoContext();
 
-        string[] expectedKeys = actionName == nameof(RepositoryConfigurationActions.Search)
-            ? ["RepositoryId", "Name", "FilePath", "SearchRepositoryId", "Branch", "FileMask", "SourceLocale", "TargetLocales", "ContainsMetadata"]
-            : ["RepositoryId", "Name", "FilePath", "SearchRepositoryId", "Branch", "FileMask"];
+        string[] expectedKeys =
+            ["RepositoryId", "Name", "FilePath", "SearchRepositoryId", "Branch", "FileMask", "SourceLocale", "ContainsTargetLocale", "ContainsMetadata"];
         CollectionAssert.AreEqual(expectedKeys, fields.Select(field => field.Name).ToArray());
         CollectionAssert.AreEqual(new[] { "Configuration repository", "Configuration branch", "Configuration path" },
             fileInputs.Select(input => input.GetCustomAttribute<DisplayAttribute>()?.Name).ToArray());
-        CollectionAssert.AreEqual(new[] { "Search repository ID", "Search branch", "Search file mask" },
-            searchInputs.Take(3).Select(input => input.GetCustomAttribute<DisplayAttribute>()?.Name).ToArray());
+        CollectionAssert.AreEqual(new[] { "Search repository ID", "Search branch", "Search file mask", "Source locale", "Contains target locale", "Contains metadata" },
+            searchInputs.Select(input => input.GetCustomAttribute<DisplayAttribute>()?.Name).ToArray());
+        Assert.AreEqual(typeof(string), searchInputs.Single(field => field.Name == "ContainsTargetLocale").PropertyType);
         Assert.AreEqual(fields.Length, fields.Select(field => field.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.AreEqual(responseFields.Length, responseFields.Select(field => field.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.AreEqual(typeof(RepositoryDataHandler), fileInputs[0].GetCustomAttribute<RepositoryPickerAttribute>()?.DataSourceHandler);
@@ -555,7 +579,7 @@ public class RepositoryConfigurationTests
             SearchRepositoryId = repositoryId!, Branch = "secondary", FileMask = Mask
         });
         Assert.AreEqual("secondary", get.Branch);
-        var search = await actions.Search(actionRepository, ActionBranch, actionPath, new() { TargetLocales = ["fr"] });
+        var search = await actions.Search(actionRepository, ActionBranch, actionPath, new() { ContainsTargetLocale = "fr" });
         Assert.AreEqual(2, search.Configurations.Count);
         var nested = await actions.Search(actionRepository, ActionBranch, actionPath, new() { ContainsMetadata = "Sandbox alternate" });
         Assert.AreEqual("locales/en/lc_messages/messages.po", nested.Configurations.Single().SourceFilePath);

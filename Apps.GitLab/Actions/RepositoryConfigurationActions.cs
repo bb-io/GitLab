@@ -26,14 +26,14 @@ public class RepositoryConfigurationActions(InvocationContext context, IFileMana
         var targetId = ParseOptionalRepositoryId(input.SearchRepositoryId);
         var reader = CreateReader();
         var entries = await reader.Read(repositoryId, branch.Name, file.FilePath);
-        var matches = entries.Where(entry => Matches(entry.Key, targetId, input.Branch, input.FileMask))
+        var matches = entries.Where(entry => Matches(entry, targetId, input))
             .Take(2).ToArray();
         return matches.Length switch
         {
             0 => throw new PluginMisconfigurationException("No configuration matches the supplied search fields."),
             1 => await reader.ToOutput(matches[0]),
             _ => throw new PluginMisconfigurationException(
-                "Multiple configurations match. Narrow the search using Search repository ID, Search branch, or Search file mask.")
+                "Multiple configurations match. Supply more specific search filters to select one configuration.")
         };
     }
 
@@ -45,15 +45,10 @@ public class RepositoryConfigurationActions(InvocationContext context, IFileMana
         [ActionParameter] SearchRepositoryConfigurationsRequest input)
     {
         var targetRepository = ParseOptionalRepositoryId(input.SearchRepositoryId);
-        var targets = input.TargetLocales?.ToArray() ?? [];
         var reader = CreateReader();
         var entries = await reader.Read(
             RepositoryConfigurationReader.ParseRepositoryId(repository.RepositoryId), branch.Name, file.FilePath);
-        var matches = entries.Where(entry =>
-            Matches(entry.Key, targetRepository, input.Branch, input.FileMask) &&
-            (string.IsNullOrWhiteSpace(input.SourceLocale) || entry.SourceLocale == input.SourceLocale) &&
-            targets.All(entry.TargetLocales.Contains) &&
-            (string.IsNullOrWhiteSpace(input.ContainsMetadata) || ContainsText(entry.Metadata, input.ContainsMetadata)));
+        var matches = entries.Where(entry => Matches(entry, targetRepository, input));
 
         var output = new RepositoryConfigurationsOutput();
         foreach (var match in matches)
@@ -64,10 +59,13 @@ public class RepositoryConfigurationActions(InvocationContext context, IFileMana
     private static int? ParseOptionalRepositoryId(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : RepositoryConfigurationReader.ParseRepositoryId(value);
 
-    private static bool Matches(ConfigurationKey key, int? repositoryId, string? branch, string? fileMask)
-        => (repositoryId is null || key.RepositoryId == repositoryId) &&
-           (string.IsNullOrWhiteSpace(branch) || key.Branch == branch) &&
-           (string.IsNullOrWhiteSpace(fileMask) || key.FileMask == fileMask);
+    private static bool Matches(RepositoryConfiguration entry, int? repositoryId, SearchRepositoryConfigurationsRequest filters)
+        => (repositoryId is null || entry.Key.RepositoryId == repositoryId) &&
+           (string.IsNullOrWhiteSpace(filters.Branch) || entry.Key.Branch == filters.Branch) &&
+           (string.IsNullOrWhiteSpace(filters.FileMask) || entry.Key.FileMask == filters.FileMask) &&
+           (string.IsNullOrWhiteSpace(filters.SourceLocale) || entry.SourceLocale == filters.SourceLocale) &&
+           (string.IsNullOrWhiteSpace(filters.ContainsTargetLocale) || entry.TargetLocales.Contains(filters.ContainsTargetLocale)) &&
+           (string.IsNullOrWhiteSpace(filters.ContainsMetadata) || ContainsText(entry.Metadata, filters.ContainsMetadata));
 
     private RepositoryConfigurationReader CreateReader()
         => new(ClientOverride ?? new BlackbirdGitlabClient(InvocationContext.AuthenticationCredentialsProviders),

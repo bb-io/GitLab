@@ -35,19 +35,6 @@ public class ConfigurationPathInput
     public string FilePath { get; set; } = string.Empty;
 }
 
-public class GetRepositoryConfigurationRequest
-{
-    [Display("Search repository ID")]
-    [DataSource(typeof(RepositoryDataHandler))]
-    public string? SearchRepositoryId { get; set; }
-
-    [Display("Search branch")]
-    public string? Branch { get; set; }
-
-    [Display("Search file mask")]
-    public string? FileMask { get; set; }
-}
-
 public class SearchRepositoryConfigurationsRequest
 {
     [Display("Search repository ID")]
@@ -63,11 +50,15 @@ public class SearchRepositoryConfigurationsRequest
     [Display("Source locale")]
     public string? SourceLocale { get; set; }
 
-    [Display("Target locales")]
-    public IEnumerable<string>? TargetLocales { get; set; }
+    [Display("Contains target locale", Description = "Locale that must be present in the configuration's target locales")]
+    public string? ContainsTargetLocale { get; set; }
 
     [Display("Contains metadata", Description = "Text to find in metadata field names or values")]
     public string? ContainsMetadata { get; set; }
+}
+
+public class GetRepositoryConfigurationRequest : SearchRepositoryConfigurationsRequest
+{
 }
 
 public class RepositoryConfigurationOutput
