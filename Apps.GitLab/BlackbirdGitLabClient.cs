@@ -121,6 +121,16 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
         CancellationToken cancellationToken = default,
         int maximumPages = DefaultMaximumPages,
         TimeSpan? maximumDuration = null)
+        => (await ExecutePaginated<T>(request, cancellationToken, maximumPages, maximumDuration, []))!;
+
+    internal Task<List<T>?> ExecutePaginatedAllowingUnavailable<T>(
+        RestRequest request, CancellationToken cancellationToken, int maximumPages)
+        => ExecutePaginated<T>(request, cancellationToken, maximumPages, null,
+            [HttpStatusCode.NotFound, HttpStatusCode.Forbidden]);
+
+    private async Task<List<T>?> ExecutePaginated<T>(
+        RestRequest request, CancellationToken cancellationToken, int maximumPages,
+        TimeSpan? maximumDuration, HttpStatusCode[] unavailableStatuses)
     {
         if (maximumPages <= 0)
             throw new PluginApplicationException(
@@ -151,13 +161,15 @@ public class BlackbirdGitlabClient : BlackBirdRestClient
             RestResponse response;
             try
             {
-                response = await ExecuteWithErrorHandling(currentRequest, paginationDeadline.Token);
+                response = await ExecuteWithErrorHandling(currentRequest, paginationDeadline.Token, unavailableStatuses);
             }
             catch (OperationCanceledException) when (
                 !cancellationToken.IsCancellationRequested && paginationDeadline.IsCancellationRequested)
             {
                 throw new PluginApplicationException(timeLimitMessage);
             }
+            if (!response.IsSuccessStatusCode)
+                return null;
             if (string.IsNullOrWhiteSpace(response.Content))
                 throw new PluginApplicationException("GitLab returned an empty paginated response.");
             List<T>? pageItems;
