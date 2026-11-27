@@ -1,9 +1,11 @@
 using System.Globalization;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Apps.Gitlab;
+using Apps.Gitlab.DataSourceHandlers;
 using Apps.Gitlab.Models.Branch.Requests;
 using Apps.Gitlab.Models.Respository.Requests;
 using Apps.GitLab.Actions;
@@ -12,13 +14,16 @@ using Apps.GitLab.Constants;
 using Apps.GitLab.Polling;
 using Apps.GitLab.Polling.Models;
 using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Polling;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSourceItems;
 using Tests.GitLab.Base;
+using RepositoryPickerAttribute = Blackbird.Applications.Sdk.Common.Dynamic.DataSourceAttribute;
 
 namespace Tests.GitLab.Polling;
 
@@ -41,7 +46,7 @@ public class RepositoryConfigurationTests
             Entry(101, branch: "release", enabled: false),
             Entry(202));
         var actions = fixture.Actions;
-        var results = await actions.Search(ConfigRepository, ConfigBranch, ConfigFile, new());
+        var results = await actions.Search(SearchInput);
 
         Assert.AreEqual(4, results.Configurations.Count);
         Assert.AreEqual("locales/en/messages.po", results.Configurations[1].SourceFilePath);
@@ -50,8 +55,11 @@ public class RepositoryConfigurationTests
         Assert.AreEqual(202, results.Configurations[3].RepositoryId);
         Assert.AreEqual(4, fixture.Files.Uploads.Count);
 
-        var get = await actions.Get(ConfigRepository, ConfigBranch, ConfigFile,
-            new RepositoryConfigurationInput { RepositoryId = "101", Branch = "release", FileMask = Mask });
+        var get = await actions.Get(new()
+        {
+            RepositoryId = ConfigRepository.RepositoryId, Name = ConfigBranch.Name, FilePath = ConfigFile.FilePath,
+            SearchRepositoryId = "101", Branch = "release", FileMask = Mask
+        });
         Assert.IsFalse(get.Enabled);
         CollectionAssert.AreEqual(new[] { "fr", "pt_BR" }, get.TargetLocales);
         Assert.AreEqual("application/json", fixture.Files.Uploads[get.Metadata.Name].ContentType);
@@ -59,21 +67,117 @@ public class RepositoryConfigurationTests
         Assert.AreEqual("Localization Team", metadata.RootElement.GetProperty("workflow")[0]
             .GetProperty("department").GetString());
 
-        var filters = new RepositoryConfigurationFilters
-        {
-            RepositoryId = "101", Branch = "release", FileMask = Mask, SourceLocale = "en",
-            TargetLocales = ["fr", "pt_BR"], ContainsMetadata = "PARTmen"
-        };
-        var found = await actions.Search(ConfigRepository, ConfigBranch, ConfigFile, filters);
+        var filters = SearchInput;
+        filters.SearchRepositoryId = "101";
+        filters.Branch = "release";
+        filters.FileMask = Mask;
+        filters.SourceLocale = "en";
+        filters.TargetLocales = ["fr", "pt_BR"];
+        filters.ContainsMetadata = "PARTmen";
+        var found = await actions.Search(filters);
         Assert.AreEqual("release", found.Configurations.Single().Branch);
         filters.ContainsMetadata = "tion team";
-        Assert.AreEqual(1, (await actions.Search(ConfigRepository, ConfigBranch, ConfigFile, filters)).Configurations.Count);
+        Assert.AreEqual(1, (await actions.Search(filters)).Configurations.Count);
         filters.TargetLocales = ["fr", "de"];
-        Assert.AreEqual(0, (await actions.Search(ConfigRepository, ConfigBranch, ConfigFile, filters)).Configurations.Count);
+        Assert.AreEqual(0, (await actions.Search(filters)).Configurations.Count);
 
         await Assert.ThrowsExactlyAsync<PluginMisconfigurationException>(() =>
-            actions.Get(ConfigRepository, ConfigBranch, ConfigFile,
-                new RepositoryConfigurationInput { RepositoryId = "202", Branch = "release", FileMask = Mask }));
+            actions.Get(new()
+            {
+                RepositoryId = ConfigRepository.RepositoryId, Name = ConfigBranch.Name, FilePath = ConfigFile.FilePath,
+                SearchRepositoryId = "202", Branch = "release", FileMask = Mask
+            }));
+    }
+
+    [TestMethod]
+    [DataRow(nameof(RepositoryConfigurationActions.Get), NullabilityState.Nullable)]
+    [DataRow(nameof(RepositoryConfigurationActions.Search), NullabilityState.NotNull)]
+    public void ConfigurationActionsExposeDistinctFieldsAndRepositoryPickers(string actionName, NullabilityState fileInputState)
+    {
+        var action = typeof(RepositoryConfigurationActions).GetMethod(actionName)!;
+        var request = action.GetParameters().Single().ParameterType;
+        var fields = request.GetProperties();
+        var responseFields = action.ReturnType.GetGenericArguments().Single().GetProperties();
+        var fileInputs = new[] { "RepositoryId", "Name", "FilePath" }.Select(name => request.GetProperty(name)!).ToArray();
+        var searchInputs = new[] { "SearchRepositoryId", "Branch", "FileMask" }.Select(name => request.GetProperty(name)!).ToArray();
+        var nullability = new NullabilityInfoContext();
+
+        CollectionAssert.AreEqual(new[] { "Configuration repository", "Configuration branch", "Configuration path" },
+            fileInputs.Select(input => input.GetCustomAttribute<DisplayAttribute>()?.Name).ToArray());
+        CollectionAssert.AreEqual(new[] { "Search repository ID", "Search branch", "Search file mask" },
+            searchInputs.Select(input => input.GetCustomAttribute<DisplayAttribute>()?.Name).ToArray());
+        Assert.AreEqual(fields.Length, fields.Select(field => field.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.AreEqual(responseFields.Length, responseFields.Select(field => field.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.AreEqual(typeof(RepositoryDataHandler), fileInputs[0].GetCustomAttribute<RepositoryPickerAttribute>()?.DataSourceHandler);
+        Assert.AreEqual(typeof(RepositoryDataHandler), searchInputs[0].GetCustomAttribute<RepositoryPickerAttribute>()?.DataSourceHandler);
+        Assert.IsTrue(fileInputs.All(input => nullability.Create(input).ReadState == fileInputState));
+        Assert.IsTrue(searchInputs.All(input => nullability.Create(input).ReadState == NullabilityState.Nullable));
+
+        var branchPicker = fileInputs[1].GetCustomAttribute<RepositoryPickerAttribute>()!.DataSourceHandler;
+        var filePicker = fileInputs[2].GetCustomAttribute<FileDataSourceAttribute>()!.FileDataSourceHandler;
+        CollectionAssert.AreEqual(new[] { "RepositoryId" }, GetPickerDependencyKeys(branchPicker));
+        CollectionAssert.AreEquivalent(new[] { "RepositoryId", "Name" }, GetPickerDependencyKeys(filePicker));
+    }
+
+    private static string[] GetPickerDependencyKeys(Type picker) => picker.GetConstructors().Single().GetParameters()
+        .Where(parameter => parameter.IsDefined(typeof(ActionParameterAttribute)))
+        .SelectMany(parameter => parameter.ParameterType.GetProperties())
+        .Select(property => property.Name)
+        .ToArray();
+
+    [TestMethod]
+    public void AllGitLabActionsHaveUniqueMethodNames()
+    {
+        var duplicates = typeof(RepositoryConfigurationActions).Assembly.GetTypes()
+            .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+            .Where(method => method.IsDefined(typeof(ActionAttribute)))
+            .GroupBy(method => method.Name, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
+
+        Assert.AreEqual(0, duplicates.Length, string.Join(", ", duplicates));
+    }
+
+    [TestMethod]
+    public async Task GetUsesDefaultBranchAndReturnsTheOnlyMatchForPartialSearch()
+    {
+        var fixture = new Fixture(Entry(101), Entry(202));
+
+        var result = await fixture.Actions.Get(new()
+        {
+            RepositoryId = ConfigRepository.RepositoryId, FilePath = ConfigFile.FilePath, SearchRepositoryId = "202"
+        });
+
+        Assert.AreEqual(202, result.RepositoryId);
+        Assert.AreEqual("?ref=HEAD", fixture.RequestUris.Single().Query);
+    }
+
+    [TestMethod]
+    public async Task GetWithoutSearchFieldsRejectsMultipleMatches()
+    {
+        var fixture = new Fixture(Entry(101), Entry(202));
+
+        var exception = await Assert.ThrowsExactlyAsync<PluginMisconfigurationException>(() =>
+            fixture.Actions.Get(new()
+            {
+                RepositoryId = ConfigRepository.RepositoryId, Name = ConfigBranch.Name, FilePath = ConfigFile.FilePath
+            }));
+
+        StringAssert.Contains(exception.Message, "Multiple configurations match");
+        Assert.AreEqual(0, fixture.Files.Uploads.Count);
+    }
+
+    [TestMethod]
+    public async Task GetWithoutConfigurationLocationExplainsWhatIsNeeded()
+    {
+        var fixture = new Fixture(Entry(101));
+
+        var exception = await Assert.ThrowsExactlyAsync<PluginMisconfigurationException>(() =>
+            fixture.Actions.Get(new()));
+
+        StringAssert.Contains(exception.Message, "Specify the configuration repository and path");
+        Assert.AreEqual(0, fixture.RequestPaths.Count);
     }
 
     [TestMethod]
@@ -101,7 +205,7 @@ public class RepositoryConfigurationTests
         var fixture = new Fixture([first, second, invalidBranch, invalidSource, ..invalidTargets,
             invalidMetadata, invalidMask, valid]);
 
-        var found = await fixture.Actions.Search(ConfigRepository, ConfigBranch, ConfigFile, new());
+        var found = await fixture.Actions.Search(SearchInput);
 
         Assert.AreEqual(403, found.Configurations.Single().RepositoryId);
         Assert.AreEqual("locales/English US.po", found.Configurations.Single().SourceFilePath);
@@ -124,8 +228,9 @@ public class RepositoryConfigurationTests
             ConfigurationOverride = GitLabTestData.Json("[" + entryWithNestedMetadata + "]")
         };
 
-        var result = await fixture.Actions.Search(ConfigRepository, ConfigBranch, ConfigFile,
-            new() { ContainsMetadata = "LANGUAGE GROUP" });
+        var input = SearchInput;
+        input.ContainsMetadata = "LANGUAGE GROUP";
+        var result = await fixture.Actions.Search(input);
 
         Assert.AreEqual(metadata, fixture.Files.Uploads[result.Configurations.Single().Metadata.Name].Text);
     }
@@ -140,7 +245,7 @@ public class RepositoryConfigurationTests
         var fixture = new Fixture { ConfigurationOverride = GitLabTestData.Json(content, status) };
 
         await Assert.ThrowsExactlyAsync<PluginMisconfigurationException>(() =>
-            fixture.Actions.Search(ConfigRepository, ConfigBranch, ConfigFile, new()));
+            fixture.Actions.Search(SearchInput));
         Assert.AreEqual(0, fixture.Files.Uploads.Count);
     }
 
@@ -264,7 +369,7 @@ public class RepositoryConfigurationTests
 
         await Assert.ThrowsExactlyAsync<IOException>(() => fixture.Poll(baseline.Memory));
         await Assert.ThrowsExactlyAsync<IOException>(() =>
-            fixture.Actions.Search(ConfigRepository, ConfigBranch, ConfigFile, new()));
+            fixture.Actions.Search(SearchInput));
         Assert.AreEqual(beforeFailure, JsonSerializer.Serialize(baseline.Memory));
 
         fixture.Files.UploadFailure = null;
@@ -420,15 +525,26 @@ public class RepositoryConfigurationTests
         var actions = new RepositoryConfigurationActions(context, files);
         var repository = new GetRepositoryRequest { RepositoryId = repositoryId! };
         var file = new ConfigurationFileInput { FilePath = "blackbird-config.json" };
-        var picker = new ConfigurationFilePicker(context, repository, new GetBranchRequest { Name = "secondary" });
+        var picker = new ConfigurationPathDataHandler(context, new() { RepositoryId = repositoryId!, Name = "secondary" });
         var filesOnBranch = await picker.GetFolderContentAsync(new(), CancellationToken.None);
         Assert.IsTrue(filesOnBranch.Any(item => item.Id == file.FilePath));
-        var get = await actions.Get(repository, ConfigBranch, file,
-            new RepositoryConfigurationInput { RepositoryId = repositoryId!, Branch = "secondary", FileMask = Mask });
+        var get = await actions.Get(new()
+        {
+            RepositoryId = repository.RepositoryId, Name = ConfigBranch.Name, FilePath = file.FilePath,
+            SearchRepositoryId = repositoryId!, Branch = "secondary", FileMask = Mask
+        });
         Assert.AreEqual("secondary", get.Branch);
-        var search = await actions.Search(repository, ConfigBranch, file, new() { TargetLocales = ["fr"] });
+        var search = await actions.Search(new()
+        {
+            RepositoryId = repository.RepositoryId, Name = ConfigBranch.Name, FilePath = file.FilePath,
+            TargetLocales = ["fr"]
+        });
         Assert.AreEqual(2, search.Configurations.Count);
-        var nested = await actions.Search(repository, ConfigBranch, file, new() { ContainsMetadata = "Sandbox alternate" });
+        var nested = await actions.Search(new()
+        {
+            RepositoryId = repository.RepositoryId, Name = ConfigBranch.Name, FilePath = file.FilePath,
+            ContainsMetadata = "Sandbox alternate"
+        });
         Assert.AreEqual("locales/en/lc_messages/messages.po", nested.Configurations.Single().SourceFilePath);
 
         var now = DateTimeOffset.Parse(baselineTime!, CultureInfo.InvariantCulture);
@@ -446,6 +562,11 @@ public class RepositoryConfigurationTests
         var third = await poller.OnSourceFilesModifiedAcrossRepos(new() { Memory = second.Memory }, repository, ConfigBranch, file);
         Assert.IsFalse(third.FlyBird);
     }
+
+    private static SearchRepositoryConfigurationsRequest SearchInput => new()
+    {
+        RepositoryId = ConfigRepository.RepositoryId, Name = ConfigBranch.Name, FilePath = ConfigFile.FilePath
+    };
 
     private static Logger CreateLogger(List<string> warnings) => new("Debug")
     {
@@ -497,7 +618,8 @@ public class RepositoryConfigurationTests
         internal DateTimeOffset Now { get; set; } = Baseline;
         internal Func<HttpMethod, string, HttpResponseMessage?>? Route { get; set; }
         internal HttpResponseMessage? ConfigurationOverride { get; init; }
-        internal List<string> RequestPaths => _handler.RequestUris.Select(PathFor).ToList();
+        internal IReadOnlyCollection<Uri> RequestUris => _handler.RequestUris;
+        internal List<string> RequestPaths => RequestUris.Select(PathFor).ToList();
         internal int CompareRequestCount => RequestPaths.Count(path => path.EndsWith("/compare"));
 
         internal RepositoryConfigurationActions Actions => new(_context, Files)

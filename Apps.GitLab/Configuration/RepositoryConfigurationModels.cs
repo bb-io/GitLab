@@ -1,10 +1,8 @@
 using System.Text.Json;
 using Apps.Gitlab.DataSourceHandlers;
-using Apps.Gitlab.Models.Branch.Requests;
-using Apps.Gitlab.Models.Respository.Requests;
 using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Files;
-using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSourceItems;
 
 namespace Apps.GitLab.Configuration;
@@ -16,33 +14,65 @@ public class ConfigurationFileInput
     public string FilePath { get; set; } = string.Empty;
 }
 
-public class ConfigurationFilePicker(
-    InvocationContext invocationContext,
-    [ActionParameter] GetRepositoryRequest repository,
-    [ActionParameter] GetBranchRequest branch)
-    : FilePickerDataHandler(invocationContext, repository, new GetOptionalBranchRequest { Name = branch.Name });
-
-public class RepositoryConfigurationInput
+public class OptionalConfigurationRepositoryInput
 {
-    [Display("Target repository ID")]
-    public string RepositoryId { get; set; } = string.Empty;
-
-    [Display("Target branch")]
-    public string Branch { get; set; } = string.Empty;
-
-    [Display("File mask")]
-    public string FileMask { get; set; } = string.Empty;
+    [Display("Configuration repository")]
+    [DataSource(typeof(RepositoryDataHandler))]
+    public string? RepositoryId { get; set; }
 }
 
-public class RepositoryConfigurationFilters
+public class OptionalConfigurationBranchInput : OptionalConfigurationRepositoryInput
 {
-    [Display("Target repository ID")]
-    public string? RepositoryId { get; set; }
+    [Display("Configuration branch", Description = "Uses the repository's default branch when omitted")]
+    [DataSource(typeof(OptionalConfigurationBranchDataHandler))]
+    public string? Name { get; set; }
+}
 
-    [Display("Target branch")]
+public class GetRepositoryConfigurationRequest : OptionalConfigurationBranchInput
+{
+    [Display("Configuration path")]
+    [FileDataSource(typeof(OptionalConfigurationPathDataHandler))]
+    public string? FilePath { get; set; }
+
+    [Display("Search repository ID")]
+    [DataSource(typeof(RepositoryDataHandler))]
+    public string? SearchRepositoryId { get; set; }
+
+    [Display("Search branch")]
     public string? Branch { get; set; }
 
-    [Display("File mask")]
+    [Display("Search file mask")]
+    public string? FileMask { get; set; }
+}
+
+public class ConfigurationRepositoryInput
+{
+    [Display("Configuration repository")]
+    [DataSource(typeof(RepositoryDataHandler))]
+    public string RepositoryId { get; set; } = string.Empty;
+}
+
+public class ConfigurationBranchInput : ConfigurationRepositoryInput
+{
+    [Display("Configuration branch")]
+    [DataSource(typeof(ConfigurationBranchDataHandler))]
+    public string Name { get; set; } = string.Empty;
+}
+
+public class SearchRepositoryConfigurationsRequest : ConfigurationBranchInput
+{
+    [Display("Configuration path")]
+    [FileDataSource(typeof(ConfigurationPathDataHandler))]
+    public string FilePath { get; set; } = string.Empty;
+
+    [Display("Search repository ID")]
+    [DataSource(typeof(RepositoryDataHandler))]
+    public string? SearchRepositoryId { get; set; }
+
+    [Display("Search branch")]
+    public string? Branch { get; set; }
+
+    [Display("Search file mask")]
     public string? FileMask { get; set; }
 
     [Display("Source locale")]

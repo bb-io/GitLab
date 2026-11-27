@@ -1,7 +1,5 @@
 using System.Text.Json;
 using Apps.Gitlab;
-using Apps.Gitlab.Models.Branch.Requests;
-using Apps.Gitlab.Models.Respository.Requests;
 using Apps.GitLab.Configuration;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
@@ -17,54 +15,57 @@ public class RepositoryConfigurationActions(InvocationContext context, IFileMana
 {
     internal BlackbirdGitlabClient? ClientOverride { private get; init; }
 
-    [Action("Get repository configuration", Description = "Get a configuration by repository ID, branch, and file mask")]
+    [Action("Get repository configuration", Description = "Get a single configuration matching the supplied search fields")]
     public async Task<RepositoryConfigurationOutput> Get(
-        [ActionParameter] GetRepositoryRequest repository,
-        [ActionParameter] GetBranchRequest branch,
-        [ActionParameter] ConfigurationFileInput file,
-        [ActionParameter] RepositoryConfigurationInput target)
+        [ActionParameter] GetRepositoryConfigurationRequest input)
     {
-        var targetId = RepositoryConfigurationReader.ParseRepositoryId(target.RepositoryId);
-        if (string.IsNullOrWhiteSpace(target.Branch) || string.IsNullOrWhiteSpace(target.FileMask))
-            throw new PluginMisconfigurationException("Specify the target branch and file mask.");
+        if (string.IsNullOrWhiteSpace(input.RepositoryId) || string.IsNullOrWhiteSpace(input.FilePath))
+            throw new PluginMisconfigurationException("Specify the configuration repository and path to read the configuration file.");
 
+        var targetId = ParseOptionalRepositoryId(input.SearchRepositoryId);
         var reader = CreateReader();
+        var configurationRef = string.IsNullOrWhiteSpace(input.Name) ? "HEAD" : input.Name;
         var entries = await reader.Read(
-            RepositoryConfigurationReader.ParseRepositoryId(repository.RepositoryId), branch.Name, file.FilePath);
-        var key = new ConfigurationKey(targetId, target.Branch, target.FileMask);
-        var match = entries.Find(entry => entry.Key == key)
-            ?? throw new PluginMisconfigurationException(
-                $"No configuration matches repository {targetId}, branch '{target.Branch}', file mask '{target.FileMask}'.");
-        return await reader.ToOutput(match);
+            RepositoryConfigurationReader.ParseRepositoryId(input.RepositoryId), configurationRef, input.FilePath);
+        var matches = entries.Where(entry => Matches(entry.Key, targetId, input.Branch, input.FileMask))
+            .Take(2).ToArray();
+        return matches.Length switch
+        {
+            0 => throw new PluginMisconfigurationException("No configuration matches the supplied search fields."),
+            1 => await reader.ToOutput(matches[0]),
+            _ => throw new PluginMisconfigurationException(
+                "Multiple configurations match. Narrow the search using Search repository ID, Search branch, or Search file mask.")
+        };
     }
 
     [Action("Search repository configurations", Description = "Find configurations matching the selected filters")]
     public async Task<RepositoryConfigurationsOutput> Search(
-        [ActionParameter] GetRepositoryRequest repository,
-        [ActionParameter] GetBranchRequest branch,
-        [ActionParameter] ConfigurationFileInput file,
-        [ActionParameter] RepositoryConfigurationFilters filters)
+        [ActionParameter] SearchRepositoryConfigurationsRequest input)
     {
-        int? targetRepository = string.IsNullOrWhiteSpace(filters.RepositoryId)
-            ? null
-            : RepositoryConfigurationReader.ParseRepositoryId(filters.RepositoryId);
-        var targets = filters.TargetLocales?.ToArray() ?? [];
+        var targetRepository = ParseOptionalRepositoryId(input.SearchRepositoryId);
+        var targets = input.TargetLocales?.ToArray() ?? [];
         var reader = CreateReader();
         var entries = await reader.Read(
-            RepositoryConfigurationReader.ParseRepositoryId(repository.RepositoryId), branch.Name, file.FilePath);
+            RepositoryConfigurationReader.ParseRepositoryId(input.RepositoryId), input.Name, input.FilePath);
         var matches = entries.Where(entry =>
-            (targetRepository is null || entry.Key.RepositoryId == targetRepository) &&
-            (string.IsNullOrWhiteSpace(filters.Branch) || entry.Key.Branch == filters.Branch) &&
-            (string.IsNullOrWhiteSpace(filters.FileMask) || entry.Key.FileMask == filters.FileMask) &&
-            (string.IsNullOrWhiteSpace(filters.SourceLocale) || entry.SourceLocale == filters.SourceLocale) &&
+            Matches(entry.Key, targetRepository, input.Branch, input.FileMask) &&
+            (string.IsNullOrWhiteSpace(input.SourceLocale) || entry.SourceLocale == input.SourceLocale) &&
             targets.All(entry.TargetLocales.Contains) &&
-            (string.IsNullOrWhiteSpace(filters.ContainsMetadata) || ContainsText(entry.Metadata, filters.ContainsMetadata)));
+            (string.IsNullOrWhiteSpace(input.ContainsMetadata) || ContainsText(entry.Metadata, input.ContainsMetadata)));
 
         var output = new RepositoryConfigurationsOutput();
         foreach (var match in matches)
             output.Configurations.Add(await reader.ToOutput(match));
         return output;
     }
+
+    private static int? ParseOptionalRepositoryId(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : RepositoryConfigurationReader.ParseRepositoryId(value);
+
+    private static bool Matches(ConfigurationKey key, int? repositoryId, string? branch, string? fileMask)
+        => (repositoryId is null || key.RepositoryId == repositoryId) &&
+           (string.IsNullOrWhiteSpace(branch) || key.Branch == branch) &&
+           (string.IsNullOrWhiteSpace(fileMask) || key.FileMask == fileMask);
 
     private RepositoryConfigurationReader CreateReader()
         => new(ClientOverride ?? new BlackbirdGitlabClient(InvocationContext.AuthenticationCredentialsProviders),
