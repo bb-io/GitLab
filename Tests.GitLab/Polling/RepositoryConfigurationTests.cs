@@ -259,7 +259,7 @@ public class RepositoryConfigurationTests
         var fixture = new Fixture(Entry(101));
         var baseline = await fixture.Poll();
         fixture.Now = Baseline.AddMinutes(1);
-        fixture.Files.FailUpload = true;
+        fixture.Files.UploadFailure = new IOException("Metadata storage is unavailable.");
         var beforeFailure = JsonSerializer.Serialize(baseline.Memory);
 
         await Assert.ThrowsExactlyAsync<IOException>(() => fixture.Poll(baseline.Memory));
@@ -267,7 +267,7 @@ public class RepositoryConfigurationTests
             fixture.Actions.Search(ConfigRepository, ConfigBranch, ConfigFile, new()));
         Assert.AreEqual(beforeFailure, JsonSerializer.Serialize(baseline.Memory));
 
-        fixture.Files.FailUpload = false;
+        fixture.Files.UploadFailure = null;
         var retried = await fixture.Poll(baseline.Memory);
         Assert.IsNotNull(retried.Result);
         Assert.AreEqual(101, retried.Result.Single().RepositoryId);
@@ -301,6 +301,74 @@ public class RepositoryConfigurationTests
         Assert.IsNotNull(retry.Result);
         Assert.AreEqual(101, retry.Result.Single().RepositoryId);
         Assert.AreEqual(2, retry.Result.Single().Pushes.Count);
+    }
+
+    [TestMethod]
+    public async Task WatchApplicationErrorWarnsAndLaterWatchesAndRepositoriesStillRun()
+    {
+        var fixture = new Fixture(Entry(101), Entry(101, branch: "release"), Entry(202));
+        var failCompare = true;
+        fixture.Route = (_, path) => path switch
+        {
+            "/projects/101/events" => Json(new[] { Push(101, 20, "main"), Push(101, 10, "main"), Push(101, 5, "release") }),
+            "/projects/101/repository/compare" when failCompare && fixture.CompareRequestCount == 2 =>
+                GitLabTestData.Json("{}", HttpStatusCode.ServiceUnavailable),
+            _ => null
+        };
+        var baseline = await fixture.Poll();
+        Assert.IsNotNull(baseline.Memory);
+        var previousWatch = baseline.Memory.Repositories[101].Watches.Single(watch => watch.Branch == "main");
+        previousWatch.RecentEvents.Add(99, Baseline);
+        fixture.Now = Baseline.AddMinutes(1);
+
+        var partial = await fixture.Poll(baseline.Memory);
+
+        Assert.IsNotNull(partial.Result);
+        Assert.IsNotNull(partial.Memory);
+        CollectionAssert.AreEqual(new[] { (101, "release"), (202, "main") },
+            partial.Result.Select(result => (result.RepositoryId, result.Branch)).ToArray());
+        var failedRepository = partial.Memory.Repositories[101];
+        var failedWatch = failedRepository.Watches.Single(watch => watch.Branch == "main");
+        Assert.AreEqual(fixture.Now, failedRepository.LastCheckedUtc);
+        Assert.AreEqual(fixture.Now, failedWatch.LastCheckedUtc);
+        Assert.AreEqual(Baseline, failedWatch.LastCompletedScanUtc);
+        CollectionAssert.AreEqual(previousWatch.RecentEvents.ToArray(), failedWatch.RecentEvents.ToArray());
+        Assert.IsTrue(fixture.Warnings.Any(warning => warning.Contains("'locales/en.po' on branch 'main' in repository 101")
+            && warning.Contains("503")));
+
+        failCompare = false;
+        fixture.Now = Baseline.AddMinutes(2);
+        var retry = await fixture.Poll(partial.Memory);
+        Assert.IsNotNull(retry.Result);
+        var retriedWatch = retry.Result.Single();
+        Assert.AreEqual(101, retriedWatch.RepositoryId);
+        Assert.AreEqual("main", retriedWatch.Branch);
+        Assert.AreEqual(2, retriedWatch.Pushes.Count);
+    }
+
+    [TestMethod]
+    public async Task MetadataApplicationErrorLeavesMatchedPushesRetryable()
+    {
+        var fixture = new Fixture(Entry(101));
+        var baseline = await fixture.Poll();
+        fixture.Now = Baseline.AddMinutes(1);
+        fixture.Files.UploadFailure = new PluginApplicationException("Metadata storage is unavailable.");
+
+        var partial = await fixture.Poll(baseline.Memory);
+
+        Assert.IsFalse(partial.FlyBird);
+        Assert.IsNotNull(partial.Memory);
+        var failedWatch = partial.Memory.Repositories[101].Watches.Single();
+        Assert.AreEqual(fixture.Now, failedWatch.LastCheckedUtc);
+        Assert.AreEqual(Baseline, failedWatch.LastCompletedScanUtc);
+        Assert.AreEqual(0, failedWatch.RecentEvents.Count);
+        Assert.IsTrue(fixture.Warnings.Any(warning => warning.Contains("Metadata storage is unavailable")));
+
+        fixture.Files.UploadFailure = null;
+        fixture.Now = Baseline.AddMinutes(2);
+        var retry = await fixture.Poll(partial.Memory);
+        Assert.IsNotNull(retry.Result);
+        Assert.AreEqual(101, retry.Result.Single().RepositoryId);
     }
 
     [TestMethod]
@@ -471,12 +539,12 @@ public class RepositoryConfigurationTests
     private sealed class CapturedFiles : IFileManagementClient
     {
         internal Dictionary<string, (string ContentType, string Text)> Uploads { get; } = new();
-        internal bool FailUpload { get; set; }
+        internal Exception? UploadFailure { get; set; }
 
         public async Task<FileReference> UploadAsync(Stream stream, string contentType, string fileName)
         {
-            if (FailUpload)
-                throw new IOException("Metadata storage is unavailable.");
+            if (UploadFailure is { } failure)
+                throw failure;
 
             using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
             Uploads[fileName] = (contentType, await reader.ReadToEndAsync());

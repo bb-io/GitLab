@@ -4,6 +4,7 @@ using Apps.Gitlab.Models.Respository.Requests;
 using Apps.GitLab.Configuration;
 using Apps.GitLab.Polling.Models;
 using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Polling;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
@@ -90,41 +91,45 @@ public class ConfiguredSourcePollingList : BaseInvocable
             if (!await scan.CheckRepository())
                 continue;
 
-            try
+            foreach (var watch in projectMemory.Watches.OrderBy(watch => watch.LastCheckedUtc)
+                         .ThenBy(watch => watch.Branch, StringComparer.Ordinal)
+                         .ThenBy(watch => watch.FileMask, StringComparer.Ordinal))
             {
-                foreach (var watch in projectMemory.Watches.OrderBy(watch => watch.LastCheckedUtc)
-                             .ThenBy(watch => watch.Branch, StringComparer.Ordinal)
-                             .ThenBy(watch => watch.FileMask, StringComparer.Ordinal))
+                token.ThrowIfCancellationRequested();
+                watch.LastCheckedUtc = upper;
+
+                try
                 {
-                    token.ThrowIfCancellationRequested();
-                    watch.LastCheckedUtc = upper;
                     if (!await scan.CheckSource(watch.Branch, watch.SourceFilePath))
                         continue;
 
-                    var pushes = new List<PushPollingOutput>();
-                    if (watch.ActiveSinceUtc < upper)
-                        pushes = await GetMatchingPushes(scan, watch);
+                    var (pushes, completedEvents) = await GetMatchingPushes(scan, watch, upper);
+                    if (pushes.Count > 0)
+                    {
+                        var entry = entriesByKey[new ConfigurationKey(projectId, watch.Branch, watch.FileMask)];
+                        var output = new ConfiguredSourcePollingOutput { Pushes = pushes };
+                        await _reader.ToOutput(entry, output);
+                        flights.Add(output);
+                    }
 
                     watch.LastCompletedScanUtc = upper;
-                    watch.RecentEvents = watch.RecentEvents
+                    watch.RecentEvents = watch.RecentEvents.Concat(completedEvents)
                         .Where(item => item.Value >= upper - Overlap)
                         .ToDictionary();
-
-                    if (pushes.Count == 0)
-                        continue;
-
-                    var entry = entriesByKey[new ConfigurationKey(projectId, watch.Branch, watch.FileMask)];
-                    var output = new ConfiguredSourcePollingOutput { Pushes = pushes };
-                    await _reader.ToOutput(entry, output);
-                    flights.Add(output);
-
-                    if (flights.Count == FlightLimit)
-                        break;
                 }
-            }
-            catch (ConfiguredRepositoryUnavailableException)
-            {
-                Warn($"Repository {projectId} was not found or is inaccessible. Check the connection's read permissions.");
+                catch (ConfiguredRepositoryUnavailableException)
+                {
+                    Warn($"Repository {projectId} was not found or is inaccessible. Check the connection's read permissions.");
+                    break;
+                }
+                catch (PluginApplicationException exception)
+                {
+                    Warn($"Could not check '{watch.SourceFilePath}' on branch '{watch.Branch}' in repository {projectId}. {exception.Message}");
+                    continue;
+                }
+
+                if (flights.Count == FlightLimit)
+                    break;
             }
 
             if (flights.Count == FlightLimit)
@@ -170,9 +175,12 @@ public class ConfiguredSourcePollingList : BaseInvocable
         return overlapStart > watch.ActiveSinceUtc ? overlapStart : watch.ActiveSinceUtc;
     }
 
-    private static async Task<List<PushPollingOutput>> GetMatchingPushes(
-        ConfiguredRepositoryScan scan, ConfiguredWatchMemory watch)
+    private static async Task<(List<PushPollingOutput> Pushes, Dictionary<long, DateTimeOffset> CompletedEvents)>
+        GetMatchingPushes(ConfiguredRepositoryScan scan, ConfiguredWatchMemory watch, DateTimeOffset upper)
     {
+        if (watch.ActiveSinceUtc >= upper)
+            return ([], []);
+
         var pushes = new List<PushPollingOutput>();
         var completedEvents = new Dictionary<long, DateTimeOffset>();
         var lower = ScanLowerBound(watch);
@@ -198,9 +206,7 @@ public class ConfiguredSourcePollingList : BaseInvocable
                 Commits = matching
             });
         }
-        foreach (var (eventId, createdAt) in completedEvents)
-            watch.RecentEvents.Add(eventId, createdAt);
-        return pushes;
+        return (pushes, completedEvents);
     }
 
     private void Warn(string warning) => InvocationContext.Logger?.LogWarning("{0}", [warning]);
