@@ -71,6 +71,8 @@ To connect to your self-managed GitLab instance with OAuth, use the **OAuth Self
 
 ### Repository
 
+- **Get repository configuration** Get the single entry that matches the selected filters.
+- **Search repository configurations** Find entries by repository ID, branch, file mask, source locale, target locale, or metadata text. **Contains target locale** checks for one exact locale in the target list. **Contains metadata** matches text in field names and values, including nested values. Both actions support the same filters.
 - **Create new repository** Create repository with selected settings.
   Advanced settings:
   - **User ID**: User ID that owns the created repository.
@@ -176,6 +178,7 @@ For example: when you want to create an event that triggers only when .html file
 ### Polling for modified files across repositories
 
 - **On files modified across repositories** periodically checks push activity in multiple selected repositories. It uses read-only GitLab API requests and does not create project or group webhooks.
+- **On source files modified across repositories** Starts a flight for each enabled configuration whose source file was modified. See [Configuration file](#configuration-file).
 
 #### Inputs and matching
 
@@ -209,6 +212,44 @@ GitLab cannot provide a reliable comparison range for every push:
 - GitLab can stop very large commit diffs at the instance file limit; older versions might not flag that truncation, so matching can be less complete for unusually large commits.
 - The 24-hour overlap handles ordinary delays and pagination movement, not events that become visible more than 24 hours late.
 - Existing polling memory remains compatible. Previously unseen pushes still inside the scan overlap can trigger after upgrading; events already recorded as processed remain deduplicated.
+
+## Configuration file
+
+Store a JSON array in one GitLab repository and select its repository, branch, and file path in **On source files modified across repositories**, **Get repository configuration**, or **Search repository configurations**.
+
+```json
+[
+  {
+    "repositoryId": 12345,
+    "branch": "main",
+    "fileMask": "locales/[LOCALE].json",
+    "sourceLocale": "en",
+    "targetLocales": ["fr", "pt_BR"],
+    "enabled": true,
+    "metadata": {
+      "workflow": { "team": "Localization" },
+      "labels": ["website", "priority"]
+    }
+  },
+  {
+    "repositoryId": 12345,
+    "branch": "main",
+    "fileMask": "locales/[LOCALE]/lc_messages/messages.po",
+    "sourceLocale": "en",
+    "targetLocales": ["de"],
+    "enabled": false,
+    "metadata": {}
+  }
+]
+```
+
+The combination of repository ID, branch, and file mask identifies an entry. A repository and branch can have several masks. A mask can also be used on several branches or in several repositories.
+
+The event substitutes the source locale for the case-sensitive `[LOCALE]` placeholder. The examples resolve to `locales/en.json` and `locales/en/lc_messages/messages.po`. Branch and source locale must be nonblank. Target locales must be a nonempty array of nonblank values.  Metadata must be a JSON object and can contain nested objects and arrays.
+
+An inaccessible or malformed configuration file fails the read. Invalid entries produce warnings, and every entry in a duplicate group is skipped.
+
+The event checks enabled configurations, starting with the least recently checked repository. It warns when a repository, branch, or source file is missing or inaccessible. Each matching configuration starts one flight containing the pushes and commits that edited its source file. Each poll stops at 20 flights, and later polls use saved progress to pick up remaining checks. Newly enabled or retargeted entries start tracking from the poll that observes the change.
 
 ## Example
 
