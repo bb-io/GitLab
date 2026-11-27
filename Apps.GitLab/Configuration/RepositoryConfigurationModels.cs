@@ -14,26 +14,29 @@ public class ConfigurationFileInput
     public string FilePath { get; set; } = string.Empty;
 }
 
-public class OptionalConfigurationRepositoryInput
+public class ConfigurationRepositoryInput
 {
     [Display("Configuration repository")]
     [DataSource(typeof(RepositoryDataHandler))]
-    public string? RepositoryId { get; set; }
+    public string RepositoryId { get; set; } = string.Empty;
 }
 
-public class OptionalConfigurationBranchInput : OptionalConfigurationRepositoryInput
+public class ConfigurationBranchInput
 {
-    [Display("Configuration branch", Description = "Uses the repository's default branch when omitted")]
-    [DataSource(typeof(OptionalConfigurationBranchDataHandler))]
-    public string? Name { get; set; }
+    [Display("Configuration branch")]
+    [DataSource(typeof(ConfigurationBranchDataHandler))]
+    public string Name { get; set; } = string.Empty;
 }
 
-public class GetRepositoryConfigurationRequest : OptionalConfigurationBranchInput
+public class ConfigurationPathInput
 {
     [Display("Configuration path")]
-    [FileDataSource(typeof(OptionalConfigurationPathDataHandler))]
-    public string? FilePath { get; set; }
+    [FileDataSource(typeof(ConfigurationPathDataHandler))]
+    public string FilePath { get; set; } = string.Empty;
+}
 
+public class GetRepositoryConfigurationRequest
+{
     [Display("Search repository ID")]
     [DataSource(typeof(RepositoryDataHandler))]
     public string? SearchRepositoryId { get; set; }
@@ -45,26 +48,8 @@ public class GetRepositoryConfigurationRequest : OptionalConfigurationBranchInpu
     public string? FileMask { get; set; }
 }
 
-public class ConfigurationRepositoryInput
+public class SearchRepositoryConfigurationsRequest
 {
-    [Display("Configuration repository")]
-    [DataSource(typeof(RepositoryDataHandler))]
-    public string RepositoryId { get; set; } = string.Empty;
-}
-
-public class ConfigurationBranchInput : ConfigurationRepositoryInput
-{
-    [Display("Configuration branch")]
-    [DataSource(typeof(ConfigurationBranchDataHandler))]
-    public string Name { get; set; } = string.Empty;
-}
-
-public class SearchRepositoryConfigurationsRequest : ConfigurationBranchInput
-{
-    [Display("Configuration path")]
-    [FileDataSource(typeof(ConfigurationPathDataHandler))]
-    public string FilePath { get; set; } = string.Empty;
-
     [Display("Search repository ID")]
     [DataSource(typeof(RepositoryDataHandler))]
     public string? SearchRepositoryId { get; set; }

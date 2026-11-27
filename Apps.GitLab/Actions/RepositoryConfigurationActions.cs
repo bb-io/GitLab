@@ -17,16 +17,15 @@ public class RepositoryConfigurationActions(InvocationContext context, IFileMana
 
     [Action("Get repository configuration", Description = "Get a single configuration matching the supplied search fields")]
     public async Task<RepositoryConfigurationOutput> Get(
+        [ActionParameter] ConfigurationRepositoryInput repository,
+        [ActionParameter] ConfigurationBranchInput branch,
+        [ActionParameter] ConfigurationPathInput file,
         [ActionParameter] GetRepositoryConfigurationRequest input)
     {
-        if (string.IsNullOrWhiteSpace(input.RepositoryId) || string.IsNullOrWhiteSpace(input.FilePath))
-            throw new PluginMisconfigurationException("Specify the configuration repository and path to read the configuration file.");
-
+        var repositoryId = RepositoryConfigurationReader.ParseRepositoryId(repository.RepositoryId);
         var targetId = ParseOptionalRepositoryId(input.SearchRepositoryId);
         var reader = CreateReader();
-        var configurationRef = string.IsNullOrWhiteSpace(input.Name) ? "HEAD" : input.Name;
-        var entries = await reader.Read(
-            RepositoryConfigurationReader.ParseRepositoryId(input.RepositoryId), configurationRef, input.FilePath);
+        var entries = await reader.Read(repositoryId, branch.Name, file.FilePath);
         var matches = entries.Where(entry => Matches(entry.Key, targetId, input.Branch, input.FileMask))
             .Take(2).ToArray();
         return matches.Length switch
@@ -40,13 +39,16 @@ public class RepositoryConfigurationActions(InvocationContext context, IFileMana
 
     [Action("Search repository configurations", Description = "Find configurations matching the selected filters")]
     public async Task<RepositoryConfigurationsOutput> Search(
+        [ActionParameter] ConfigurationRepositoryInput repository,
+        [ActionParameter] ConfigurationBranchInput branch,
+        [ActionParameter] ConfigurationPathInput file,
         [ActionParameter] SearchRepositoryConfigurationsRequest input)
     {
         var targetRepository = ParseOptionalRepositoryId(input.SearchRepositoryId);
         var targets = input.TargetLocales?.ToArray() ?? [];
         var reader = CreateReader();
         var entries = await reader.Read(
-            RepositoryConfigurationReader.ParseRepositoryId(input.RepositoryId), input.Name, input.FilePath);
+            RepositoryConfigurationReader.ParseRepositoryId(repository.RepositoryId), branch.Name, file.FilePath);
         var matches = entries.Where(entry =>
             Matches(entry.Key, targetRepository, input.Branch, input.FileMask) &&
             (string.IsNullOrWhiteSpace(input.SourceLocale) || entry.SourceLocale == input.SourceLocale) &&

@@ -8,7 +8,8 @@ namespace Apps.GitLab.Configuration;
 
 public class ConfigurationPathDataHandler(
     InvocationContext invocationContext,
-    [ActionParameter] ConfigurationBranchInput location)
+    [ActionParameter] ConfigurationRepositoryInput repository,
+    [ActionParameter] ConfigurationBranchInput branch)
     : FilePickerDataHandler(invocationContext,
-        new GetRepositoryRequest { RepositoryId = location.RepositoryId },
-        new GetOptionalBranchRequest { Name = location.Name });
+        new GetRepositoryRequest { RepositoryId = repository.RepositoryId },
+        new GetOptionalBranchRequest { Name = branch.Name });
